@@ -18,9 +18,37 @@
   --red:#ef4444; --blue:#60a5fa; --orange:#f97316;
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html,body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; height:100%; overflow:hidden; }
+html,body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  width:100%;
+  min-height:100%;
+  overscroll-behavior:none;
+}
+html { height:-webkit-fill-available; }
+body {
+  min-height:100vh;
+  min-height:100dvh;
+  min-height:-webkit-fill-available;
+  overflow:hidden;
+  padding-bottom:env(safe-area-inset-bottom);
+}
 button,input,select { font:inherit; }
-#app { height:100vh; display:grid; grid-template-rows:76px 118px minmax(0,1fr) 144px; gap:8px; padding:8px; max-width:1440px; margin:auto; }
+#app {
+  width:100%;
+  height:100vh;
+  height:100dvh;
+  min-height:-webkit-fill-available;
+  display:grid;
+  grid-template-rows:76px 118px minmax(0,1fr) 144px;
+  gap:8px;
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  max-width:1440px;
+  margin:auto;
+  overflow:hidden;
+}
 header { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,#090b0d,#050607); display:grid; grid-template-columns:150px 1fr 220px; align-items:center; padding:0 20px; }
 .brand-small { color:var(--green); letter-spacing:.22em; font-weight:800; font-size:12px; text-align:center; }
 h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-height:.95; }
@@ -78,11 +106,45 @@ h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-hei
 .alert.red { color:#ff6b6b; border-color:#7f1d1d; background:#241010; }
 .alert.yellow { color:var(--yellow); border-color:#713f12; background:#251c07; }
 .alert.green { color:var(--green); border-color:#365314; background:#142007; }
-.record { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:8px; min-height:0; }
+.record { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:8px; min-height:0; position:relative; z-index:20; pointer-events:auto; }
 .record-fields { padding:10px 16px; display:grid; grid-template-columns:1.6fr 1fr 1fr 1.2fr; gap:12px; align-items:end; }
 .field label { display:block; color:var(--muted); font-size:10px; font-weight:800; margin-bottom:6px; }
-.field select,.field input { width:100%; height:48px; border-radius:8px; background:#090c0f; color:white; border:1px solid #4b5563; padding:0 10px; font-size:16px; }
-.ready { border:1px solid var(--green); border-radius:12px; color:white; background:linear-gradient(135deg,#365314,#65a30d); display:flex; align-items:center; justify-content:center; flex-direction:column; font-weight:950; font-size:34px; letter-spacing:.03em; }
+.field select,.field input {
+  width:100%;
+  height:52px;
+  min-height:52px;
+  border-radius:8px;
+  background:#090c0f;
+  color:white;
+  border:1px solid #4b5563;
+  padding:0 10px;
+  font-size:16px;
+  touch-action:manipulation;
+  pointer-events:auto;
+  -webkit-appearance:auto;
+  appearance:auto;
+}
+.ready {
+  border:1px solid var(--green);
+  border-radius:12px;
+  color:white;
+  background:linear-gradient(135deg,#365314,#65a30d);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  font-weight:950;
+  font-size:34px;
+  letter-spacing:.03em;
+  min-height:96px;
+  touch-action:manipulation;
+  pointer-events:auto;
+  cursor:pointer;
+  position:relative;
+  z-index:25;
+  -webkit-user-select:none;
+  user-select:none;
+}
 .ready:active { transform:scale(.985); }
 .ready small { font-size:11px; margin-top:5px; }
 .hidden { display:none !important; }
@@ -96,6 +158,36 @@ h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-hei
   .price-card { min-height:100px; }
   .record { grid-template-columns:minmax(0,1fr) 250px; }
 }
+
+@media (pointer:coarse) {
+  .field select,.field input { min-height:54px; font-size:17px; }
+  .ready { min-height:104px; }
+  .suggestion { min-height:48px; display:flex; align-items:center; }
+}
+@media (max-height:820px) and (orientation:landscape) {
+  #app {
+    grid-template-rows:58px 94px minmax(0,1fr) 126px;
+    gap:6px;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+  }
+  header { padding:0 12px; }
+  h1 { font-size:32px; }
+  .slogan { margin-top:4px; }
+  .metric { padding:7px; }
+  .metric .value { font-size:25px; margin:3px 0; }
+  .metric .label { font-size:9px; }
+  .metric .sub { font-size:8px; }
+  .panel-title { height:36px; }
+  .dossier { grid-template-rows:36px 44px minmax(0,1fr) 76px; }
+  .player-name { font-size:27px; }
+  .price-card { min-height:88px; }
+  .price-card strong { font-size:22px; }
+  .price-card .range { font-size:20px; margin-top:4px; }
+  .record-fields { padding:7px 10px; gap:8px; }
+  .field select,.field input { height:48px; min-height:48px; }
+  .ready { min-height:100px; font-size:30px; }
+}
+
 </style>
 </head>
 <body>
@@ -289,5 +381,19 @@ $("readyBtn").addEventListener("click",()=>{
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
 fillSelects(); $("rosterSlot").disabled=true; renderAll(); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]);
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script></body>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
+<script>
+function setAppHeight() {
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-height", h + "px");
+  const app = document.getElementById("app");
+  if (app) app.style.height = h + "px";
+}
+window.addEventListener("resize", setAppHeight);
+window.addEventListener("orientationchange", () => setTimeout(setAppHeight, 200));
+if (window.visualViewport) window.visualViewport.addEventListener("resize", setAppHeight);
+window.addEventListener("load", setAppHeight);
+</script>
+
+</body>
 </html>

@@ -17,3 +17,10 @@ Open the deployed URL in Safari, tap Share, then Add to Home Screen.
 
 ## Data
 Draft progress is stored locally in the browser on that device.
+
+
+## v0.2 iPad Fix
+- Dynamic Safari viewport height
+- Bottom controls remain above browser chrome
+- Larger touch targets
+- Refreshed service-worker cache
