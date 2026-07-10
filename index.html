@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#050607">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="War Room">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mike Cassidy Auction War Room</title>
+<style>
+:root {
+  --bg:#050607; --panel:#0d1013; --panel2:#14181c; --line:#30363d;
+  --text:#f3f4f6; --muted:#9ca3af; --green:#84cc16; --yellow:#facc15;
+  --red:#ef4444; --blue:#60a5fa; --orange:#f97316;
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; height:100%; overflow:hidden; }
+button,input,select { font:inherit; }
+#app { height:100vh; display:grid; grid-template-rows:76px 118px minmax(0,1fr) 144px; gap:8px; padding:8px; max-width:1440px; margin:auto; }
+header { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,#090b0d,#050607); display:grid; grid-template-columns:150px 1fr 220px; align-items:center; padding:0 20px; }
+.brand-small { color:var(--green); letter-spacing:.22em; font-weight:800; font-size:12px; text-align:center; }
+h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-height:.95; }
+.slogan { color:var(--muted); letter-spacing:.28em; font-size:10px; text-align:center; margin-top:8px; }
+.header-right { text-align:right; color:var(--muted); font-weight:700; }
+.command { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+.card,.panel { background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:12px; }
+.metric { padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.metric .label { font-size:11px; color:#d1d5db; font-weight:800; letter-spacing:.05em; }
+.metric .value { font-size:32px; line-height:1.15; font-weight:900; color:var(--green); margin:6px 0; }
+.metric .sub { font-size:10px; color:var(--muted); }
+.main { display:grid; grid-template-columns:250px minmax(0,1fr) 300px; gap:8px; min-height:0; }
+.panel-title { height:42px; display:flex; align-items:center; padding:0 14px; border-bottom:1px solid var(--line); font-size:14px; font-weight:900; letter-spacing:.06em; }
+.roster { display:flex; flex-direction:column; min-height:0; }
+.roster-list { padding:6px 12px; overflow:auto; flex:1; }
+.roster-row { display:grid; grid-template-columns:56px 1fr 48px; gap:8px; align-items:center; min-height:30px; border-bottom:1px solid #252a2f; font-size:13px; }
+.slot { color:var(--green); font-weight:900; }
+.cost { text-align:right; color:#d1d5db; }
+.total { padding:8px 12px; display:flex; justify-content:space-between; color:var(--green); font-weight:900; border-top:1px solid var(--line); }
+.dossier { position:relative; display:grid; grid-template-rows:42px 52px minmax(0,1fr) 94px; min-height:0; border-color:#5d8f12; box-shadow:0 0 0 1px rgba(132,204,22,.15), inset 0 0 38px rgba(132,204,22,.025); }
+.search-row { display:grid; grid-template-columns:1fr 280px; align-items:center; gap:12px; padding:8px 14px; border-bottom:1px solid var(--line); }
+.search-wrap { position:relative; }
+#playerSearch { width:100%; height:38px; border:1px solid #4b5563; border-radius:8px; background:#090c0f; color:white; padding:0 12px; }
+#suggestions { display:none; position:absolute; z-index:50; top:42px; left:0; right:0; max-height:230px; overflow:auto; background:#0b0e11; border:1px solid #4b5563; border-radius:8px; box-shadow:0 12px 30px #000; }
+.suggestion { padding:12px; border-bottom:1px solid #22272c; }
+.suggestion:active { background:#20262b; }
+.player-head { display:flex; justify-content:center; align-items:center; gap:14px; padding:4px 16px; }
+.player-name { font-size:34px; font-weight:950; letter-spacing:.02em; }
+.meta { font-size:16px; color:#d1d5db; font-weight:800; }
+.meta span { margin:0 8px; }
+.decision-area { padding:8px 16px; display:flex; flex-direction:column; justify-content:center; min-height:0; }
+.waiting { height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#8b949e; text-align:center; }
+.waiting strong { font-size:24px; letter-spacing:.08em; }
+.command-text { text-align:center; color:var(--green); font-size:30px; font-weight:950; margin-bottom:8px; }
+.price-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.price-card { min-height:118px; border-radius:10px; display:flex; flex-direction:column; justify-content:center; align-items:center; border:1px solid; }
+.price-card strong { font-size:26px; }
+.price-card .range { font-size:24px; margin-top:8px; }
+.buy { border-color:var(--green); background:rgba(132,204,22,.12); color:var(--green); }
+.fair { border-color:var(--yellow); background:rgba(250,204,21,.11); color:var(--yellow); }
+.stop { border-color:var(--red); background:rgba(239,68,68,.11); color:var(--red); }
+.pivots { display:grid; grid-template-columns:1fr 1fr 1.25fr; border-top:1px solid var(--line); }
+.pivot { display:flex; flex-direction:column; justify-content:center; text-align:center; padding:8px; border-right:1px solid var(--line); }
+.pivot:last-child { border-right:0; }
+.pivot-label { font-size:10px; letter-spacing:.09em; font-weight:900; color:var(--muted); }
+.pivot-value { font-size:17px; font-weight:900; margin-top:6px; }
+.side { display:grid; grid-template-rows:minmax(0,1fr) 156px; gap:8px; min-height:0; }
+.core-list { padding:6px 12px; overflow:auto; }
+.core-row { display:grid; grid-template-columns:20px 1fr 58px; gap:8px; align-items:center; min-height:34px; border-bottom:1px solid #252a2f; }
+.status-dot { width:16px; height:16px; border:1px solid #6b7280; border-radius:4px; }
+.status-dot.mine { background:var(--green); border-color:var(--green); }
+.status-dot.other { background:var(--red); border-color:var(--red); }
+.alerts { padding:6px; }
+.alert { min-height:40px; border-radius:8px; border:1px solid; margin-bottom:5px; padding:7px 9px; font-size:11px; display:flex; align-items:center; font-weight:800; }
+.alert.red { color:#ff6b6b; border-color:#7f1d1d; background:#241010; }
+.alert.yellow { color:var(--yellow); border-color:#713f12; background:#251c07; }
+.alert.green { color:var(--green); border-color:#365314; background:#142007; }
+.record { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:8px; min-height:0; }
+.record-fields { padding:10px 16px; display:grid; grid-template-columns:1.6fr 1fr 1fr 1.2fr; gap:12px; align-items:end; }
+.field label { display:block; color:var(--muted); font-size:10px; font-weight:800; margin-bottom:6px; }
+.field select,.field input { width:100%; height:48px; border-radius:8px; background:#090c0f; color:white; border:1px solid #4b5563; padding:0 10px; font-size:16px; }
+.ready { border:1px solid var(--green); border-radius:12px; color:white; background:linear-gradient(135deg,#365314,#65a30d); display:flex; align-items:center; justify-content:center; flex-direction:column; font-weight:950; font-size:34px; letter-spacing:.03em; }
+.ready:active { transform:scale(.985); }
+.ready small { font-size:11px; margin-top:5px; }
+.hidden { display:none !important; }
+@media (max-width:1100px) {
+  #app { grid-template-rows:64px 104px minmax(0,1fr) 130px; gap:6px; padding:6px; }
+  header { grid-template-columns:100px 1fr 130px; padding:0 12px; }
+  h1 { font-size:34px; }
+  .metric .value { font-size:26px; }
+  .main { grid-template-columns:220px minmax(0,1fr) 250px; gap:6px; }
+  .player-name { font-size:28px; }
+  .price-card { min-height:100px; }
+  .record { grid-template-columns:minmax(0,1fr) 250px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand-small">MIKE CASSIDY<br>AUCTION BIBLE</div>
+    <div><h1>WAR ROOM</h1><div class="slogan">ONE SCREEN. ONE GLANCE. ONE DECISION.</div></div>
+    <div class="header-right"><div id="clock"></div><div id="nomCount">0 NOMINATIONS</div></div>
+  </header>
+
+  <section class="command">
+    <div class="card metric"><div class="label">REMAINING BUDGET</div><div class="value" id="budget">$200</div><div class="sub">OF $200</div></div>
+    <div class="card metric"><div class="label">MAX BID (LEGAL)</div><div class="value" id="maxBid">$184</div><div class="sub">YOUR TOP BID</div></div>
+    <div class="card metric"><div class="label">PLAYERS LEFT</div><div class="value" id="playersLeft">17</div><div class="sub">OF 17 ROSTER SPOTS</div></div>
+    <div class="card metric"><div class="label">AVG $ / PLAYER</div><div class="value" id="avg">$11.76</div><div class="sub">REMAINING AVERAGE</div></div>
+    <div class="card metric"><div class="label">MARKET TEMPERATURE</div><div class="value" id="market">EARLY</div><div class="sub" id="marketTrend">STABLE</div></div>
+    <div class="card metric"><div class="label">DRAFT PHASE</div><div class="value" id="phase">EARLY</div><div class="sub">BASED ON SALES</div></div>
+  </section>
+
+  <main class="main">
+    <section class="panel roster">
+      <div class="panel-title">ROSTER PANEL</div>
+      <div class="roster-list" id="roster"></div>
+      <div class="total"><span>TOTAL SPENT</span><span id="totalSpent">$0</span></div>
+    </section>
+
+    <section class="panel dossier">
+      <div class="search-row">
+        <div class="panel-title" style="border:0;padding:0;height:auto">TARGET DOSSIER</div>
+        <div class="search-wrap">
+          <input id="playerSearch" placeholder="Type player name…" autocomplete="off">
+          <div id="suggestions"></div>
+        </div>
+      </div>
+      <div class="player-head hidden" id="playerHead">
+        <div class="player-name" id="playerName"></div>
+        <div class="meta"><span id="playerPos"></span>|<span id="playerTier"></span>|<span id="playerPressure"></span></div>
+      </div>
+      <div class="decision-area">
+        <div class="waiting" id="waiting"><strong>WAITING FOR NEXT NOMINATION</strong><div style="margin-top:12px">Select a player to activate the dossier.</div></div>
+        <div id="liveDecision" class="hidden">
+          <div class="command-text" id="commandText">ATTACK</div>
+          <div class="price-grid">
+            <div class="price-card buy"><strong>BUY</strong><div class="range" id="buyRange"></div></div>
+            <div class="price-card fair"><strong>FAIR</strong><div class="range" id="fairRange"></div></div>
+            <div class="price-card stop"><strong>STOP</strong><div class="range" id="stopRange"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="pivots">
+        <div class="pivot"><div class="pivot-label">PRIMARY PIVOT</div><div class="pivot-value" id="primaryPivot">—</div></div>
+        <div class="pivot"><div class="pivot-label">SECONDARY PIVOT</div><div class="pivot-value" id="secondaryPivot">—</div></div>
+        <div class="pivot"><div class="pivot-label">BUDGET PIVOT</div><div class="pivot-value" id="budgetPivot">—</div></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="panel-title">CORE TARGETS PANEL</div>
+        <div class="core-list" id="coreTargets"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-title">ALERT PANEL (MAX 3)</div>
+        <div class="alerts" id="alerts"></div>
+      </section>
+    </aside>
+  </main>
+
+  <section class="record">
+    <div class="panel record-fields">
+      <div class="field"><label>1. PLAYER</label><select id="recordPlayer"></select></div>
+      <div class="field"><label>2. WINNER</label><select id="winner"><option value="other">OTHER</option><option value="me">ME</option></select></div>
+      <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
+      <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
+    </div>
+    <button class="ready" id="readyBtn">✓ READY<small>NEXT NOMINATION</small></button>
+  </section>
+</div>
+
+<script>
+const PLAYERS = [{"pos": "RB", "name": "Omarion Hampton", "tier": "1A", "pressure": 10, "action": "ATTACK", "buyLow": 44, "buyHigh": 48, "fairLow": 49, "fairHigh": 52, "overpay": 53, "pivots": "Kenneth Walker III → Chase Brown → David Montgomery → Travis Etienne Jr.", "budgetPivot": "If overpriced, prioritize elite WR and build deeper RB room", "audit": "BID", "notes": "Cornerstone"}, {"pos": "WR", "name": "A.J. Brown", "tier": "1A", "pressure": 10, "action": "ATTACK", "buyLow": 48, "buyHigh": 52, "fairLow": 53, "fairHigh": 56, "overpay": 57, "pivots": "CeeDee Lamb → Nico Collins → Jaxon Smith-Njigba", "budgetPivot": "If overpriced, upgrade RB and re-enter WR later", "audit": "BID", "notes": "Cornerstone"}, {"pos": "WR", "name": "CeeDee Lamb", "tier": "1A", "pressure": 10, "action": "ATTACK", "buyLow": 47, "buyHigh": 51, "fairLow": 52, "fairHigh": 55, "overpay": 56, "pivots": "A.J. Brown → Nico Collins → Jaxon Smith-Njigba", "budgetPivot": "If overpriced, upgrade RB and re-enter WR later", "audit": "BID", "notes": "Cornerstone"}, {"pos": "RB", "name": "Kenneth Walker III", "tier": "1B", "pressure": 9, "action": "ATTACK", "buyLow": 36, "buyHigh": 40, "fairLow": 41, "fairHigh": 44, "overpay": 45, "pivots": "Chase Brown → David Montgomery → Travis Etienne Jr. → Ashton Jeanty", "budgetPivot": "If overpriced, spend where value appears and circle back to RB", "audit": "BID", "notes": "Mike's Guy"}, {"pos": "TE", "name": "Brock Bowers", "tier": "1B", "pressure": 9, "action": "ATTACK", "buyLow": 34, "buyHigh": 38, "fairLow": 39, "fairHigh": 42, "overpay": 43, "pivots": "Tyler Warren → Wait", "budgetPivot": "If overpriced, strengthen RB/WR and wait at TE", "audit": "BID", "notes": "Positional edge"}, {"pos": "WR", "name": "Alec Pierce", "tier": "2", "pressure": 9, "action": "ATTACK", "buyLow": 13, "buyHigh": 16, "fairLow": 17, "fairHigh": 20, "overpay": 21, "pivots": "Josh Downs → Rashid Shaheed → Ricky Pearsall", "budgetPivot": "If overpriced, take another value WR and preserve budget", "audit": "BID", "notes": "Mike's Guy"}, {"pos": "WR", "name": "Jaxon Smith-Njigba", "tier": "2", "pressure": 9, "action": "ATTACK", "buyLow": 35, "buyHigh": 39, "fairLow": 40, "fairHigh": 43, "overpay": 44, "pivots": "Jameson Williams → Jaylen Waddle → DeVonta Smith", "budgetPivot": "If overpriced, build WR depth rather than force a premium replacement", "audit": "BID", "notes": "Premier Tier 2 WR"}, {"pos": "RB", "name": "Bijan Robinson", "tier": "2", "pressure": 8, "action": "VALUE", "buyLow": 56, "buyHigh": 60, "fairLow": 61, "fairHigh": 66, "overpay": 67, "pivots": "Omarion Hampton → Kenneth Walker III → Chase Brown", "budgetPivot": "If overpriced, use savings for elite WR + deeper RB room", "audit": "BID", "notes": "Elite"}, {"pos": "RB", "name": "Chase Brown", "tier": "2", "pressure": 8, "action": "ATTACK", "buyLow": 31, "buyHigh": 34, "fairLow": 35, "fairHigh": 38, "overpay": 39, "pivots": "David Montgomery → Travis Etienne Jr. → J.K. Dobbins", "budgetPivot": "If overpriced, shift money to WR or TE and return to RB later", "audit": "BID", "notes": "Ascending"}, {"pos": "RB", "name": "David Montgomery", "tier": "2", "pressure": 8, "action": "ATTACK", "buyLow": 26, "buyHigh": 29, "fairLow": 30, "fairHigh": 33, "overpay": 34, "pivots": "Travis Etienne Jr. → J.K. Dobbins → Chuba Hubbard", "budgetPivot": "If overpriced, use savings to upgrade WR", "audit": "BID", "notes": "Reliable RB2/FLEX; avoid pairing with Nico unless both values"}, {"pos": "RB", "name": "Jahmyr Gibbs", "tier": "2", "pressure": 8, "action": "VALUE", "buyLow": 52, "buyHigh": 56, "fairLow": 57, "fairHigh": 62, "overpay": 63, "pivots": "Kenneth Walker III → Chase Brown → David Montgomery", "budgetPivot": "If overpriced, shift to balanced build", "audit": "BID", "notes": "Elite"}, {"pos": "RB", "name": "Travis Etienne Jr.", "tier": "2", "pressure": 8, "action": "VALUE", "buyLow": 20, "buyHigh": 23, "fairLow": 24, "fairHigh": 27, "overpay": 28, "pivots": "J.K. Dobbins → Ashton Jeanty → Bucky Irving", "budgetPivot": "If overpriced, shift dollars toward WR and return for RB depth", "audit": "BID", "notes": "Tier 2 by user decision"}, {"pos": "TE", "name": "Tyler Warren", "tier": "2", "pressure": 8, "action": "ATTACK", "buyLow": 21, "buyHigh": 24, "fairLow": 25, "fairHigh": 28, "overpay": 29, "pivots": "Wait", "budgetPivot": "If overpriced, punt TE and strengthen RB/WR", "audit": "BID", "notes": "Primary Bowers fallback"}, {"pos": "WR", "name": "Emeka Egbuka", "tier": "3", "pressure": 8, "action": "ATTACK", "buyLow": 16, "buyHigh": 19, "fairLow": 20, "fairHigh": 23, "overpay": 24, "pivots": "Ricky Pearsall → Luther Burden III → Tetairoa McMillan", "budgetPivot": "If overpriced, preserve money for RB/TE", "audit": "BID", "notes": "High-interest upside"}, {"pos": "WR", "name": "Jameson Williams", "tier": "2", "pressure": 8, "action": "ATTACK", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Alec Pierce → Rashid Shaheed → Luther Burden III", "budgetPivot": "If overpriced, shift to cheaper upside and preserve RB budget", "audit": "BID", "notes": "Upside starter"}, {"pos": "WR", "name": "Nico Collins", "tier": "2", "pressure": 8, "action": "ATTACK", "buyLow": 31, "buyHigh": 35, "fairLow": 36, "fairHigh": 39, "overpay": 40, "pivots": "Jaxon Smith-Njigba → Jameson Williams → Jaylen Waddle", "budgetPivot": "If overpriced, spend savings at RB/TE", "audit": "BID", "notes": "Avoid pairing with Montgomery unless both values"}, {"pos": "QB", "name": "Drake Maye", "tier": "3", "pressure": 7, "action": "ATTACK", "buyLow": 4, "buyHigh": 6, "fairLow": 7, "fairHigh": 9, "overpay": 10, "pivots": "Caleb Williams → Justin Herbert → Trevor Lawrence", "budgetPivot": "If overpriced, keep waiting at QB and spend at RB/WR", "audit": "BID", "notes": "Preferred QB"}, {"pos": "RB", "name": "Ashton Jeanty", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 26, "buyHigh": 30, "fairLow": 31, "fairHigh": 35, "overpay": 36, "pivots": "Kenneth Walker III → Chase Brown → J.K. Dobbins", "budgetPivot": "If overpriced, move to proven value", "audit": "BID", "notes": "Very interesting"}, {"pos": "RB", "name": "Christian McCaffrey", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 34, "buyHigh": 38, "fairLow": 39, "fairHigh": 43, "overpay": 44, "pivots": "Jonathan Taylor → Travis Etienne Jr. → J.K. Dobbins", "budgetPivot": "Only if room is scared", "audit": "BID", "notes": "Health risk"}, {"pos": "RB", "name": "De'Von Achane", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 30, "buyHigh": 34, "fairLow": 35, "fairHigh": 39, "overpay": 40, "pivots": "Travis Etienne Jr. → J.K. Dobbins → Bucky Irving", "budgetPivot": "If overpriced, move to safer value tier", "audit": "BID", "notes": "Ceiling gamble"}, {"pos": "RB", "name": "J.K. Dobbins", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 13, "buyHigh": 16, "fairLow": 17, "fairHigh": 20, "overpay": 21, "pivots": "Travis Etienne Jr. → Bucky Irving → Chuba Hubbard", "budgetPivot": "If overpriced, choose another mid-tier RB", "audit": "BID", "notes": "Value if healthy"}, {"pos": "RB", "name": "Jonathan Taylor", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 36, "buyHigh": 40, "fairLow": 41, "fairHigh": 45, "overpay": 46, "pivots": "David Montgomery → Travis Etienne Jr. → J.K. Dobbins", "budgetPivot": "Discount only", "audit": "BID", "notes": "Discount only"}, {"pos": "RB", "name": "Saquon Barkley", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 32, "buyHigh": 36, "fairLow": 37, "fairHigh": 41, "overpay": 42, "pivots": "Jonathan Taylor → David Montgomery → Travis Etienne Jr.", "budgetPivot": "If overpriced, move to WR or balanced RB build", "audit": "BID", "notes": "Price dependent"}, {"pos": "WR", "name": "DeVonta Smith", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 20, "buyHigh": 23, "fairLow": 24, "fairHigh": 27, "overpay": 28, "pivots": "Emeka Egbuka → Chris Olave → Zay Flowers", "budgetPivot": "If overpriced, move down WR tier", "audit": "BID", "notes": "Value target"}, {"pos": "WR", "name": "George Pickens", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Jameson Williams → Rashid Shaheed → Josh Downs", "budgetPivot": "If overpriced, pivot to cheaper upside", "audit": "BID", "notes": "Upside"}, {"pos": "WR", "name": "Jaylen Waddle", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 22, "buyHigh": 25, "fairLow": 26, "fairHigh": 29, "overpay": 30, "pivots": "DeVonta Smith → Chris Olave → Zay Flowers", "budgetPivot": "If overpriced, move down WR tier and strengthen RB", "audit": "BID", "notes": "Preferred WR2/FLEX"}, {"pos": "WR", "name": "Josh Downs", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 11, "buyHigh": 14, "fairLow": 15, "fairHigh": 17, "overpay": 18, "pivots": "Alec Pierce → Rashid Shaheed → Ricky Pearsall", "budgetPivot": "If overpriced, stay cheap at WR", "audit": "BID", "notes": "Behind Pierce"}, {"pos": "WR", "name": "Luther Burden III", "tier": "4", "pressure": 7, "action": "VALUE", "buyLow": 7, "buyHigh": 10, "fairLow": 11, "fairHigh": 13, "overpay": 14, "pivots": "Ricky Pearsall → Tetairoa McMillan → Jalen McMillan", "budgetPivot": "If overpriced, preserve flex budget", "audit": "BID", "notes": "Young upside"}, {"pos": "WR", "name": "Ricky Pearsall", "tier": "4", "pressure": 7, "action": "VALUE", "buyLow": 8, "buyHigh": 11, "fairLow": 12, "fairHigh": 14, "overpay": 15, "pivots": "Luther Burden III → Tetairoa McMillan → Jalen McMillan", "budgetPivot": "If overpriced, preserve flex budget", "audit": "BID", "notes": "Young upside"}, {"pos": "WR", "name": "Tee Higgins", "tier": "3", "pressure": 7, "action": "VALUE", "buyLow": 27, "buyHigh": 31, "fairLow": 32, "fairHigh": 35, "overpay": 36, "pivots": "Jaylen Waddle → DeVonta Smith → Chris Olave", "budgetPivot": "If overpriced, move to next WR tier", "audit": "BID", "notes": "Price dependent"}, {"pos": "WR", "name": "Tetairoa McMillan", "tier": "4", "pressure": 7, "action": "VALUE", "buyLow": 10, "buyHigh": 13, "fairLow": 14, "fairHigh": 16, "overpay": 17, "pivots": "Ricky Pearsall → Luther Burden III → Jalen McMillan", "budgetPivot": "If overpriced, preserve flex budget", "audit": "BID", "notes": "Young upside"}, {"pos": "QB", "name": "Caleb Williams", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 4, "buyHigh": 7, "fairLow": 8, "fairHigh": 10, "overpay": 11, "pivots": "Drake Maye → Justin Herbert → Trevor Lawrence", "budgetPivot": "If overpriced, keep waiting", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Jayden Daniels", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 9, "buyHigh": 12, "fairLow": 13, "fairHigh": 16, "overpay": 17, "pivots": "Joe Burrow → Justin Herbert → Caleb Williams", "budgetPivot": "If overpriced, keep waiting", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Joe Burrow", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 7, "buyHigh": 10, "fairLow": 11, "fairHigh": 13, "overpay": 14, "pivots": "Justin Herbert → Caleb Williams → Trevor Lawrence", "budgetPivot": "If overpriced, keep waiting", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Justin Herbert", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 5, "buyHigh": 8, "fairLow": 9, "fairHigh": 11, "overpay": 12, "pivots": "Caleb Williams → Trevor Lawrence → Jaxson Dart", "budgetPivot": "If overpriced, keep waiting", "audit": "BID", "notes": ""}, {"pos": "RB", "name": "Bucky Irving", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 16, "buyHigh": 19, "fairLow": 20, "fairHigh": 23, "overpay": 24, "pivots": "J.K. Dobbins → Quinshon Judkins → Chuba Hubbard", "budgetPivot": "If overpriced, move to next value back", "audit": "BID", "notes": "Price dependent"}, {"pos": "RB", "name": "Cam Skattebo", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 9, "buyHigh": 12, "fairLow": 13, "fairHigh": 16, "overpay": 17, "pivots": "RJ Harvey → J.K. Dobbins → Chuba Hubbard", "budgetPivot": "If overpriced, move to another upside back", "audit": "BID", "notes": "Interesting upside"}, {"pos": "RB", "name": "Chuba Hubbard", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 8, "buyHigh": 11, "fairLow": 12, "fairHigh": 14, "overpay": 15, "pivots": "Bucky Irving → Rachaad White → RJ Harvey", "budgetPivot": "If overpriced, move to cheaper depth", "audit": "BID", "notes": "Depth"}, {"pos": "RB", "name": "Derrick Henry", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 20, "buyHigh": 23, "fairLow": 24, "fairHigh": 27, "overpay": 28, "pivots": "David Montgomery → J.K. Dobbins → Chuba Hubbard", "budgetPivot": "If overpriced, pivot younger", "audit": "BID", "notes": "Age discount"}, {"pos": "RB", "name": "Quinshon Judkins", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 14, "buyHigh": 17, "fairLow": 18, "fairHigh": 21, "overpay": 22, "pivots": "Bucky Irving → J.K. Dobbins → RJ Harvey", "budgetPivot": "If overpriced, choose another upside back", "audit": "BID", "notes": "Role dependent"}, {"pos": "TE", "name": "Colston Loveland", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 10, "buyHigh": 13, "fairLow": 14, "fairHigh": 17, "overpay": 18, "pivots": "Tucker Kraft → Harold Fannin Jr. → Wait", "budgetPivot": "If overpriced, punt TE", "audit": "BID", "notes": "Fallback"}, {"pos": "TE", "name": "Trey McBride", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 23, "buyHigh": 26, "fairLow": 27, "fairHigh": 30, "overpay": 31, "pivots": "Tyler Warren → Wait", "budgetPivot": "Only if Bowers/Warren miss and value falls", "audit": "BID", "notes": "Emergency premium pivot"}, {"pos": "WR", "name": "Amon-Ra St. Brown", "tier": "1A", "pressure": 6, "action": "VALUE", "buyLow": 45, "buyHigh": 50, "fairLow": 51, "fairHigh": 56, "overpay": 57, "pivots": "A.J. Brown → CeeDee Lamb → Nico Collins", "budgetPivot": "Only buy if room gifts value", "audit": "BID", "notes": "Elite but not a core target"}, {"pos": "WR", "name": "Brian Thomas Jr.", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Jameson Williams → Emeka Egbuka → Ricky Pearsall", "budgetPivot": "If overpriced, avoid paying through target competition", "audit": "BID", "notes": "Crowded targets"}, {"pos": "WR", "name": "Chris Olave", "tier": "3", "pressure": 6, "action": "VALUE", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Jaylen Waddle → DeVonta Smith → Zay Flowers", "budgetPivot": "If overpriced, save for RB", "audit": "BID", "notes": "Price dependent"}, {"pos": "WR", "name": "Rashee Rice", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 19, "buyHigh": 22, "fairLow": 23, "fairHigh": 26, "overpay": 27, "pivots": "Jameson Williams → George Pickens → Egbuka", "budgetPivot": "If overpriced, move down tier", "audit": "BID", "notes": "Price dependent"}, {"pos": "WR", "name": "Rashid Shaheed", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 8, "buyHigh": 10, "fairLow": 11, "fairHigh": 13, "overpay": 14, "pivots": "Ricky Pearsall → Luther Burden III → Jalen McMillan", "budgetPivot": "If overpriced, move to another upside WR", "audit": "BID", "notes": "Boom/bust"}, {"pos": "WR", "name": "Zay Flowers", "tier": "4", "pressure": 6, "action": "VALUE", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Chris Olave → Jaylen Waddle → Rashid Shaheed", "budgetPivot": "If overpriced, move down tier", "audit": "BID", "notes": "Price dependent"}, {"pos": "QB", "name": "Baker Mayfield", "tier": "5", "pressure": 5, "action": "VALUE", "buyLow": 2, "buyHigh": 4, "fairLow": 5, "fairHigh": 7, "overpay": 8, "pivots": "Trevor Lawrence → Jaxson Dart", "budgetPivot": "Endgame value", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Bo Nix", "tier": "5", "pressure": 5, "action": "VALUE", "buyLow": 3, "buyHigh": 5, "fairLow": 6, "fairHigh": 8, "overpay": 9, "pivots": "Trevor Lawrence → Baker Mayfield", "budgetPivot": "Endgame value", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Brock Purdy", "tier": "5", "pressure": 5, "action": "VALUE", "buyLow": 4, "buyHigh": 6, "fairLow": 7, "fairHigh": 9, "overpay": 10, "pivots": "Caleb Williams → Trevor Lawrence", "budgetPivot": "Price only", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Jalen Hurts", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 10, "buyHigh": 13, "fairLow": 14, "fairHigh": 17, "overpay": 18, "pivots": "Drake Maye → Jayden Daniels → Joe Burrow", "budgetPivot": "Only if room discounts elite QB", "audit": "BID", "notes": "Mike economy"}, {"pos": "QB", "name": "Jaxson Dart", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 1, "buyHigh": 2, "fairLow": 3, "fairHigh": 4, "overpay": 5, "pivots": "Baker Mayfield → Trevor Lawrence", "budgetPivot": "Endgame only", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Josh Allen", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 10, "buyHigh": 13, "fairLow": 14, "fairHigh": 17, "overpay": 18, "pivots": "Drake Maye → Jayden Daniels → Joe Burrow", "budgetPivot": "Only if room discounts elite QB", "audit": "BID", "notes": "Mike economy"}, {"pos": "QB", "name": "Kyler Murray", "tier": "5", "pressure": 5, "action": "VALUE", "buyLow": 5, "buyHigh": 7, "fairLow": 8, "fairHigh": 10, "overpay": 11, "pivots": "Drake Maye → Caleb Williams", "budgetPivot": "Price only", "audit": "BID", "notes": ""}, {"pos": "QB", "name": "Lamar Jackson", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 10, "buyHigh": 13, "fairLow": 14, "fairHigh": 17, "overpay": 18, "pivots": "Drake Maye → Jayden Daniels → Joe Burrow", "budgetPivot": "Only if room discounts elite QB", "audit": "BID", "notes": "Mike economy"}, {"pos": "QB", "name": "Trevor Lawrence", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 2, "buyHigh": 5, "fairLow": 6, "fairHigh": 8, "overpay": 9, "pivots": "Jaxson Dart → Baker Mayfield", "budgetPivot": "If overpriced, keep waiting", "audit": "BID", "notes": ""}, {"pos": "RB", "name": "James Cook", "tier": "3", "pressure": 5, "action": "VALUE", "buyLow": 34, "buyHigh": 38, "fairLow": 39, "fairHigh": 43, "overpay": 44, "pivots": "David Montgomery → Travis Etienne Jr. → Bucky Irving", "budgetPivot": "Expect room to overpay", "audit": "BID", "notes": "Likely overpriced"}, {"pos": "RB", "name": "RJ Harvey", "tier": "5", "pressure": 5, "action": "PASS", "buyLow": 5, "buyHigh": 7, "fairLow": 8, "fairHigh": 10, "overpay": 11, "pivots": "Cam Skattebo → Chuba Hubbard", "budgetPivot": "Only at a very good price", "audit": "BID", "notes": "Price dependent"}, {"pos": "RB", "name": "Rachaad White", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 7, "buyHigh": 9, "fairLow": 10, "fairHigh": 12, "overpay": 13, "pivots": "Chuba Hubbard → RJ Harvey → Cam Skattebo", "budgetPivot": "If overpriced, move to cheaper depth", "audit": "BID", "notes": "Price dependent"}, {"pos": "TE", "name": "George Kittle", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 9, "buyHigh": 12, "fairLow": 13, "fairHigh": 15, "overpay": 16, "pivots": "Trey McBride → Colston Loveland → Wait", "budgetPivot": "Only if discounted", "audit": "BID", "notes": "Price only"}, {"pos": "TE", "name": "Harold Fannin Jr.", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 4, "buyHigh": 6, "fairLow": 7, "fairHigh": 9, "overpay": 10, "pivots": "Wait", "budgetPivot": "If overpriced, punt TE", "audit": "BID", "notes": "Fallback"}, {"pos": "TE", "name": "Tucker Kraft", "tier": "4", "pressure": 5, "action": "VALUE", "buyLow": 6, "buyHigh": 8, "fairLow": 9, "fairHigh": 11, "overpay": 12, "pivots": "Harold Fannin Jr. → Wait", "budgetPivot": "If overpriced, punt TE", "audit": "BID", "notes": "Fallback"}, {"pos": "WR", "name": "Jalen McMillan", "tier": "5", "pressure": 5, "action": "VALUE", "buyLow": 6, "buyHigh": 8, "fairLow": 9, "fairHigh": 11, "overpay": 12, "pivots": "Ricky Pearsall → Luther Burden III → Rashid Shaheed", "budgetPivot": "If overpriced, choose another endgame WR", "audit": "BID", "notes": "Sleeper"}, {"pos": "QB", "name": "Patrick Mahomes", "tier": "4", "pressure": 4, "action": "PASS", "buyLow": 9, "buyHigh": 12, "fairLow": 13, "fairHigh": 16, "overpay": 17, "pivots": "Joe Burrow → Justin Herbert → Drake Maye", "budgetPivot": "Only if discounted", "audit": "BID", "notes": "Mike economy"}, {"pos": "RB", "name": "Tony Pollard", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 11, "buyHigh": 14, "fairLow": 15, "fairHigh": 17, "overpay": 18, "pivots": "Chuba Hubbard → Rachaad White", "budgetPivot": "Do not force", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "Sam LaPorta", "tier": "4", "pressure": 4, "action": "PASS", "buyLow": 8, "buyHigh": 10, "fairLow": 11, "fairHigh": 13, "overpay": 14, "pivots": "George Kittle → Wait", "budgetPivot": "Only if heavily discounted", "audit": "BID", "notes": "Not a priority"}, {"pos": "WR", "name": "Courtland Sutton", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 14, "buyHigh": 17, "fairLow": 18, "fairHigh": 21, "overpay": 22, "pivots": "Josh Downs → Rashid Shaheed", "budgetPivot": "Do not force", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Ja'Marr Chase", "tier": "Market", "pressure": 4, "action": "PASS", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 0, "pivots": "", "budgetPivot": "Market-spend tracker only", "audit": "MARKET", "notes": "Elite spend magnet"}, {"pos": "WR", "name": "Justin Jefferson", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 45, "buyHigh": 50, "fairLow": 51, "fairHigh": 56, "overpay": 57, "pivots": "A.J. Brown → CeeDee Lamb", "budgetPivot": "QB concerns", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Malik Nabers", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 34, "buyHigh": 38, "fairLow": 39, "fairHigh": 43, "overpay": 44, "pivots": "Nico Collins → Jaxon Smith-Njigba", "budgetPivot": "Let room pay", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Michael Pittman Jr.", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 17, "buyHigh": 20, "fairLow": 21, "fairHigh": 24, "overpay": 25, "pivots": "Josh Downs → Alec Pierce", "budgetPivot": "Do not force", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "WR", "name": "Puka Nacua", "tier": "5", "pressure": 4, "action": "PASS", "buyLow": 44, "buyHigh": 49, "fairLow": 50, "fairHigh": 55, "overpay": 56, "pivots": "A.J. Brown → CeeDee Lamb", "budgetPivot": "Stafford concerns", "audit": "PASS", "notes": ""}, {"pos": "TE", "name": "Kyle Pitts", "tier": "5", "pressure": 3, "action": "PASS", "buyLow": 5, "buyHigh": 7, "fairLow": 8, "fairHigh": 10, "overpay": 11, "pivots": "Wait", "budgetPivot": "Do not chase", "audit": "BID", "notes": "History concern"}, {"pos": "WR", "name": "DJ Moore", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 13, "buyHigh": 16, "fairLow": 17, "fairHigh": 20, "overpay": 21, "pivots": "Rashid Shaheed → Zay Flowers", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Drake London", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 26, "buyHigh": 29, "fairLow": 30, "fairHigh": 33, "overpay": 34, "pivots": "Nico Collins → Tee Higgins", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Garrett Wilson", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 20, "buyHigh": 23, "fairLow": 24, "fairHigh": 27, "overpay": 28, "pivots": "Jaylen Waddle → DeVonta Smith", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Jordan Addison", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 11, "buyHigh": 14, "fairLow": 15, "fairHigh": 17, "overpay": 18, "pivots": "Josh Downs → Jalen McMillan", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Keon Coleman", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 8, "buyHigh": 10, "fairLow": 11, "fairHigh": 13, "overpay": 14, "pivots": "Ricky Pearsall → Luther Burden III", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Ladd McConkey", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 17, "buyHigh": 20, "fairLow": 21, "fairHigh": 24, "overpay": 25, "pivots": "Ricky Pearsall → Josh Downs", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Marvin Harrison Jr.", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 18, "buyHigh": 21, "fairLow": 22, "fairHigh": 25, "overpay": 26, "pivots": "Emeka Egbuka → Ricky Pearsall", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Rome Odunze", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 12, "buyHigh": 15, "fairLow": 16, "fairHigh": 18, "overpay": 19, "pivots": "Luther Burden III → Ricky Pearsall", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "WR", "name": "Xavier Worthy", "tier": "5", "pressure": 3, "action": "AVOID", "buyLow": 15, "buyHigh": 18, "fairLow": 19, "fairHigh": 22, "overpay": 23, "pivots": "Rashee Rice → Jameson Williams", "budgetPivot": "Extremely good value only", "audit": "PASS", "notes": ""}, {"pos": "RB", "name": "Alvin Kamara", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Off board"}, {"pos": "RB", "name": "Brashard Smith", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Breece Hall", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Off board"}, {"pos": "RB", "name": "Jadarian Price", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Joe Mixon", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Off board"}, {"pos": "RB", "name": "Josh Jacobs", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Off board"}, {"pos": "RB", "name": "Kaleb Johnson", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Sean Tucker", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Tank Bigsby", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Tyrone Tracy Jr.", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "RB", "name": "Woody Marks", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "Dalton Kincaid", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "David Njoku", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "Evan Engram", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "Isaiah Likely", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}, {"pos": "TE", "name": "Travis Kelce", "tier": "5", "pressure": 2, "action": "AVOID", "buyLow": 0, "buyHigh": 0, "fairLow": 0, "fairHigh": 0, "overpay": 1, "pivots": "None", "budgetPivot": "Off board", "audit": "PASS", "notes": "Final audit pass"}];
+const CORE = ["A.J. Brown", "CeeDee Lamb", "Omarion Hampton", "Kenneth Walker III", "Brock Bowers", "Jaxon Smith-Njigba", "Alec Pierce"];
+const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon-Ra St. Brown", "Malik Nabers", "Marvin Harrison Jr.", "Garrett Wilson", "Drake London", "Ladd McConkey", "Rome Odunze", "DJ Moore", "Xavier Worthy", "Jordan Addison", "Courtland Sutton", "Bijan Robinson", "Jahmyr Gibbs", "Saquon Barkley", "Christian McCaffrey", "Jonathan Taylor", "James Cook", "Josh Jacobs", "Breece Hall", "Kyren Williams", "Alvin Kamara", "Joe Mixon", "Josh Allen", "Lamar Jackson", "Jalen Hurts", "Patrick Mahomes", "Trey McBride", "George Kittle", "Sam LaPorta", "Travis Kelce"]);
+const ROSTER_SLOTS = ["QB","RB1","RB2","WR1","WR2","TE","FLEX1","FLEX2","K","DEF","BN1","BN2","BN3","BN4","BN5","BN6","BN7"];
+const state = JSON.parse(localStorage.getItem("warRoomState") || "null") || {
+  budget:200, sales:[], roster:{}, selected:null
+};
+const byName = Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
+const $ = id=>document.getElementById(id);
+const money=n=>"$"+Math.round(Number(n||0));
+function save(){ localStorage.setItem("warRoomState",JSON.stringify(state)); }
+function spent(){ return state.sales.filter(s=>s.winner==="me").reduce((a,s)=>a+Number(s.price||0),0); }
+function sold(name){ return state.sales.find(s=>s.player===name); }
+function availableSlots(){ return ROSTER_SLOTS.filter(s=>!state.roster[s]); }
+function phase(){ const n=state.sales.length; return n<25?"EARLY":n<73?"MIDDLE":"LATE"; }
+function marketStats(){
+  const m=state.sales.filter(s=>MARKET.has(s.player) && byName[s.player] && byName[s.player].fairLow>0);
+  if(m.length<3) return {temp:"EARLY",trend:"STABLE",infl:0};
+  const ratios=m.map(s=>Number(s.price)/((byName[s.player].fairLow+byName[s.player].fairHigh)/2)-1);
+  const avg=ratios.reduce((a,b)=>a+b,0)/ratios.length;
+  return {temp:avg>.10?"HOT":avg<-.10?"COLD":"NORMAL",trend:avg>.05?"HEATING":avg<-.05?"COOLING":"STABLE",infl:avg};
+}
+function renderCommand(){
+  const s=spent(), remaining=200-s, left=17-Object.keys(state.roster).length;
+  $("budget").textContent=money(remaining);
+  $("maxBid").textContent=money(Math.max(0,remaining-(left-1)));
+  $("playersLeft").textContent=left;
+  $("avg").textContent="$"+(left?remaining/left:0).toFixed(2);
+  const ms=marketStats();
+  $("market").textContent=ms.temp;
+  $("marketTrend").textContent=ms.trend;
+  $("phase").textContent=phase();
+  $("nomCount").textContent=state.sales.length+" NOMINATIONS";
+  $("totalSpent").textContent=money(s);
+}
+function renderRoster(){
+  $("roster").innerHTML=ROSTER_SLOTS.map(slot=>{
+    const entry=state.roster[slot];
+    return `<div class="roster-row"><span class="slot">${slot}</span><span>${entry?entry.player:"—"}</span><span class="cost">${entry?money(entry.price):"—"}</span></div>`;
+  }).join("");
+}
+function renderCore(){
+  $("coreTargets").innerHTML=CORE.map(name=>{
+    const sale=sold(name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
+    const p=byName[name]||{pos:"",tier:""};
+    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos} T${p.tier}</span></div>`;
+  }).join("");
+}
+function alerts(){
+  const arr=[]; const ms=marketStats();
+  if(ms.temp==="HOT") arr.push({c:"red",t:`MARKET HOT — ${Math.round(ms.infl*100)}% OVER VALUE`});
+  else if(ms.temp==="COLD") arr.push({c:"green",t:`MARKET COLD — VALUE AVAILABLE`});
+  const openHigh=PLAYERS.filter(p=>p.pressure>=8 && !sold(p.name));
+  if(openHigh.length<=3 && openHigh.length>0) arr.push({c:"yellow",t:`ONLY ${openHigh.length} PRESSURE 8+ TARGETS LEFT`});
+  if(!Object.keys(state.roster).some(s=>s==="QB") && state.sales.filter(s=>byName[s.player]?.pos==="QB").length>=5) arr.push({c:"green",t:"QB MARKET MOVING — KEEP WAITING"});
+  if(availableSlots().filter(s=>s.startsWith("RB")||s.startsWith("FLEX")).length>0) {
+    const rb2=PLAYERS.filter(p=>p.pos==="RB" && ["1A","1B","2"].includes(p.tier) && !sold(p.name));
+    if(rb2.length===1) arr.push({c:"red",t:`LAST TIER 2 RB: ${rb2[0].name}`});
+  }
+  return arr.slice(0,3);
+}
+function renderAlerts(){
+  const a=alerts();
+  $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
+}
+function setSelected(p){
+  state.selected=p? p.name:null; save();
+  $("playerSearch").value=p?p.name:"";
+  $("recordPlayer").value=p?p.name:"";
+  if(!p){
+    $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; return;
+  }
+  $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
+  $("playerName").textContent=p.name; $("playerPos").textContent=p.pos; $("playerTier").textContent="TIER "+p.tier; $("playerPressure").textContent="PRESSURE: "+p.pressure;
+  $("commandText").textContent=p.action==="ATTACK"?"ATTACK":p.action==="VALUE"?"VALUE ONLY":p.action==="PASS"?"PASS UNLESS DISCOUNT":"AVOID";
+  $("buyRange").textContent=p.buyLow?`$${p.buyLow} – $${p.buyHigh}`:"—";
+  $("fairRange").textContent=p.fairLow?`$${p.fairLow} – $${p.fairHigh}`:"—";
+  $("stopRange").textContent=p.overpay?`$${p.overpay}+`:"PASS";
+  const ps=(p.pivots||"").split("→").map(x=>x.trim()).filter(Boolean);
+  $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
+}
+function fillSelects(){
+  $("recordPlayer").innerHTML='<option value="">Select player</option>'+PLAYERS.map(p=>`<option>${p.name}</option>`).join("");
+  $("rosterSlot").innerHTML='<option value="">Select slot</option>'+ROSTER_SLOTS.map(s=>`<option>${s}</option>`).join("");
+}
+function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); }
+$("playerSearch").addEventListener("input",e=>{
+  const q=e.target.value.toLowerCase().trim(), box=$("suggestions");
+  if(!q){ box.style.display="none"; return; }
+  const matches=PLAYERS.filter(p=>p.name.toLowerCase().includes(q) && !sold(p.name)).slice(0,8);
+  box.innerHTML=matches.map(p=>`<div class="suggestion" data-name="${p.name}"><strong>${p.name}</strong> <span style="color:var(--muted)">• ${p.pos} • T${p.tier} • P${p.pressure}</span></div>`).join("");
+  box.style.display=matches.length?"block":"none";
+});
+$("suggestions").addEventListener("click",e=>{
+  const el=e.target.closest(".suggestion"); if(!el)return; setSelected(byName[el.dataset.name]); $("suggestions").style.display="none";
+});
+$("recordPlayer").addEventListener("change",e=>{ if(e.target.value) setSelected(byName[e.target.value]); });
+$("winner").addEventListener("change",e=>{ $("rosterSlot").disabled=e.target.value!=="me"; });
+$("readyBtn").addEventListener("click",()=>{
+  const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value), slot=$("rosterSlot").value;
+  if(!player) return alert("Select the completed nomination.");
+  if(price<1) return alert("Enter the final price.");
+  if(winner==="me" && !slot) return alert("Select your roster slot.");
+  if(sold(player)) return alert("That player is already recorded.");
+  state.sales.push({player,winner,price,slot:winner==="me"?slot:""});
+  if(winner==="me") state.roster[slot]={player,price};
+  $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
+  setSelected(null); save(); renderAll();
+});
+setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
+fillSelects(); $("rosterSlot").disabled=true; renderAll(); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]);
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script></body>
+</html>
