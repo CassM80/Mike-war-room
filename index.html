@@ -297,6 +297,10 @@ body { overflow:auto; }
         </div>
       </section>
     </div>
+    <section class="workspace-card" style="margin-top:16px">
+      <div class="card-head">LEAGUE BUDGETS</div>
+      <div class="card-body"><div class="team-budget-board" id="hqBudgetBoard"></div></div>
+    </section>
   </div>
 </section>
 
@@ -369,7 +373,7 @@ body { overflow:auto; }
   <section class="record">
     <div class="panel record-fields">
       <div class="field"><label>1. PLAYER</label><select id="recordPlayer"></select></div>
-      <div class="field"><label>2. WINNER</label><select id="winner"><option value="other">OTHER</option><option value="me">ME</option></select></div>
+      <div class="field"><label>2. WINNER</label><select id="winner"></select></div>
       <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
       <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
     </div>
@@ -381,8 +385,15 @@ body { overflow:auto; }
 <section id="debriefView" class="app-view">
   <div class="workspace">
     <h2>DEBRIEF</h2>
-    <p class="lead">Draft review will live here after the live workflow is proven.</p>
-    <div class="debrief-empty"><strong>No completed auction to review yet.</strong><br><br>For now, Headquarters prepares the room and War Room handles the live draft.</div>
+    <p class="lead">Every completed sale is saved here automatically.</p>
+    <section class="workspace-card">
+      <div class="card-head">TEAM BUDGETS</div>
+      <div class="card-body"><div class="team-budget-board" id="debriefBudgetBoard"></div></div>
+    </section>
+    <section class="workspace-card debrief-section">
+      <div class="card-head">SALE LOG</div>
+      <div class="card-body" id="debriefSales"></div>
+    </section>
   </div>
 </section>
 
@@ -396,11 +407,20 @@ const state = JSON.parse(localStorage.getItem("warRoomState") || "null") || {
 };
 const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", myTeamIndex:0, teams:[]};
 let leagueConfig = {...defaultLeagueConfig, ...(JSON.parse(localStorage.getItem("warRoomLeagueConfig") || "null") || {})};
+// Preserve older ME/OTHER sales while moving to named league teams.
+state.sales = Array.isArray(state.sales) ? state.sales : [];
 const byName = Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
 const $ = id=>document.getElementById(id);
 const money=n=>"$"+Math.round(Number(n||0));
 function save(){ localStorage.setItem("warRoomState",JSON.stringify(state)); }
-function spent(){ return state.sales.filter(s=>s.winner==="me").reduce((a,s)=>a+Number(s.price||0),0); }
+function saleTeamIndex(sale){
+  if(Number.isInteger(Number(sale?.winnerTeamIndex))) return Number(sale.winnerTeamIndex);
+  if(sale?.winner==="me") return Number(leagueConfig.myTeamIndex||0);
+  return null;
+}
+function teamSpent(teamIndex){ return state.sales.filter(s=>saleTeamIndex(s)===Number(teamIndex)).reduce((a,s)=>a+Number(s.price||0),0); }
+function teamRemaining(teamIndex){ return Math.max(0,Number(leagueConfig.budget||200)-teamSpent(teamIndex)); }
+function spent(){ return teamSpent(Number(leagueConfig.myTeamIndex||0)); }
 function sold(name){ return state.sales.find(s=>s.player===name); }
 function availableSlots(){ return ROSTER_SLOTS.filter(s=>!state.roster[s]); }
 function phase(){ const n=state.sales.length; return n<25?"EARLY":n<73?"MIDDLE":"LATE"; }
@@ -432,7 +452,7 @@ function renderRoster(){
 }
 function renderCore(){
   $("coreTargets").innerHTML=CORE.map(name=>{
-    const sale=sold(name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
+    const sale=sold(name); const cls=sale?(saleTeamIndex(sale)===Number(leagueConfig.myTeamIndex||0)?"mine":"other"):"";
     const p=byName[name]||{pos:"",tier:""};
     return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos} T${p.tier}</span></div>`;
   }).join("");
@@ -471,11 +491,37 @@ function setSelected(p){
   const ps=(p.pivots||"").split("→").map(x=>x.trim()).filter(Boolean);
   $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
 }
+function renderWinnerOptions(){
+  ensureTeams();
+  const current=$("winner").value;
+  $("winner").innerHTML='<option value="">Select winning team</option>'+leagueConfig.teams.map((t,i)=>`<option value="${i}">${t.teamName||("Team "+(i+1))} — ${money(teamRemaining(i))}</option>`).join("");
+  if(current!=="" && Number(current)<leagueConfig.teams.length) $("winner").value=current;
+}
 function fillSelects(){
   $("recordPlayer").innerHTML='<option value="">Select player</option>'+PLAYERS.map(p=>`<option>${p.name}</option>`).join("");
   $("rosterSlot").innerHTML='<option value="">Select slot</option>'+ROSTER_SLOTS.map(s=>`<option>${s}</option>`).join("");
+  renderWinnerOptions();
 }
-function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); }
+function budgetCardHtml(t,i){
+  const spentNow=teamSpent(i), remaining=teamRemaining(i);
+  return `<div class="team-budget-card ${i===Number(leagueConfig.myTeamIndex||0)?"mine":""}"><div class="team-budget-name">${t.teamName||("Team "+(i+1))}</div><div class="team-budget-owner">${t.ownerName||"Owner not entered"}${i===Number(leagueConfig.myTeamIndex||0)?" • YOUR TEAM":""}</div><div class="team-budget-money">${money(remaining)}</div><div class="team-budget-sub">${money(spentNow)} spent</div></div>`;
+}
+function renderBudgetBoards(){
+  ensureTeams();
+  const html=leagueConfig.teams.map(budgetCardHtml).join("");
+  if($("hqBudgetBoard")) $("hqBudgetBoard").innerHTML=html;
+  if($("debriefBudgetBoard")) $("debriefBudgetBoard").innerHTML=html;
+}
+function renderDebrief(){
+  if(!$("debriefSales")) return;
+  if(!state.sales.length){ $("debriefSales").innerHTML='<div class="debrief-empty"><strong>No sales recorded yet.</strong><br><br>Completed nominations will appear here automatically.</div>'; return; }
+  const rows=state.sales.slice().reverse().map((sale,revIndex)=>{
+    const idx=saleTeamIndex(sale), team=idx===null?"Other team":(leagueConfig.teams[idx]?.teamName||("Team "+(idx+1)));
+    return `<tr><td>${state.sales.length-revIndex}</td><td>${sale.player}</td><td>${team}</td><td>${money(sale.price)}</td></tr>`;
+  }).join("");
+  $("debriefSales").innerHTML=`<table class="debrief-log"><thead><tr><th>#</th><th>PLAYER</th><th>TEAM</th><th>PRICE</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); renderWinnerOptions(); renderBudgetBoards(); renderDebrief(); }
 $("playerSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("suggestions");
   if(!q){ box.style.display="none"; return; }
@@ -487,16 +533,19 @@ $("suggestions").addEventListener("click",e=>{
   const el=e.target.closest(".suggestion"); if(!el)return; setSelected(byName[el.dataset.name]); $("suggestions").style.display="none";
 });
 $("recordPlayer").addEventListener("change",e=>{ if(e.target.value) setSelected(byName[e.target.value]); });
-$("winner").addEventListener("change",e=>{ $("rosterSlot").disabled=e.target.value!=="me"; });
+$("winner").addEventListener("change",e=>{ $("rosterSlot").disabled=Number(e.target.value)!==Number(leagueConfig.myTeamIndex||0); });
 $("readyBtn").addEventListener("click",()=>{
-  const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value), slot=$("rosterSlot").value;
+  const player=$("recordPlayer").value, winnerTeamIndex=Number($("winner").value), price=Number($("finalPrice").value), slot=$("rosterSlot").value;
   if(!player) return alert("Select the completed nomination.");
+  if($("winner").value==="" || !Number.isInteger(winnerTeamIndex)) return alert("Select the winning team.");
   if(price<1) return alert("Enter the final price.");
-  if(winner==="me" && !slot) return alert("Select your roster slot.");
+  if(price>teamRemaining(winnerTeamIndex)) return alert("That price exceeds the team's remaining budget.");
+  const isMine=winnerTeamIndex===Number(leagueConfig.myTeamIndex||0);
+  if(isMine && !slot) return alert("Select your roster slot.");
   if(sold(player)) return alert("That player is already recorded.");
-  state.sales.push({player,winner,price,slot:winner==="me"?slot:""});
-  if(winner==="me") state.roster[slot]={player,price};
-  $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
+  state.sales.push({player,winnerTeamIndex,price,slot:isMine?slot:"",timestamp:new Date().toISOString()});
+  if(isMine) state.roster[slot]={player,price};
+  $("finalPrice").value=0; $("winner").value=""; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
   setSelected(null); save(); renderAll();
 });
 
@@ -563,10 +612,10 @@ $("saveLeagueBtn").addEventListener("click",()=>{
   $("leagueSavedNote").textContent="League setup saved."; setTimeout(()=>$("leagueSavedNote").textContent="",1800);
 });
 $("saveTeamsBtn").addEventListener("click",()=>{
-  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); saveLeagueConfig(); renderLeagueSetup();
+  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); saveLeagueConfig(); renderLeagueSetup(); renderAll();
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
-$("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
+$("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); renderAll(); });
 renderTeamCountOptions(); renderLeagueSetup();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);

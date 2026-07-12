@@ -1,14 +1,13 @@
 # Mike Cassidy Auction War Room
 
-Deploy-ready static Progressive Web App.
+Production Upgrade 2 connects Headquarters teams to the live auction workflow.
 
-## Current production build
+## Added
+- Named winning-team selection for every completed sale
+- Automatic team budget tracking
+- Budget validation before a sale is saved
+- League budget boards in Headquarters and Debrief
+- Automatic sale log in Debrief
+- Existing personal roster and live War Room preserved
 
-- Existing live auction War Room preserved
-- Headquarters navigation added
-- Saved league name, team count, budget and scoring
-- Saved owner/team setup
-- League budget now feeds the live War Room budget calculations
-- Debrief placeholder added for the next verified build
-
-All setup data is stored locally in the browser.
+Deploy by uploading these seven files to the GitHub repository root.
