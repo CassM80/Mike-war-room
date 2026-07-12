@@ -1,13 +1,10 @@
 # Mike Cassidy Auction War Room
 
-Production Upgrade 2 connects Headquarters teams to the live auction workflow.
+Production Upgrade 3 adds the complete searchable NFL player universe while preserving the existing curated War Room grades.
 
-## Added
-- Named winning-team selection for every completed sale
-- Automatic team budget tracking
-- Budget validation before a sale is saved
-- League budget boards in Headquarters and Debrief
-- Automatic sale log in Debrief
-- Existing personal roster and live War Room preserved
-
-Deploy by uploading these seven files to the GitHub repository root.
+## Player database behavior
+- Curated players keep their existing tiers, prices, pivots and recommendations.
+- Active QB, RB, WR, TE and K records refresh from Sleeper in the background.
+- All 32 team defenses are included.
+- A filtered local cache loads instantly and refreshes at most once every 24 hours.
+- If the network is unavailable, the last saved database remains usable.
