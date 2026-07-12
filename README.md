@@ -2,25 +2,13 @@
 
 Deploy-ready static Progressive Web App.
 
-## Deploy with GitHub + Vercel
-1. Create a new GitHub repository.
-2. Upload every file in this folder to the repository root.
-3. Sign into Vercel with GitHub.
-4. Import the repository.
-5. Framework preset: Other.
-6. Build command: leave blank.
-7. Output directory: leave blank.
-8. Deploy.
+## Current production build
 
-## iPad
-Open the deployed URL in Safari, tap Share, then Add to Home Screen.
+- Existing live auction War Room preserved
+- Headquarters navigation added
+- Saved league name, team count, budget and scoring
+- Saved owner/team setup
+- League budget now feeds the live War Room budget calculations
+- Debrief placeholder added for the next verified build
 
-## Data
-Draft progress is stored locally in the browser on that device.
-
-
-## v0.2 iPad Fix
-- Dynamic Safari viewport height
-- Bottom controls remain above browser chrome
-- Larger touch targets
-- Refreshed service-worker cache
+All setup data is stored locally in the browser.
