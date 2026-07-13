@@ -1,11 +1,15 @@
-# War Room Production Upgrade 8
+# War Room Production Upgrade 9
 
-## Automatic roster assignment
+Adds a full draft lifecycle and reset manager.
 
-The live sale workflow now requires only player, winner, and final price. When your team wins a player, War Room automatically assigns the best available roster slot in this order:
+## Reset levels
 
-- Natural starting position
-- FLEX for eligible RB/WR/TE players
-- Bench
+- Export/import a complete browser backup
+- Start a new draft while keeping the same league and personal board
+- Start a new league while keeping the personal board
+- Clear only personal player evaluations
+- Full clean reset for a share-safe browser
 
-If no eligible slot remains, the sale is blocked with a warning.
+## Privacy for shared links
+
+Existing users retain their starter board. New visitors automatically begin in clean mode: Mike's embedded target list, price bands, tiers and grades are hidden until they create their own Scouting evaluations.

@@ -317,6 +317,13 @@ body { overflow:auto; }
 .war-notes{margin-top:7px;color:#cbd5e1;font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:800px){.dossier-sections{grid-template-columns:1fr}.dossier-section{border-right:0;border-bottom:1px solid var(--line)}.dossier-section:last-child{border-bottom:0}.war-dossier-compact{grid-template-columns:1fr 1fr}.war-dossier-cell:nth-child(2){border-right:0}.war-dossier-cell:nth-child(-n+2){border-bottom:1px solid var(--line)}}
 
+
+.reset-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.reset-card{border:1px solid var(--line);background:#11161b;border-radius:12px;padding:18px}
+.reset-card h3{margin:0 0 8px;font-size:18px}.reset-card p{margin:0 0 14px;color:var(--muted);line-height:1.45}
+.reset-actions{display:flex;gap:10px;flex-wrap:wrap}.reset-btn{border:1px solid var(--line);background:#0b0f13;color:var(--text);padding:11px 14px;border-radius:8px;font-weight:900;cursor:pointer}.reset-btn.primary{background:var(--green);color:#081000;border-color:var(--green)}.reset-btn.danger{border-color:#8b3138;color:#ff777f}.reset-btn:hover{filter:brightness(1.12)}
+.reset-status{margin-top:14px;color:var(--green);font-weight:800;min-height:20px}.share-safe{border-color:#426f19}.share-safe strong{color:var(--green)}
+@media(max-width:760px){.reset-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -520,9 +527,40 @@ body { overflow:auto; }
 
 <section id="debriefView" class="app-view">
   <div class="workspace">
-    <h2>DEBRIEF</h2>
-    <p class="lead">Draft review will live here after the live workflow is proven.</p>
-    <div class="debrief-empty"><strong>No completed auction to review yet.</strong><br><br>For now, Headquarters prepares the room and War Room handles the live draft.</div>
+    <h2>DEBRIEF & RESET</h2>
+    <p class="lead">Finish a draft, save a backup, or prepare a clean room for the next league.</p>
+    <div class="reset-grid">
+      <div class="reset-card">
+        <h3>EXPORT BACKUP</h3>
+        <p>Download this browser's league, teams, sales, roster and personal board before clearing anything.</p>
+        <div class="reset-actions"><button class="reset-btn primary" id="exportBackupBtn">EXPORT EVERYTHING</button><button class="reset-btn" id="importBackupBtn">IMPORT BACKUP</button><input id="importBackupFile" type="file" accept="application/json" hidden></div>
+      </div>
+      <div class="reset-card">
+        <h3>NEW DRAFT — SAME LEAGUE</h3>
+        <p>Clears sales, rosters, nominations, market trends and debrief data. Keeps league settings, teams and your personal board.</p>
+        <button class="reset-btn primary" id="newDraftBtn">START NEW DRAFT</button>
+      </div>
+      <div class="reset-card">
+        <h3>NEW LEAGUE — KEEP BOARD</h3>
+        <p>Clears the draft, league name and teams while preserving your player values, tiers, targets and notes.</p>
+        <button class="reset-btn" id="newLeagueBtn">START NEW LEAGUE</button>
+      </div>
+      <div class="reset-card">
+        <h3>CLEAR PERSONAL BOARD</h3>
+        <p>Removes all saved personal values, hard stops, tiers, favorites, Flag Plants, Sleepers, Avoids and notes.</p>
+        <button class="reset-btn danger" id="clearBoardBtn">CLEAR PERSONAL BOARD</button>
+      </div>
+      <div class="reset-card share-safe">
+        <h3>SHARE-SAFE CLEAN START</h3>
+        <p><strong>Use this before handing this browser to someone else.</strong> Clears league, draft and personal data and hides the built-in Mike starter board. New visitors to the shared URL also start this way automatically.</p>
+        <button class="reset-btn danger" id="shareSafeResetBtn">FULL CLEAN RESET</button>
+      </div>
+      <div class="reset-card">
+        <h3>CURRENT BROWSER</h3>
+        <p id="resetSummary">Loading current state…</p>
+        <div class="reset-status" id="resetStatus"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -611,13 +649,21 @@ const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
 let scoutingSelectedName = null;
+const PROFILE_MODE_KEY = "warRoomProfileMode";
+let profileMode = localStorage.getItem(PROFILE_MODE_KEY);
+if(!profileMode){
+  const existingUser = !!(localStorage.getItem("warRoomState") || localStorage.getItem("warRoomLeagueConfig") || Object.keys(personalEvaluations).length);
+  profileMode = existingUser ? "owner" : "clean";
+  localStorage.setItem(PROFILE_MODE_KEY,profileMode);
+}
 function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
 function savePersonalEvaluations(){ localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations)); }
 function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
+function neutralPlayer(base){ return {...base,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Build your personal board in Scouting.",audit:"MARKET",notes:""}; }
 function effectivePlayer(base){
   if(!base) return null;
   const ev=getPersonalEvaluation(base.name);
-  if(!ev) return base;
+  if(!ev) return profileMode==="clean" ? neutralPlayer(base) : base;
   const value=Math.max(0,Number(ev.value||0));
   const hard=Math.max(value,Number(ev.hardStop||0));
   let action=base.action;
@@ -642,6 +688,7 @@ function evaluationTags(ev){
 }
 function marketValueFor(base){
   if(!base) return 0;
+  if(profileMode==="clean" && !getPersonalEvaluation(base.name)) return 0;
   if(Number(base.fairLow||0)>0 && Number(base.fairHigh||0)>0) return Math.round((Number(base.fairLow)+Number(base.fairHigh))/2);
   if(Number(base.buyHigh||0)>0) return Number(base.buyHigh);
   return 0;
@@ -737,10 +784,15 @@ function renderRoster(){
   }).join("");
 }
 function renderCore(){
-  $("coreTargets").innerHTML=CORE.map(name=>{
+  let names;
+  if(profileMode==="clean"){
+    names=Object.values(personalEvaluations).filter(ev=>ev.flagPlant||ev.favorite||ev.sleeper).map(ev=>ev.name).slice(0,10);
+  }else names=CORE;
+  if(!names.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Add them in Scouting.</div>'; return; }
+  $("coreTargets").innerHTML=names.map(name=>{
     const sale=sold(name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
-    const p=byName[name]||{pos:"",tier:""};
-    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos} T${p.tier}</span></div>`;
+    const p=effectivePlayer(byName[name]||{name,pos:"",tier:""});
+    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos}${p.tier!=="UNRANKED"?" T"+p.tier:""}</span></div>`;
   }).join("");
 }
 function selectedBase(){ return state.selected?byName[state.selected]:null; }
@@ -763,6 +815,7 @@ function renderMarketPulse(){
   $("marketPulse").innerHTML=["QB","RB","WR","TE"].map(pos=>{const x=positionMarketStats(pos), cls=x.status==="HOT"?"hot":x.status==="CHEAP"?"cold":x.status==="NORMAL"?"normal":"early"; const label=x.status==="HOT"?`+${Math.round(x.infl*100)}%`:x.status==="CHEAP"?`${Math.round(x.infl*100)}%`:x.status; return `<div class="market-chip ${cls}"><span>${pos}</span><strong>${label}</strong></div>`;}).join("");
 }
 function nominationSuggestion(){
+  if(profileMode==="clean" && !Object.keys(personalEvaluations).length) return {player:"—",reason:"Build your personal board in Scouting to activate nomination strategy."};
   const available=PLAYERS.filter(p=>!sold(p.name)&&p.tier!=="UNRANKED"&&Number(p.fairLow)>0);
   if(!available.length) return {player:"—",reason:"No ranked players remain."};
   const hot=["QB","RB","WR","TE"].map(pos=>({pos,...positionMarketStats(pos)})).sort((a,b)=>b.infl-a.infl)[0];
@@ -875,7 +928,7 @@ $("playerSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("suggestions");
   if(!q){ box.style.display="none"; return; }
   const matches=PLAYERS.filter(p=>p.name.toLowerCase().includes(q)).sort((a,b)=>Number(!!sold(a.name))-Number(!!sold(b.name))).slice(0,8);
-  box.innerHTML=matches.map(p=>{const sale=sold(p.name); return `<div class="suggestion ${sale?"sold-result":""}" data-name="${p.name}"><strong>${p.name}</strong>${sale?`<span class="sold-chip">SOLD ${money(sale.price)}</span>`:""} <span style="color:var(--muted)">• ${p.pos}${p.team?" • "+p.team:""}${p.tier!=="UNRANKED"?" • T"+p.tier+" • P"+p.pressure:" • FULL DATABASE"}</span></div>`}).join("");
+  box.innerHTML=matches.map(raw=>{const p=effectivePlayer(raw),sale=sold(p.name); return `<div class="suggestion ${sale?"sold-result":""}" data-name="${p.name}"><strong>${p.name}</strong>${sale?`<span class="sold-chip">SOLD ${money(sale.price)}</span>`:""} <span style="color:var(--muted)">• ${p.pos}${p.team?" • "+p.team:""}${p.tier!=="UNRANKED"?" • T"+p.tier+" • P"+p.pressure:" • FULL DATABASE"}</span></div>`}).join("");
   box.style.display=matches.length?"block":"none";
 });
 $("suggestions").addEventListener("click",e=>{
@@ -913,7 +966,7 @@ $("readyBtn").addEventListener("click",()=>{
   state.sales.push({player,winner,price,slot});
   if(winner==="me") state.roster[slot]={player,price};
   $("finalPrice").value=0; $("winner").value="other";
-  setSelected(null); save(); renderAll();
+  setSelected(null); save(); renderAll(); updateResetSummary();
   const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
   setTimeout(()=>{ btn.innerHTML="RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small>"; $("playerSearch").focus(); },700);
 });
@@ -960,6 +1013,27 @@ $("clearEvaluationBtn").addEventListener("click",()=>{
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
 });
 
+function freshDraftState(){ return {budget:Number(leagueConfig.budget||200),sales:[],roster:{},selected:null}; }
+function applyFreshDraft(){ const fresh=freshDraftState(); state.budget=fresh.budget; state.sales=[]; state.roster={}; state.selected=null; save(); setSelected(null); renderAll(); updateResetSummary(); }
+function downloadJSON(filename,data){ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),500); }
+function exportBackup(){ downloadJSON(`war-room-backup-${new Date().toISOString().slice(0,10)}.json`,{version:1,exportedAt:new Date().toISOString(),profileMode,leagueConfig,state,personalEvaluations}); setResetStatus("Backup downloaded."); }
+function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
+function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
+function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
+function clearPersonalBoard(){ personalEvaluations={}; savePersonalEvaluations(); scoutingSelectedName=null; renderPersonalBoard(); renderCore(); if(state.selected&&byName[state.selected])setSelected(byName[state.selected]); updateResetSummary(); }
+function fullCleanReset(){
+  localStorage.removeItem("warRoomState"); localStorage.removeItem("warRoomLeagueConfig"); localStorage.removeItem(PERSONAL_EVAL_KEY);
+  localStorage.setItem(PROFILE_MODE_KEY,"clean");
+  location.reload();
+}
+function importBackupObject(data){
+  if(!data||typeof data!=="object"||!data.state||!data.leagueConfig) throw new Error("Invalid War Room backup.");
+  localStorage.setItem("warRoomState",JSON.stringify(data.state));
+  localStorage.setItem("warRoomLeagueConfig",JSON.stringify(data.leagueConfig));
+  localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(data.personalEvaluations||{}));
+  localStorage.setItem(PROFILE_MODE_KEY,data.profileMode||"owner");
+  location.reload();
+}
 function saveLeagueConfig(){ localStorage.setItem("warRoomLeagueConfig",JSON.stringify(leagueConfig)); }
 function ensureTeams(){
   const count=Number(leagueConfig.teamCount||12);
@@ -1009,6 +1083,7 @@ document.querySelectorAll(".nav-tab").forEach(btn=>btn.addEventListener("click",
   btn.classList.add("active"); $(btn.dataset.view).classList.add("active");
   if(btn.dataset.view==="warRoomView") setTimeout(setAppHeight,20);
   if(btn.dataset.view==="headquartersView") renderPersonalBoard();
+  if(btn.dataset.view==="debriefView") updateResetSummary();
 }));
 $("teamCountInput").addEventListener("change",()=>{
   collectTeamsFromEditor(); leagueConfig.teamCount=Number($("teamCountInput").value); ensureTeams(); renderTeamsEditor();
@@ -1028,7 +1103,14 @@ $("saveTeamsBtn").addEventListener("click",()=>{
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
 $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
-renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard();
+$("exportBackupBtn").addEventListener("click",exportBackup);
+$("importBackupBtn").addEventListener("click",()=>$("importBackupFile").click());
+$("importBackupFile").addEventListener("change",async e=>{const f=e.target.files[0]; if(!f)return; try{importBackupObject(JSON.parse(await f.text()));}catch(err){alert(err.message||"Could not import backup.");} e.target.value="";});
+$("newDraftBtn").addEventListener("click",()=>{if(confirm("Clear all sales, rosters and live-draft intelligence while keeping this league and personal board?")){applyFreshDraft();setResetStatus("New draft ready.");}});
+$("newLeagueBtn").addEventListener("click",()=>{if(!confirm("Start a new league while keeping your personal board?"))return; applyFreshDraft(); leagueConfig={...defaultLeagueConfig,teams:[]}; ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll(); updateResetSummary(); setResetStatus("New league ready.");});
+$("clearBoardBtn").addEventListener("click",()=>{if(confirmTyped("This permanently clears every personal value, tier, target and note in this browser.")){clearPersonalBoard();setResetStatus("Personal board cleared.");}});
+$("shareSafeResetBtn").addEventListener("click",()=>{if(confirmTyped("This clears the league, draft and personal board, then switches this browser to a clean share-safe experience.")){fullCleanReset();}});
+renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); updateResetSummary();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
 fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
