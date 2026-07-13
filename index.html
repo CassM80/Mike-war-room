@@ -73,8 +73,18 @@ h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-hei
 .search-wrap { position:relative; }
 #playerSearch { width:100%; height:38px; border:1px solid #4b5563; border-radius:8px; background:#090c0f; color:white; padding:0 12px; }
 #suggestions { display:none; position:absolute; z-index:50; top:42px; left:0; right:0; max-height:230px; overflow:auto; background:#0b0e11; border:1px solid #4b5563; border-radius:8px; box-shadow:0 12px 30px #000; }
-.suggestion { padding:12px; border-bottom:1px solid #22272c; }
+.suggestion { padding:12px; border-bottom:1px solid #22272c; cursor:pointer; }
 .suggestion:active { background:#20262b; }
+.suggestion.sold-result { background:#111418; color:#737b85; opacity:.78; }
+.suggestion.sold-result strong { text-decoration:line-through; color:#8b949e; }
+.sold-chip { display:inline-block; margin-left:8px; padding:2px 7px; border-radius:999px; background:#3a1717; color:#ff8c8c; font-size:10px; font-weight:900; letter-spacing:.06em; text-decoration:none!important; }
+.dossier.sold-player .player-head,
+.dossier.sold-player .decision-area,
+.dossier.sold-player .pivots { filter:grayscale(1); opacity:.58; }
+.dossier.sold-player #warDossierCompact { opacity:1; filter:none; }
+.dossier.sold-player #warSaleStatus { color:#ff8c8c; }
+.dossier.sold-player .command-text { color:#9ca3af; }
+.ready:disabled { opacity:.35; cursor:not-allowed; filter:grayscale(1); }
 .player-head { display:flex; justify-content:center; align-items:center; gap:14px; padding:4px 16px; }
 .player-name { font-size:34px; font-weight:950; letter-spacing:.02em; }
 .meta { font-size:16px; color:#d1d5db; font-weight:800; }
@@ -424,7 +434,7 @@ body { overflow:auto; }
       <div class="total"><span>TOTAL SPENT</span><span id="totalSpent">$0</span></div>
     </section>
 
-    <section class="panel dossier">
+    <section class="panel dossier" id="warDossierPanel">
       <div class="search-row">
         <div class="panel-title" style="border:0;padding:0;height:auto">TARGET DOSSIER</div>
         <div class="search-wrap">
@@ -714,7 +724,10 @@ function renderAlerts(){
 }
 function setSelected(p){
   p=effectivePlayer(p);
+  const existingSale=p?sold(p.name):null;
   state.selected=p? p.name:null; save();
+  $("warDossierPanel").classList.toggle("sold-player",!!existingSale);
+  $("readyBtn").disabled=!!existingSale;
   $("playerSearch").value=p?p.name:"";
   $("recordPlayer").value=p?p.name:"";
   if(!p){
@@ -727,7 +740,7 @@ function setSelected(p){
   $("playerPos").textContent=p.pos+(p.team?" • "+p.team:"");
   $("playerTier").textContent=p.tier==="UNRANKED"?"NOT YET RANKED":"TIER "+p.tier;
   $("playerPressure").textContent=ev?evaluationTags(ev).join(" • ")||"PERSONAL VALUE":(p.tier==="UNRANKED"?"FULL DATABASE":"PRESSURE: "+p.pressure);
-  $("commandText").textContent=p.action==="ATTACK"?"ATTACK":p.action==="VALUE"?"VALUE ONLY":p.action==="PASS"?"PASS UNLESS DISCOUNT":p.action==="WATCH"?"NO PERSONAL GRADE":"AVOID";
+  $("commandText").textContent=existingSale?"SOLD":(p.action==="ATTACK"?"ATTACK":p.action==="VALUE"?"VALUE ONLY":p.action==="PASS"?"PASS UNLESS DISCOUNT":p.action==="WATCH"?"NO PERSONAL GRADE":"AVOID");
   $("buyRange").textContent=p.buyLow?`$${p.buyLow} – $${p.buyHigh}`:"—";
   $("fairRange").textContent=p.fairLow?`$${p.fairLow} – $${p.fairHigh}`:"—";
   $("stopRange").textContent=p.overpay?`$${p.overpay}+`:"PASS";
@@ -743,8 +756,8 @@ function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlert
 $("playerSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("suggestions");
   if(!q){ box.style.display="none"; return; }
-  const matches=PLAYERS.filter(p=>p.name.toLowerCase().includes(q) && !sold(p.name)).slice(0,8);
-  box.innerHTML=matches.map(p=>`<div class="suggestion" data-name="${p.name}"><strong>${p.name}</strong> <span style="color:var(--muted)">• ${p.pos}${p.team?" • "+p.team:""}${p.tier!=="UNRANKED"?" • T"+p.tier+" • P"+p.pressure:" • FULL DATABASE"}</span></div>`).join("");
+  const matches=PLAYERS.filter(p=>p.name.toLowerCase().includes(q)).sort((a,b)=>Number(!!sold(a.name))-Number(!!sold(b.name))).slice(0,8);
+  box.innerHTML=matches.map(p=>{const sale=sold(p.name); return `<div class="suggestion ${sale?"sold-result":""}" data-name="${p.name}"><strong>${p.name}</strong>${sale?`<span class="sold-chip">SOLD ${money(sale.price)}</span>`:""} <span style="color:var(--muted)">• ${p.pos}${p.team?" • "+p.team:""}${p.tier!=="UNRANKED"?" • T"+p.tier+" • P"+p.pressure:" • FULL DATABASE"}</span></div>`}).join("");
   box.style.display=matches.length?"block":"none";
 });
 $("suggestions").addEventListener("click",e=>{

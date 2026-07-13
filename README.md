@@ -12,3 +12,9 @@ Built from the confirmed live Scouting release.
 
 ## Principle
 Scouting edits the record. War Room displays it. Draft sales update it.
+
+## Production Upgrade 5.1
+- Sold players remain searchable in War Room.
+- Sold search results are grayed out, struck through, and display the sale price.
+- Selecting a sold player opens the same dossier in a disabled gray state with SOLD status.
+- A sold player cannot be recorded a second time.
