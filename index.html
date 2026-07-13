@@ -250,6 +250,36 @@ body { overflow:auto; }
   .hq-summary { grid-template-columns:1fr 1fr; }
 }
 
+/* Production Upgrade 4: Scouting & Personalization */
+.scouting-card { margin-top:18px; }
+.scouting-layout { display:grid; grid-template-columns:minmax(260px,.85fr) minmax(0,1.6fr); gap:16px; }
+.scouting-search-panel,.scouting-editor { border:1px solid var(--line); background:#101419; border-radius:12px; padding:14px; }
+.scouting-search-panel h3,.scouting-editor h3 { margin:0 0 10px; font-size:14px; letter-spacing:.08em; }
+.scouting-search { position:relative; }
+.scouting-search input { width:100%; }
+#scoutingSuggestions { display:none; position:absolute; z-index:60; width:100%; max-height:260px; overflow:auto; background:#101419; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px #000b; }
+.scouting-result { padding:10px 11px; border-bottom:1px solid var(--line); cursor:pointer; }
+.scouting-result:hover { background:#1b2420; }
+.scouting-selected { margin-top:12px; min-height:66px; border:1px dashed #334038; border-radius:9px; padding:12px; color:var(--muted); }
+.scouting-selected strong { display:block; color:var(--text); font-size:18px; }
+.eval-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.eval-flags { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.flag-toggle { display:flex; align-items:center; gap:7px; padding:9px; border:1px solid var(--line); border-radius:8px; background:#0b0e12; font-size:12px; font-weight:800; }
+.flag-toggle input { width:auto; }
+.eval-notes { margin-top:12px; }
+.eval-notes textarea { min-height:84px; resize:vertical; }
+.scouting-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.secondary-btn { border:1px solid #46524c; background:#171c21; color:var(--text); border-radius:8px; padding:10px 13px; font-weight:850; cursor:pointer; }
+.danger-btn { border-color:#713838; color:#ffaaaa; }
+.personal-board { margin-top:16px; }
+.personal-board-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:250px; overflow:auto; }
+.personal-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#0c1014; cursor:pointer; }
+.personal-row:hover { border-color:var(--green); }
+.personal-tags { color:var(--green); font-size:10px; font-weight:900; }
+.personal-empty { color:var(--muted); padding:12px 0; }
+.personal-badge { display:inline-block; margin-left:6px; padding:3px 6px; border-radius:999px; background:#233126; color:var(--green); font-size:10px; font-weight:900; }
+@media (max-width:800px){ .scouting-layout{grid-template-columns:1fr}.eval-grid{grid-template-columns:1fr 1fr}.eval-flags{grid-template-columns:1fr 1fr}.personal-board-list{grid-template-columns:1fr} }
+
 </style>
 </head>
 <body>
@@ -297,6 +327,48 @@ body { overflow:auto; }
         </div>
       </section>
     </div>
+    <section class="workspace-card scouting-card">
+      <div class="card-head">SCOUTING & PERSONALIZATION</div>
+      <div class="card-body">
+        <div class="scouting-layout">
+          <div class="scouting-search-panel">
+            <h3>FIND ANY PLAYER</h3>
+            <div class="scouting-search">
+              <input id="scoutingSearch" placeholder="Search the complete player database…" autocomplete="off">
+              <div id="scoutingSuggestions"></div>
+            </div>
+            <div class="scouting-selected" id="scoutingSelected">Select a player to create or edit your evaluation.</div>
+            <div class="personal-board">
+              <h3>YOUR PERSONAL BOARD</h3>
+              <div class="personal-board-list" id="personalBoardList"></div>
+            </div>
+          </div>
+          <div class="scouting-editor">
+            <h3>PERSONAL EVALUATION</h3>
+            <div id="scoutingEditorEmpty" class="personal-empty">No player selected.</div>
+            <div id="scoutingEditorFields" class="hidden">
+              <div class="eval-grid">
+                <div class="form-field"><label>YOUR VALUE</label><input id="evalValue" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="form-field"><label>HARD STOP</label><input id="evalHardStop" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="form-field"><label>PERSONAL TIER</label><input id="evalTier" placeholder="Example: 2 or Green"></div>
+              </div>
+              <div class="eval-flags">
+                <label class="flag-toggle"><input id="evalFavorite" type="checkbox"> FAVORITE</label>
+                <label class="flag-toggle"><input id="evalFlagPlant" type="checkbox"> FLAG PLANT</label>
+                <label class="flag-toggle"><input id="evalSleeper" type="checkbox"> SLEEPER</label>
+                <label class="flag-toggle"><input id="evalAvoid" type="checkbox"> AVOID</label>
+              </div>
+              <div class="form-field eval-notes"><label>PERSONAL NOTES</label><textarea id="evalNotes" placeholder="Why you want him, price conditions, concerns, pivots…"></textarea></div>
+              <div class="scouting-actions">
+                <button class="primary-btn" id="saveEvaluationBtn">SAVE EVALUATION</button>
+                <button class="secondary-btn danger-btn" id="clearEvaluationBtn">CLEAR PERSONAL EVALUATION</button>
+              </div>
+              <div class="saved-note" id="evaluationSavedNote"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </section>
 
@@ -439,6 +511,7 @@ function mergePlayerUniverse(rows){
   byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
   fillSelects();
   renderPlayerDataStatus();
+  renderPersonalBoard();
 }
 function renderPlayerDataStatus(message){
   const el=document.getElementById("playerDataStatus");
@@ -466,6 +539,39 @@ async function loadCompletePlayerUniverse(force=false){
     renderPlayerDataStatus(`${PLAYERS.length} searchable players • offline/cache mode`);
     console.warn("Player database refresh failed",error);
   }
+}
+const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
+let personalEvaluations = {};
+try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
+let scoutingSelectedName = null;
+function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
+function savePersonalEvaluations(){ localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations)); }
+function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
+function effectivePlayer(base){
+  if(!base) return null;
+  const ev=getPersonalEvaluation(base.name);
+  if(!ev) return base;
+  const value=Math.max(0,Number(ev.value||0));
+  const hard=Math.max(value,Number(ev.hardStop||0));
+  let action=base.action;
+  if(ev.avoid) action="AVOID";
+  else if(ev.flagPlant) action="ATTACK";
+  else if(ev.favorite||ev.sleeper) action="VALUE";
+  return {...base,
+    tier:ev.tier||base.tier,
+    action,
+    buyLow:value?Math.max(1,value-2):base.buyLow,
+    buyHigh:value||base.buyHigh,
+    fairLow:value?value+1:base.fairLow,
+    fairHigh:hard||base.fairHigh,
+    overpay:hard?hard+1:base.overpay,
+    personalEvaluation:ev,
+    notes:ev.notes||base.notes
+  };
+}
+function evaluationTags(ev){
+  if(!ev) return [];
+  return [[ev.flagPlant,"FLAG PLANT"],[ev.favorite,"FAVORITE"],[ev.sleeper,"SLEEPER"],[ev.avoid,"AVOID"]].filter(x=>x[0]).map(x=>x[1]);
 }
 const CORE = ["A.J. Brown", "CeeDee Lamb", "Omarion Hampton", "Kenneth Walker III", "Brock Bowers", "Jaxon Smith-Njigba", "Alec Pierce"];
 const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon-Ra St. Brown", "Malik Nabers", "Marvin Harrison Jr.", "Garrett Wilson", "Drake London", "Ladd McConkey", "Rome Odunze", "DJ Moore", "Xavier Worthy", "Jordan Addison", "Courtland Sutton", "Bijan Robinson", "Jahmyr Gibbs", "Saquon Barkley", "Christian McCaffrey", "Jonathan Taylor", "James Cook", "Josh Jacobs", "Breece Hall", "Kyren Williams", "Alvin Kamara", "Joe Mixon", "Josh Allen", "Lamar Jackson", "Jalen Hurts", "Patrick Mahomes", "Trey McBride", "George Kittle", "Sam LaPorta", "Travis Kelce"]);
@@ -533,6 +639,7 @@ function renderAlerts(){
   $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
 }
 function setSelected(p){
+  p=effectivePlayer(p);
   state.selected=p? p.name:null; save();
   $("playerSearch").value=p?p.name:"";
   $("recordPlayer").value=p?p.name:"";
@@ -541,7 +648,11 @@ function setSelected(p){
     $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
-  $("playerName").textContent=p.name; $("playerPos").textContent=p.pos+(p.team?" • "+p.team:""); $("playerTier").textContent=p.tier==="UNRANKED"?"NOT YET RANKED":"TIER "+p.tier; $("playerPressure").textContent=p.tier==="UNRANKED"?"FULL DATABASE":"PRESSURE: "+p.pressure;
+  const ev=p.personalEvaluation;
+  $("playerName").innerHTML=p.name+(ev?'<span class="personal-badge">YOUR BOARD</span>':'');
+  $("playerPos").textContent=p.pos+(p.team?" • "+p.team:"");
+  $("playerTier").textContent=p.tier==="UNRANKED"?"NOT YET RANKED":"TIER "+p.tier;
+  $("playerPressure").textContent=ev?evaluationTags(ev).join(" • ")||"PERSONAL VALUE":(p.tier==="UNRANKED"?"FULL DATABASE":"PRESSURE: "+p.pressure);
   $("commandText").textContent=p.action==="ATTACK"?"ATTACK":p.action==="VALUE"?"VALUE ONLY":p.action==="PASS"?"PASS UNLESS DISCOUNT":p.action==="WATCH"?"NO PERSONAL GRADE":"AVOID";
   $("buyRange").textContent=p.buyLow?`$${p.buyLow} – $${p.buyHigh}`:"—";
   $("fairRange").textContent=p.fairLow?`$${p.fairLow} – $${p.fairHigh}`:"—";
@@ -576,6 +687,48 @@ $("readyBtn").addEventListener("click",()=>{
   if(winner==="me") state.roster[slot]={player,price};
   $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
   setSelected(null); save(); renderAll();
+});
+
+function selectScoutingPlayer(name){
+  const base=byName[name]; if(!base) return;
+  scoutingSelectedName=name;
+  const ev=getPersonalEvaluation(name)||{};
+  $("scoutingSearch").value=name;
+  $("scoutingSuggestions").style.display="none";
+  $("scoutingSelected").innerHTML=`<strong>${name}</strong>${base.pos}${base.team?" • "+base.team:""}${getPersonalEvaluation(name)?'<span class="personal-badge">PERSONALIZED</span>':''}`;
+  $("scoutingEditorEmpty").classList.add("hidden"); $("scoutingEditorFields").classList.remove("hidden");
+  $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
+  $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
+}
+function renderPersonalBoard(){
+  const rows=Object.values(personalEvaluations).sort((a,b)=>(Number(b.flagPlant)-Number(a.flagPlant))||(Number(b.favorite)-Number(a.favorite))||(a.name||"").localeCompare(b.name||""));
+  const box=$("personalBoardList"); if(!box) return;
+  box.innerHTML=rows.length?rows.map(ev=>`<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,"&quot;")}"><strong>${ev.name}</strong><span>${ev.value?money(ev.value):"—"} / ${ev.hardStop?money(ev.hardStop):"—"}</span><span class="personal-tags">${evaluationTags(ev).join(" · ")}</span></div>`).join(""):'<div class="personal-empty">No personal evaluations saved yet.</div>';
+}
+$("scoutingSearch").addEventListener("input",e=>{
+  const q=e.target.value.toLowerCase().trim(), box=$("scoutingSuggestions");
+  if(!q){box.style.display="none";return;}
+  const matches=PLAYERS.filter(p=>p.name.toLowerCase().includes(q)).slice(0,12);
+  box.innerHTML=matches.map(p=>`<div class="scouting-result" data-scout-name="${p.name.replace(/"/g,"&quot;")}"><strong>${p.name}</strong> <span style="color:var(--muted)">• ${p.pos}${p.team?" • "+p.team:""}</span></div>`).join("");
+  box.style.display=matches.length?"block":"none";
+});
+$("scoutingSuggestions").addEventListener("click",e=>{const row=e.target.closest(".scouting-result");if(row)selectScoutingPlayer(row.dataset.scoutName);});
+$("personalBoardList").addEventListener("click",e=>{const row=e.target.closest(".personal-row");if(row)selectScoutingPlayer(row.dataset.personalName);});
+$("saveEvaluationBtn").addEventListener("click",()=>{
+  if(!scoutingSelectedName) return alert("Select a player first.");
+  const value=Math.max(0,Number($("evalValue").value||0));
+  const hard=Math.max(0,Number($("evalHardStop").value||0));
+  if(value && hard && hard<value) return alert("Hard Stop cannot be below Your Value.");
+  const ev={name:scoutingSelectedName,value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:$("evalFavorite").checked,flagPlant:$("evalFlagPlant").checked,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
+  personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(); renderPersonalBoard(); selectScoutingPlayer(scoutingSelectedName);
+  if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
+  $("evaluationSavedNote").textContent="Personal evaluation saved."; setTimeout(()=>$("evaluationSavedNote").textContent="",1800);
+});
+$("clearEvaluationBtn").addEventListener("click",()=>{
+  if(!scoutingSelectedName||!getPersonalEvaluation(scoutingSelectedName)) return;
+  if(!confirm(`Clear your personal evaluation for ${scoutingSelectedName}?`)) return;
+  delete personalEvaluations[playerKey(scoutingSelectedName)]; savePersonalEvaluations(); renderPersonalBoard(); selectScoutingPlayer(scoutingSelectedName);
+  if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
 });
 
 function saveLeagueConfig(){ localStorage.setItem("warRoomLeagueConfig",JSON.stringify(leagueConfig)); }
@@ -626,6 +779,7 @@ document.querySelectorAll(".nav-tab").forEach(btn=>btn.addEventListener("click",
   document.querySelectorAll(".app-view").forEach(x=>x.classList.remove("active"));
   btn.classList.add("active"); $(btn.dataset.view).classList.add("active");
   if(btn.dataset.view==="warRoomView") setTimeout(setAppHeight,20);
+  if(btn.dataset.view==="headquartersView") renderPersonalBoard();
 }));
 $("teamCountInput").addEventListener("change",()=>{
   collectTeamsFromEditor(); leagueConfig.teamCount=Number($("teamCountInput").value); ensureTeams(); renderTeamsEditor();
@@ -645,7 +799,7 @@ $("saveTeamsBtn").addEventListener("click",()=>{
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
 $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
-renderTeamCountOptions(); renderLeagueSetup();
+renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
 fillSelects(); $("rosterSlot").disabled=true; renderAll(); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();

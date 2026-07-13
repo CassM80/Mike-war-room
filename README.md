@@ -1,10 +1,10 @@
-# Mike Cassidy Auction War Room
+# War Room — Production Upgrade 4
 
-Production Upgrade 3 adds the complete searchable NFL player universe while preserving the existing curated War Room grades.
+Adds Scouting & Personalization to the confirmed complete-player production build.
 
-## Player database behavior
-- Curated players keep their existing tiers, prices, pivots and recommendations.
-- Active QB, RB, WR, TE and K records refresh from Sleeper in the background.
-- All 32 team defenses are included.
-- A filtered local cache loads instantly and refreshes at most once every 24 hours.
-- If the network is unavailable, the last saved database remains usable.
+## New
+- Search the complete player database from Headquarters
+- Save personal value, hard stop, tier, Favorite, Flag Plant, Sleeper, Avoid, and notes
+- Personal evaluations persist locally
+- War Room dossier uses personal settings immediately
+- Existing curated evaluations remain intact unless the user creates an override
