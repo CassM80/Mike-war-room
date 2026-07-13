@@ -510,7 +510,7 @@ body { overflow:auto; }
         <input id="bulkSearch" placeholder="Filter players by name…">
         <select id="bulkPosition"><option value="ALL">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option></select>
         <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option></select>
-        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Consensus Price</option><option value="ADP">Sort: ADP / Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option></select>
+        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Market Price</option><option value="ADP">Sort: ADP / Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option></select>
       </div>
       <div class="bulk-actions">
         <div class="form-field"><label>START RANK</label><input id="bulkStartRank" type="number" min="1" placeholder="1"></div>
@@ -521,8 +521,8 @@ body { overflow:auto; }
         <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
-      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Consensus $ uses the current market baseline. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Market $ uses a position-calibrated league baseline; direct provider values will override it when available. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>MARKET $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -826,13 +826,52 @@ function evaluationTags(ev){
   return [[ev.flagPlant,"FLAG PLANT"],[ev.favorite,"FAVORITE"],[ev.sleeper,"SLEEPER"],[ev.avoid,"AVOID"]].filter(x=>x[0]).map(x=>x[1]);
 }
 
-function marketPriceFromRank(rank){const r=Number(rank||0);if(!r)return 0;if(r<=3)return 64-(r-1)*2;if(r<=8)return 58-(r-4)*2;if(r<=15)return 47-(r-9)*1.5;if(r<=24)return 36-(r-16)*1.1;if(r<=36)return 25-(r-25)*.75;if(r<=50)return 16-(r-37)*.45;if(r<=75)return 9-(r-51)*.24;if(r<=110)return 4-(r-76)*.08;if(r<=180)return 1;return 0;}
+const MARKET_CURVES={
+  QB:[28,23,19,16,14,12,10,9,8,7,6,5,4,3,3,2,2,2,1,1,1,1,1,1],
+  RB:[65,61,57,53,49,45,42,39,36,33,30,28,26,24,22,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,5,4,4,3,3,2,2,1,1],
+  WR:[67,63,59,55,51,47,44,41,38,35,32,30,28,26,24,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,5,4,4,3,3,2,2,1,1],
+  TE:[38,31,25,20,16,13,10,8,7,6,5,4,3,3,2,2,1,1,1,1],
+  K:[1,1,1,1,1,1,1,1,1,1,1,1],
+  DEF:[2,2,2,1,1,1,1,1,1,1,1,1]
+};
+let marketRankCache={count:-1,ranks:new Map()};
+function rebuildMarketRankCache(){
+  const ranks=new Map();
+  for(const pos of ['QB','RB','WR','TE','K','DEF']){
+    PLAYERS.filter(p=>p.pos===pos).sort((a,b)=>(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name)).forEach((p,i)=>ranks.set(playerKey(p.name),i+1));
+  }
+  marketRankCache={count:PLAYERS.length,ranks};
+}
+function positionRankFor(base){if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
+function leagueMarketMultiplier(pos){
+  const r=leagueConfig.roster||defaultLeagueConfig.roster;
+  const teams=Number(leagueConfig.teamCount||12),budget=Number(leagueConfig.budget||200);
+  let m=(budget/200)*Math.pow(teams/12,.30)*Math.pow(Math.max(10,rosterSize())/17,.10);
+  const flexShare=Number(r.flex||0)/3;
+  if(pos==='QB') m*=Number(r.qb||1)>=2?1.85:Math.pow(Math.max(.75,Number(r.qb||1)),.35);
+  if(pos==='RB') m*=Math.pow((Number(r.rb||2)+flexShare)/2.67,.30);
+  if(pos==='WR') m*=Math.pow((Number(r.wr||2)+flexShare)/2.67,.30);
+  if(pos==='TE') m*=Math.pow(Math.max(.7,Number(r.te||1)+Number(r.flex||0)*.12),.28);
+  if(leagueConfig.scoring==='PPR'&&['WR','TE'].includes(pos))m*=1.04;
+  if(leagueConfig.scoring==='Standard'&&pos==='RB')m*=1.05;
+  if(leagueConfig.scoring==='Standard'&&['WR','TE'].includes(pos))m*=.94;
+  return m;
+}
+function positionAwareMarketPrice(base){
+  const curve=MARKET_CURVES[base?.pos]||[];
+  const rank=positionRankFor(base);
+  let value=rank<=curve.length?curve[rank-1]:0;
+  if(!value&&rank<=Math.max(24,Math.round((leagueConfig.teamCount||12)*2.2))) value=1;
+  value*=leagueMarketMultiplier(base.pos);
+  // Prevent 1-QB values from being distorted into elite-RB/WR territory.
+  if(base.pos==='QB'&&Number((leagueConfig.roster||{}).qb||1)===1)value=Math.min(value,Math.round(32*(Number(leagueConfig.budget||200)/200)));
+  return Math.max(0,Math.round(value));
+}
 function consensusPriceFor(base){
   if(!base) return 0;
+  // Future licensed/provider values can be supplied directly as market_price.
   if(Number(base.market_price||0)>0) return Math.round(Number(base.market_price));
-  if(Number(base.fairLow||0)>0 && Number(base.fairHigh||0)>0) return Math.round((Number(base.fairLow)+Number(base.fairHigh))/2);
-  if(Number(base.buyHigh||0)>0) return Number(base.buyHigh);
-  return Math.round(marketPriceFromRank(adpFor(base)));
+  return positionAwareMarketPrice(base);
 }
 function adpFor(base){
   const value=Number(base?.adp||base?.search_rank||0);
@@ -840,10 +879,7 @@ function adpFor(base){
 }
 function marketValueFor(base){
   if(!base) return 0;
-  if(profileMode==="clean" && !getPersonalEvaluation(base.name)) return 0;
-  if(Number(base.fairLow||0)>0 && Number(base.fairHigh||0)>0) return Math.round((Number(base.fairLow)+Number(base.fairHigh))/2);
-  if(Number(base.buyHigh||0)>0) return Number(base.buyHigh);
-  return 0;
+  return consensusPriceFor(base);
 }
 function saleForPlayer(name){ return state.sales.find(s=>s.player===name) || null; }
 function dossierHTML(base){
@@ -1202,7 +1238,7 @@ function renderBaseQuestions(){
  $('sprintQuestionArea').innerHTML=`<div class="sprint-help">Choose quickly. These establish the foundation; player decisions in the next rounds personalize it further.</div><div class="dna-question-grid">${DNA_BASE_QUESTIONS.map(q=>`<div class="dna-q"><label>${q.label}</label><select data-dna-base="${q.key}">${q.options.map(o=>`<option value="${o[0]}" ${sprintAnswers[q.key]===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>`).join('')}</div>`;
  $('sprintBackBtn').disabled=true;$('sprintNextBtn').textContent='START PLAYER GUT CHECK';
 }
-function renderReaction(){const list=dnaReactionPlayers(),p=list[dnaIndex];$('sprintTitle').textContent='Player Gut Check';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Player ${dnaIndex+1} of ${list.length}</div><div class="dna-card"><div class="dna-meta">${p.pos}${p.team?' • '+p.team:''} • Consensus ${money(consensusPriceFor(p)||0)}</div><div class="dna-player">${p.name}</div><div class="sprint-help">What is your immediate reaction?</div><div class="dna-buttons">${[['LOVE','LOVE'],['LIKE','LIKE'],['NEUTRAL','NEUTRAL'],['DISLIKE','DISLIKE'],['NEVER','NEVER']].map(x=>`<button data-dna-reaction="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
+function renderReaction(){const list=dnaReactionPlayers(),p=list[dnaIndex];$('sprintTitle').textContent='Player Gut Check';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Player ${dnaIndex+1} of ${list.length}</div><div class="dna-card"><div class="dna-meta">${p.pos}${p.team?' • '+p.team:''} • Market ${money(consensusPriceFor(p)||0)}</div><div class="dna-player">${p.name}</div><div class="sprint-help">What is your immediate reaction?</div><div class="dna-buttons">${[['LOVE','LOVE'],['LIKE','LIKE'],['NEUTRAL','NEUTRAL'],['DISLIKE','DISLIKE'],['NEVER','NEVER']].map(x=>`<button data-dna-reaction="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
 function renderPrice(){const list=dnaPricePlayers(),p=list[dnaIndex],price=consensusPriceFor(p)||marketSeedValue(p);$('sprintTitle').textContent='Price Reaction';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Price ${dnaIndex+1} of ${list.length}</div><div class="dna-card"><div class="dna-meta">${p.pos}${p.team?' • '+p.team:''}</div><div class="dna-player">${p.name} at ${money(price)}</div><div class="sprint-help">How does that price feel?</div><div class="dna-buttons">${[['SMASH','SMASH'],['GOOD','GOOD'],['FAIR','FAIR'],['HIGH','TOO HIGH'],['OUT','I’M OUT']].map(x=>`<button data-dna-price="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
 function renderPair(){const list=dnaPairs(),pair=list[dnaIndex],isLast=dnaIndex===list.length-1;$('sprintTitle').textContent='Head-to-Head';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Matchup ${dnaIndex+1} of ${list.length}</div><div class="sprint-help">Who would you rather build around at a similar cost?</div><div class="dna-pair"><div class="dna-choice" data-dna-pair="0"><strong>${pair[0].name}</strong><span>${pair[0].pos} • ${money(consensusPriceFor(pair[0])||0)}</span></div><div class="dna-vs">VS</div><div class="dna-choice" data-dna-pair="1"><strong>${pair[1].name}</strong><span>${pair[1].pos} • ${money(consensusPriceFor(pair[1])||0)}</span></div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent=isLast?'BUILD MY DNA':'SKIP';$('sprintNextBtn').dataset.finalDna=isLast?'1':'0';}
 function computeDNAProfile(){
