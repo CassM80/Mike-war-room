@@ -1,7 +1,3 @@
-# War Room Production Upgrade 10
+# War Room Production Upgrade 11
 
-Adds a user-friendly Save War Room experience:
-- private `.warroom` backup and restore
-- printable Draft Report with Save as PDF
-- printable Personal Board
-- share-safe `.warroom-league` file containing no private rankings, notes, values, or sales
+Enhanced post-draft report with draft grade, philosophy score, best value, biggest overpay, positional spending, market inflation, and team-by-team rosters.
