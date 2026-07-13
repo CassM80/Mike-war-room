@@ -117,7 +117,7 @@ h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-hei
 .alert.yellow { color:var(--yellow); border-color:#713f12; background:#251c07; }
 .alert.green { color:var(--green); border-color:#365314; background:#142007; }
 .record { display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:8px; min-height:0; position:relative; z-index:20; pointer-events:auto; }
-.record-fields { padding:10px 16px; display:grid; grid-template-columns:1.6fr 1fr 1fr 1.2fr; gap:12px; align-items:end; }
+.record-fields { padding:10px 16px; display:grid; grid-template-columns:1.8fr 1fr 1fr; gap:12px; align-items:end; }
 .field label { display:block; color:var(--muted); font-size:10px; font-weight:800; margin-bottom:6px; }
 .field select,.field input {
   width:100%;
@@ -512,7 +512,6 @@ body { overflow:auto; }
       <div class="field"><label>1. PLAYER</label><input id="recordPlayer" list="recordPlayerList" placeholder="Type player name..." autocomplete="off"><datalist id="recordPlayerList"></datalist></div>
       <div class="field"><label>2. WINNER</label><select id="winner"><option value="other">OTHER</option><option value="me">ME</option></select></div>
       <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
-      <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
     </div>
     <button class="ready" id="readyBtn">RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small></button>
   </section>
@@ -870,7 +869,6 @@ function setSelected(p){
 }
 function fillSelects(){
   $("recordPlayerList").innerHTML=PLAYERS.map(p=>`<option value="${p.name}">${p.pos} • ${p.team||"FA"}</option>`).join("");
-  $("rosterSlot").innerHTML='<option value="">Select slot</option>'+ROSTER_SLOTS.map(s=>`<option>${s}</option>`).join("");
 }
 function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); }
 $("playerSearch").addEventListener("input",e=>{
@@ -885,16 +883,36 @@ $("suggestions").addEventListener("click",e=>{
 });
 $("recordPlayer").addEventListener("input",e=>{ const p=byName[e.target.value]; if(p) setSelected(p); });
 $("recordPlayer").addEventListener("change",e=>{ const p=byName[e.target.value]; if(p) setSelected(p); });
-$("winner").addEventListener("change",e=>{ $("rosterSlot").disabled=e.target.value!=="me"; });
+function autoRosterSlot(playerName){
+  const player=byName[playerName];
+  if(!player) return null;
+  const open=availableSlots();
+  const direct={
+    QB:["QB"],
+    RB:["RB1","RB2"],
+    WR:["WR1","WR2"],
+    TE:["TE"],
+    K:["K"],
+    DEF:["DEF"]
+  }[player.pos]||[];
+  const directSlot=direct.find(slot=>open.includes(slot));
+  if(directSlot) return directSlot;
+  if(["RB","WR","TE"].includes(player.pos)){
+    const flexSlot=["FLEX1","FLEX2"].find(slot=>open.includes(slot));
+    if(flexSlot) return flexSlot;
+  }
+  return open.find(slot=>slot.startsWith("BN"))||null;
+}
 $("readyBtn").addEventListener("click",()=>{
-  const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value), slot=$("rosterSlot").value;
+  const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value);
   if(!player) return alert("Select the completed nomination.");
   if(price<1) return alert("Enter the final price.");
-  if(winner==="me" && !slot) return alert("Select your roster slot.");
   if(sold(player)) return alert("That player is already recorded.");
-  state.sales.push({player,winner,price,slot:winner==="me"?slot:""});
+  const slot=winner==="me"?autoRosterSlot(player):"";
+  if(winner==="me" && !slot) return alert("No eligible roster spot remains for this player.");
+  state.sales.push({player,winner,price,slot});
   if(winner==="me") state.roster[slot]={player,price};
-  $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
+  $("finalPrice").value=0; $("winner").value="other";
   setSelected(null); save(); renderAll();
   const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
   setTimeout(()=>{ btn.innerHTML="RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small>"; $("playerSearch").focus(); },700);
@@ -1013,7 +1031,7 @@ $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number
 renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
-fillSelects(); $("rosterSlot").disabled=true; renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
+fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
 <script>

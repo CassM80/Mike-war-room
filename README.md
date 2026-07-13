@@ -1,15 +1,11 @@
-# Mike Cassidy Auction War Room
+# War Room Production Upgrade 8
 
-Production Upgrade 7 adds live draft intelligence while preserving the fast search → decide → record workflow.
+## Automatic roster assignment
 
-## Added
-- Position-by-position market pulse for QB, RB, WR, and TE
-- Dynamic hot/cheap market alerts
-- Tier scarcity alerts for the nominated player's position
-- Roster-need alerts
-- Smarter draft phases: Opening, Building, Tier Collapse, Value Window, End Game
-- Suggested nomination with an explanation
-- Recommendation score adjustments for positional inflation and scarcity
-- “Record & Next” wording and automatic search refocus
+The live sale workflow now requires only player, winner, and final price. When your team wins a player, War Room automatically assigns the best available roster slot in this order:
 
-All league setup, scouting evaluations, sales, budgets, and roster state remain stored locally in the browser.
+- Natural starting position
+- FLEX for eligible RB/WR/TE players
+- Bench
+
+If no eligible slot remains, the sale is blocked with a warning.
