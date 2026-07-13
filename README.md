@@ -1,10 +1,15 @@
-# War Room Production Upgrade 6
+# Mike Cassidy Auction War Room
 
-Adds the first personalized recommendation engine.
+Production Upgrade 7 adds live draft intelligence while preserving the fast search → decide → record workflow.
 
-- Fit score from 0–100
-- Excellent / Strong / Situational / Poor Fit
-- Confidence rating
-- Up to three instant reasons
-- Uses personal designations, roster need, budget, hard stop, market temperature and curated tier
-- After a recorded sale, clears and returns focus to player search
+## Added
+- Position-by-position market pulse for QB, RB, WR, and TE
+- Dynamic hot/cheap market alerts
+- Tier scarcity alerts for the nominated player's position
+- Roster-need alerts
+- Smarter draft phases: Opening, Building, Tier Collapse, Value Window, End Game
+- Suggested nomination with an explanation
+- Recommendation score adjustments for positional inflation and scarcity
+- “Record & Next” wording and automatic search refocus
+
+All league setup, scouting evaluations, sales, budgets, and roster state remain stored locally in the browser.

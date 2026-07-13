@@ -307,6 +307,10 @@ body { overflow:auto; }
 .war-dossier-compact{margin-top:10px;border:1px solid #344029;border-radius:9px;background:#0b100c;display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}
 .recommendation-engine{margin-top:10px;border:1px solid #344029;border-radius:10px;background:linear-gradient(135deg,#0c120d,#111820);padding:10px 12px;display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center}
 .recommendation-summary{border-right:1px solid var(--line);padding-right:12px;text-align:center}.recommendation-kicker{font-size:9px;color:var(--muted);font-weight:950;letter-spacing:.12em}.recommendation-fit{font-size:20px;font-weight:950;color:var(--green);margin-top:3px}.recommendation-score{font-size:12px;color:var(--text);margin-top:3px}.recommendation-confidence{font-size:10px;color:var(--blue);font-weight:900;margin-top:2px}.recommendation-reasons{display:grid;gap:5px}.recommendation-reason{font-size:11px;color:#dce6ef;line-height:1.25}.recommendation-reason::before{content:"✓";color:var(--green);font-weight:950;margin-right:7px}.recommendation-reason.warning::before{content:"!";color:var(--orange)}.recommendation-engine.poor .recommendation-fit{color:var(--red)}.recommendation-engine.situational .recommendation-fit{color:var(--yellow)}.recommendation-engine.sold{filter:grayscale(1);opacity:.65}
+
+.market-pulse{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;border-bottom:1px solid var(--line)}
+.market-chip{border:1px solid var(--line);border-radius:7px;padding:7px 4px;text-align:center;background:#0b0f12}.market-chip span{display:block;font-size:9px;color:var(--muted);font-weight:900;letter-spacing:.08em}.market-chip strong{display:block;margin-top:3px;font-size:11px}.market-chip.hot strong{color:var(--red)}.market-chip.cold strong{color:var(--green)}.market-chip.normal strong{color:var(--yellow)}.market-chip.early strong{color:var(--blue)}
+.nomination-card{margin:10px;border:1px solid #3c5d16;border-radius:8px;background:linear-gradient(135deg,#10170d,#121a10);padding:10px}.nomination-kicker{font-size:9px;color:var(--green);font-weight:950;letter-spacing:.11em}.nomination-player{font-size:16px;font-weight:950;margin-top:4px}.nomination-reason{font-size:10px;color:var(--muted);line-height:1.3;margin-top:4px}
 @media(max-width:800px){.recommendation-engine{grid-template-columns:1fr}.recommendation-summary{border-right:0;border-bottom:1px solid var(--line);padding:0 0 8px}.recommendation-reasons{grid-template-columns:1fr}}
 
 .war-dossier-cell{padding:8px 10px;text-align:center;border-right:1px solid var(--line);min-width:0}.war-dossier-cell:last-child{border-right:0}.war-dossier-cell span{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.06em}.war-dossier-cell strong{display:block;color:var(--text);font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -491,8 +495,14 @@ body { overflow:auto; }
         <div class="core-list" id="coreTargets"></div>
       </section>
       <section class="panel">
-        <div class="panel-title">ALERT PANEL (MAX 3)</div>
+        <div class="panel-title">LIVE DRAFT INTELLIGENCE</div>
+        <div class="market-pulse" id="marketPulse"></div>
         <div class="alerts" id="alerts"></div>
+        <div class="nomination-card" id="nominationCard">
+          <div class="nomination-kicker">SUGGESTED NOMINATION</div>
+          <div class="nomination-player" id="nominationPlayer">—</div>
+          <div class="nomination-reason" id="nominationReason">Record sales to activate draft-room strategy.</div>
+        </div>
       </section>
     </aside>
   </main>
@@ -504,7 +514,7 @@ body { overflow:auto; }
       <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
       <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
     </div>
-    <button class="ready" id="readyBtn">RECORD SALE<small>THEN CLEAR FOR NEXT</small></button>
+    <button class="ready" id="readyBtn">RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small></button>
   </section>
 </div>
 </section>
@@ -684,13 +694,29 @@ function save(){ localStorage.setItem("warRoomState",JSON.stringify(state)); }
 function spent(){ return state.sales.filter(s=>s.winner==="me").reduce((a,s)=>a+Number(s.price||0),0); }
 function sold(name){ return state.sales.find(s=>s.player===name); }
 function availableSlots(){ return ROSTER_SLOTS.filter(s=>!state.roster[s]); }
-function phase(){ const n=state.sales.length; return n<25?"EARLY":n<73?"MIDDLE":"LATE"; }
+function tierRemaining(pos,tierSet=["1A","1B","2"]){ return PLAYERS.filter(p=>p.pos===pos && tierSet.includes(String(p.tier)) && !sold(p.name)).length; }
+function positionMarketStats(pos){
+  const rows=state.sales.filter(s=>{const p=byName[s.player]; return p&&p.pos===pos&&Number(p.fairLow)>0&&Number(p.fairHigh)>0;});
+  if(rows.length<2) return {status:"EARLY",infl:0,count:rows.length};
+  const ratios=rows.map(s=>{const p=byName[s.player], expected=(Number(p.fairLow)+Number(p.fairHigh))/2; return Number(s.price)/expected-1;});
+  const infl=ratios.reduce((a,b)=>a+b,0)/ratios.length;
+  return {status:infl>.08?"HOT":infl<-.08?"CHEAP":"NORMAL",infl,count:rows.length};
+}
 function marketStats(){
   const m=state.sales.filter(s=>MARKET.has(s.player) && byName[s.player] && byName[s.player].fairLow>0);
   if(m.length<3) return {temp:"EARLY",trend:"STABLE",infl:0};
   const ratios=m.map(s=>Number(s.price)/((byName[s.player].fairLow+byName[s.player].fairHigh)/2)-1);
   const avg=ratios.reduce((a,b)=>a+b,0)/ratios.length;
   return {temp:avg>.10?"HOT":avg<-.10?"COLD":"NORMAL",trend:avg>.05?"HEATING":avg<-.05?"COOLING":"STABLE",infl:avg};
+}
+function phase(){
+  const n=state.sales.length, ms=marketStats();
+  const elite=PLAYERS.filter(p=>["1A","1B"].includes(String(p.tier))&&!sold(p.name)).length;
+  if(n<8) return "OPENING";
+  if(elite<=3&&n<60) return "TIER COLLAPSE";
+  if(ms.temp==="COLD"&&n<70) return "VALUE WINDOW";
+  if(availableSlots().length<=5||n>=75) return "END GAME";
+  return "BUILDING";
 }
 function renderCommand(){
   const leagueBudget=Number(leagueConfig.budget||200); const s=spent(), remaining=leagueBudget-s, left=17-Object.keys(state.roster).length;
@@ -718,20 +744,47 @@ function renderCore(){
     return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos} T${p.tier}</span></div>`;
   }).join("");
 }
+function selectedBase(){ return state.selected?byName[state.selected]:null; }
 function alerts(){
-  const arr=[]; const ms=marketStats();
-  if(ms.temp==="HOT") arr.push({c:"red",t:`MARKET HOT — ${Math.round(ms.infl*100)}% OVER VALUE`});
-  else if(ms.temp==="COLD") arr.push({c:"green",t:`MARKET COLD — VALUE AVAILABLE`});
-  const openHigh=PLAYERS.filter(p=>p.pressure>=8 && !sold(p.name));
-  if(openHigh.length<=3 && openHigh.length>0) arr.push({c:"yellow",t:`ONLY ${openHigh.length} PRESSURE 8+ TARGETS LEFT`});
-  if(!Object.keys(state.roster).some(s=>s==="QB") && state.sales.filter(s=>byName[s.player]?.pos==="QB").length>=5) arr.push({c:"green",t:"QB MARKET MOVING — KEEP WAITING"});
-  if(availableSlots().filter(s=>s.startsWith("RB")||s.startsWith("FLEX")).length>0) {
-    const rb2=PLAYERS.filter(p=>p.pos==="RB" && ["1A","1B","2"].includes(p.tier) && !sold(p.name));
-    if(rb2.length===1) arr.push({c:"red",t:`LAST TIER 2 RB: ${rb2[0].name}`});
+  const arr=[], ms=marketStats(), selected=selectedBase();
+  if(selected&&!sold(selected.name)){
+    const ps=positionMarketStats(selected.pos), left=tierRemaining(selected.pos,["1A","1B","2"]);
+    if(ps.status==="HOT") arr.push({c:"red",t:`${selected.pos} MARKET HOT — ${Math.round(ps.infl*100)}% ABOVE EXPECTED`});
+    if(ps.status==="CHEAP") arr.push({c:"green",t:`${selected.pos} BUY WINDOW — ${Math.abs(Math.round(ps.infl*100))}% BELOW EXPECTED`});
+    if(left<=2&&left>0) arr.push({c:left===1?"red":"yellow",t:`TIER SCARCITY — ${left} TIER 2+ ${selected.pos}${left===1?"":"S"} LEFT`});
+    const need=positionNeed(selected.pos);
+    if(need==="STARTER") arr.push({c:"green",t:`ROSTER NEED — OPEN ${selected.pos} STARTER`});
   }
+  if(ms.temp==="HOT") arr.push({c:"red",t:`ROOM ${Math.round(ms.infl*100)}% OVER MARKET — STAY DISCIPLINED`});
+  else if(ms.temp==="COLD") arr.push({c:"green",t:"ROOM BELOW MARKET — VALUE WINDOW OPEN"});
+  if(!Object.keys(state.roster).some(s=>s==="QB") && state.sales.filter(s=>byName[s.player]?.pos==="QB").length>=5) arr.push({c:"green",t:"QB RUN STARTED — YOUR WAITING PLAN STILL WORKS"});
   return arr.slice(0,3);
 }
+function renderMarketPulse(){
+  $("marketPulse").innerHTML=["QB","RB","WR","TE"].map(pos=>{const x=positionMarketStats(pos), cls=x.status==="HOT"?"hot":x.status==="CHEAP"?"cold":x.status==="NORMAL"?"normal":"early"; const label=x.status==="HOT"?`+${Math.round(x.infl*100)}%`:x.status==="CHEAP"?`${Math.round(x.infl*100)}%`:x.status; return `<div class="market-chip ${cls}"><span>${pos}</span><strong>${label}</strong></div>`;}).join("");
+}
+function nominationSuggestion(){
+  const available=PLAYERS.filter(p=>!sold(p.name)&&p.tier!=="UNRANKED"&&Number(p.fairLow)>0);
+  if(!available.length) return {player:"—",reason:"No ranked players remain."};
+  const hot=["QB","RB","WR","TE"].map(pos=>({pos,...positionMarketStats(pos)})).sort((a,b)=>b.infl-a.infl)[0];
+  let pool=available.filter(p=>p.pos===hot.pos);
+  if(!pool.length) pool=available;
+  pool.sort((a,b)=>{
+    const ae=getPersonalEvaluation(a.name)||{}, be=getPersonalEvaluation(b.name)||{};
+    const aKeep=Number(!!ae.flagPlant)*3+Number(!!ae.favorite)*2+Number(!!ae.sleeper);
+    const bKeep=Number(!!be.flagPlant)*3+Number(!!be.favorite)*2+Number(!!be.sleeper);
+    if(aKeep!==bKeep) return aKeep-bKeep;
+    return Number(b.pressure||0)-Number(a.pressure||0);
+  });
+  const p=pool[0], ps=positionMarketStats(p.pos);
+  if(state.sales.length<2) return {player:p.name,reason:`Early nomination: test the room on a Tier ${p.tier} ${p.pos}.`};
+  if(ps.status==="HOT") return {player:p.name,reason:`${p.pos}s are running hot. Put another premium ${p.pos} into the room and drain budgets.`};
+  if(ps.status==="CHEAP") return {player:p.name,reason:`${p.pos}s are cheap. Nominate one you are willing to buy if the discount holds.`};
+  return {player:p.name,reason:`High-pressure Tier ${p.tier} player who can reveal the room's current appetite.`};
+}
+function renderNominationSuggestion(){ const n=nominationSuggestion(); $("nominationPlayer").textContent=n.player; $("nominationReason").textContent=n.reason; }
 function renderAlerts(){
+  renderMarketPulse(); renderNominationSuggestion();
   const a=alerts();
   $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
 }
@@ -766,9 +819,13 @@ function recommendationFor(base){
   if(hard && hard<=maxLegal){score+=6; reasons.push(`Hard stop ${money(hard)} fits your legal max bid`);}
   if(hard && hard>maxLegal){score-=20; reasons.push(`Hard stop exceeds your legal max bid of ${money(maxLegal)}`);}
   if(value && remaining>0 && value/remaining>.45){score-=5; reasons.push("Would consume a large share of remaining budget");}
-  const ms=marketStats();
-  if(ms.temp==="HOT"){score-=4; reasons.push("Market is running hot — stay disciplined");}
-  if(ms.temp==="COLD"){score+=4; reasons.push("Cold market may create a buying window");}
+  const ms=marketStats(), ps=positionMarketStats(p.pos), scarce=tierRemaining(p.pos,["1A","1B","2"]);
+  if(ps.status==="HOT"){score-=5; reasons.push(`${p.pos} market is ${Math.round(ps.infl*100)}% above expected`);}
+  if(ps.status==="CHEAP"){score+=7; reasons.push(`${p.pos} buying window is ${Math.abs(Math.round(ps.infl*100))}% below expected`);}
+  if(p.tier!=="UNRANKED"&&scarce===1){score+=10; reasons.push(`Last Tier 2+ ${p.pos} remaining`);}
+  else if(p.tier!=="UNRANKED"&&scarce===2){score+=5; reasons.push(`Only 2 Tier 2+ ${p.pos}s remain`);}
+  if(ms.temp==="HOT"){score-=3; reasons.push("Overall room is hot — stay disciplined");}
+  if(ms.temp==="COLD"){score+=3; reasons.push("Overall room has entered a value window");}
   score=Math.max(0,Math.min(100,Math.round(score))); confidence=Math.max(25,Math.min(98,Math.round(confidence)));
   let fit=score>=85?"EXCELLENT FIT":score>=70?"STRONG FIT":score>=50?"SITUATIONAL":"POOR FIT";
   const dedup=[...new Set(reasons)].slice(0,3);
@@ -793,7 +850,7 @@ function setSelected(p){
   $("recordPlayer").value=p?p.name:"";
   if(!p){
     $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
-    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); return;
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); renderAlerts(); return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
   const ev=p.personalEvaluation;
@@ -809,6 +866,7 @@ function setSelected(p){
   $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
   renderWarDossier(byName[p.name]||p);
   renderRecommendation(byName[p.name]||p);
+  renderAlerts();
 }
 function fillSelects(){
   $("recordPlayerList").innerHTML=PLAYERS.map(p=>`<option value="${p.name}">${p.pos} • ${p.team||"FA"}</option>`).join("");
@@ -839,7 +897,7 @@ $("readyBtn").addEventListener("click",()=>{
   $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
   setSelected(null); save(); renderAll();
   const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
-  setTimeout(()=>{ btn.innerHTML="RECORD SALE<small>THEN CLEAR FOR NEXT</small>"; $("playerSearch").focus(); },700);
+  setTimeout(()=>{ btn.innerHTML="RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small>"; $("playerSearch").focus(); },700);
 });
 
 function selectScoutingPlayer(name){
