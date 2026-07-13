@@ -1,9 +1,3 @@
-War Room Production Upgrade 16
+War Room Production Upgrade 16.3
 
-Adds configurable league roster construction, league-aware Draft DNA values/hard stops, and a cleaner personal board table.
-
-
-## Upgrade 16.1
-- Fixed Draft DNA Builder completion at the final head-to-head question.
-- Added a stable results/review step before board generation.
-- Removed the native browser confirmation alert from this flow.
+Fixes the Draft DNA Builder completion failure caused by a missing league-aware market valuation function. The final head-to-head choice and BUILD MY DNA button now advance to the DNA summary and board build step.
