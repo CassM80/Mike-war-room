@@ -1,3 +1,3 @@
-# War Room Production Upgrade 11
+# War Room Production Upgrade 12
 
-Enhanced post-draft report with draft grade, philosophy score, best value, biggest overpay, positional spending, market inflation, and team-by-team rosters.
+Adds a streamlined bulk Scouting board for mass rankings, tiers, values, hard stops, flags and notes.

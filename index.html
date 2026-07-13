@@ -288,6 +288,27 @@ body { overflow:auto; }
 .personal-tags { color:var(--green); font-size:10px; font-weight:900; }
 .personal-empty { color:var(--muted); padding:12px 0; }
 .personal-badge { display:inline-block; margin-left:6px; padding:3px 6px; border-radius:999px; background:#233126; color:var(--green); font-size:10px; font-weight:900; }
+
+.bulk-board { margin-top:18px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#0b0f13; }
+.bulk-toolbar { display:grid; grid-template-columns:2fr repeat(3,minmax(120px,1fr)); gap:10px; padding:12px; border-bottom:1px solid var(--line); }
+.bulk-toolbar input,.bulk-toolbar select,.bulk-actions input,.bulk-actions select { width:100%; background:#080b0e; color:var(--text); border:1px solid #3a444e; border-radius:7px; padding:9px 10px; }
+.bulk-actions { display:grid; grid-template-columns:120px repeat(4,minmax(105px,1fr)) auto auto; gap:8px; align-items:end; padding:12px; border-bottom:1px solid var(--line); background:#10151a; }
+.bulk-actions .form-field label { font-size:10px; }
+.bulk-table-wrap { max-height:560px; overflow:auto; }
+.bulk-table { width:100%; border-collapse:collapse; min-width:1050px; font-size:12px; }
+.bulk-table th { position:sticky; top:0; z-index:2; background:#171d23; color:#c7d1dc; text-align:left; padding:9px 7px; border-bottom:1px solid var(--line); }
+.bulk-table td { padding:6px 7px; border-bottom:1px solid #252d35; vertical-align:middle; }
+.bulk-table tr:hover td { background:#101820; }
+.bulk-table input[type=number],.bulk-table input[type=text] { width:72px; padding:6px; background:#070a0d; color:#fff; border:1px solid #36414b; border-radius:5px; }
+.bulk-table input.bulk-tier { width:82px; }
+.bulk-player { min-width:190px; }
+.bulk-player strong { display:block; font-size:13px; }
+.bulk-player span { color:var(--muted); font-size:10px; }
+.bulk-check { width:38px; text-align:center; }
+.bulk-flag { text-align:center; }
+.bulk-summary { padding:9px 12px; color:var(--muted); font-size:11px; display:flex; justify-content:space-between; gap:12px; }
+.bulk-save-state { color:var(--green); font-weight:900; }
+@media(max-width:900px){.bulk-toolbar{grid-template-columns:1fr 1fr}.bulk-actions{grid-template-columns:1fr 1fr 1fr}.bulk-actions .primary-btn,.bulk-actions .secondary-btn{width:100%}}
 @media (max-width:800px){ .scouting-layout{grid-template-columns:1fr}.eval-grid{grid-template-columns:1fr 1fr}.eval-flags{grid-template-columns:1fr 1fr}.personal-board-list{grid-template-columns:1fr} }
 
 
@@ -406,6 +427,7 @@ body { overflow:auto; }
             <div id="scoutingEditorEmpty" class="personal-empty">No player selected.</div>
             <div id="scoutingEditorFields" class="hidden">
               <div class="eval-grid">
+                <div class="form-field"><label>PERSONAL RANK</label><input id="evalRank" type="number" min="1" step="1" placeholder="1"></div>
                 <div class="form-field"><label>YOUR VALUE</label><input id="evalValue" type="number" min="0" step="1" placeholder="0"></div>
                 <div class="form-field"><label>HARD STOP</label><input id="evalHardStop" type="number" min="0" step="1" placeholder="0"></div>
                 <div class="form-field"><label>PERSONAL TIER</label><input id="evalTier" placeholder="Example: 2 or Green"></div>
@@ -426,6 +448,27 @@ body { overflow:auto; }
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="bulk-board">
+      <div class="card-head">BULK PLAYER BOARD</div>
+      <div class="bulk-toolbar">
+        <input id="bulkSearch" placeholder="Filter players by name…">
+        <select id="bulkPosition"><option value="ALL">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option></select>
+        <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option></select>
+        <select id="bulkSort"><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option></select>
+      </div>
+      <div class="bulk-actions">
+        <div class="form-field"><label>START RANK</label><input id="bulkStartRank" type="number" min="1" placeholder="1"></div>
+        <div class="form-field"><label>SET TIER</label><input id="bulkTier" placeholder="No change"></div>
+        <div class="form-field"><label>SET VALUE</label><input id="bulkValue" type="number" min="0" placeholder="No change"></div>
+        <div class="form-field"><label>SET HARD STOP</label><input id="bulkHardStop" type="number" min="0" placeholder="No change"></div>
+        <div class="form-field"><label>FLAG ACTION</label><select id="bulkFlagAction"><option value="">No flag change</option><option value="favorite:on">Favorite ON</option><option value="favorite:off">Favorite OFF</option><option value="flagPlant:on">Flag Plant ON</option><option value="flagPlant:off">Flag Plant OFF</option><option value="sleeper:on">Sleeper ON</option><option value="sleeper:off">Sleeper OFF</option><option value="avoid:on">Avoid ON</option><option value="avoid:off">Avoid OFF</option></select></div>
+        <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
+        <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
+      </div>
+      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -628,7 +671,7 @@ function mergePlayerUniverse(rows){
   byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
   fillSelects();
   renderPlayerDataStatus();
-  renderPersonalBoard();
+  renderPersonalBoard(); renderBulkBoard();
 }
 function renderPlayerDataStatus(message){
   const el=document.getElementById("playerDataStatus");
@@ -991,13 +1034,13 @@ function selectScoutingPlayer(name){
   $("scoutingSuggestions").style.display="none";
   renderScoutingDossier(base);
   $("scoutingEditorEmpty").classList.add("hidden"); $("scoutingEditorFields").classList.remove("hidden");
-  $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
+  $("evalRank").value=ev.rank??""; $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
   $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
 }
 function renderPersonalBoard(){
-  const rows=Object.values(personalEvaluations).sort((a,b)=>(Number(b.flagPlant)-Number(a.flagPlant))||(Number(b.favorite)-Number(a.favorite))||(a.name||"").localeCompare(b.name||""));
+  const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(Number(b.flagPlant)-Number(a.flagPlant))||(Number(b.favorite)-Number(a.favorite))||(a.name||"").localeCompare(b.name||""));
   const box=$("personalBoardList"); if(!box) return;
-  box.innerHTML=rows.length?rows.map(ev=>`<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,"&quot;")}"><strong>${ev.name}</strong><span>${ev.value?money(ev.value):"—"} / ${ev.hardStop?money(ev.hardStop):"—"}</span><span class="personal-tags">${evaluationTags(ev).join(" · ")}</span></div>`).join(""):'<div class="personal-empty">No personal evaluations saved yet.</div>';
+  box.innerHTML=rows.length?rows.map(ev=>`<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,"&quot;")}"><strong>${ev.rank?"#"+ev.rank+" ":""}${ev.name}</strong><span>${ev.value?money(ev.value):"—"} / ${ev.hardStop?money(ev.hardStop):"—"}</span><span class="personal-tags">${evaluationTags(ev).join(" · ")}</span></div>`).join(""):'<div class="personal-empty">No personal evaluations saved yet.</div>';
 }
 $("scoutingSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("scoutingSuggestions");
@@ -1013,16 +1056,57 @@ $("saveEvaluationBtn").addEventListener("click",()=>{
   const value=Math.max(0,Number($("evalValue").value||0));
   const hard=Math.max(0,Number($("evalHardStop").value||0));
   if(value && hard && hard<value) return alert("Hard Stop cannot be below Your Value.");
-  const ev={name:scoutingSelectedName,value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:$("evalFavorite").checked,flagPlant:$("evalFlagPlant").checked,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
-  personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(); renderPersonalBoard(); selectScoutingPlayer(scoutingSelectedName);
+  const ev={name:scoutingSelectedName,rank:Math.max(0,Number($("evalRank").value||0)),value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:$("evalFavorite").checked,flagPlant:$("evalFlagPlant").checked,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
+  personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(); renderPersonalBoard(); renderBulkBoard(); selectScoutingPlayer(scoutingSelectedName);
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
   $("evaluationSavedNote").textContent="Personal evaluation saved."; setTimeout(()=>$("evaluationSavedNote").textContent="",1800);
 });
 $("clearEvaluationBtn").addEventListener("click",()=>{
   if(!scoutingSelectedName||!getPersonalEvaluation(scoutingSelectedName)) return;
   if(!confirm(`Clear your personal evaluation for ${scoutingSelectedName}?`)) return;
-  delete personalEvaluations[playerKey(scoutingSelectedName)]; savePersonalEvaluations(); renderPersonalBoard(); selectScoutingPlayer(scoutingSelectedName);
+  delete personalEvaluations[playerKey(scoutingSelectedName)]; savePersonalEvaluations(); renderPersonalBoard(); renderBulkBoard(); selectScoutingPlayer(scoutingSelectedName);
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
+});
+
+
+let bulkSelected=new Set();
+function bulkFilteredPlayers(){
+  const q=($("bulkSearch")?.value||"").toLowerCase().trim();
+  const pos=$("bulkPosition")?.value||"ALL";
+  const filter=$("bulkBoardFilter")?.value||"ALL";
+  const sort=$("bulkSort")?.value||"NAME";
+  let rows=PLAYERS.filter(p=>(!q||p.name.toLowerCase().includes(q))&&(pos==="ALL"||p.pos===pos));
+  rows=rows.filter(p=>{const ev=getPersonalEvaluation(p.name);if(filter==="PERSONALIZED")return !!ev;if(filter==="UNRANKED")return !ev;if(filter==="TARGETS")return !!(ev&&(ev.favorite||ev.flagPlant||ev.sleeper||ev.avoid));return true;});
+  rows.sort((a,b)=>{const ea=getPersonalEvaluation(a.name)||{},eb=getPersonalEvaluation(b.name)||{};if(sort==="RANK")return (Number(ea.rank)||9999)-(Number(eb.rank)||9999)||a.name.localeCompare(b.name);if(sort==="POSITION")return a.pos.localeCompare(b.pos)||a.name.localeCompare(b.name);if(sort==="VALUE")return (Number(eb.value)||0)-(Number(ea.value)||0)||a.name.localeCompare(b.name);return a.name.localeCompare(b.name);});
+  return rows.slice(0,500);
+}
+function renderBulkBoard(){
+  const body=$("bulkBoardBody"); if(!body)return;
+  const rows=bulkFilteredPlayers();
+  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-flag"><input class="bulk-favorite" type="checkbox" ${ev.favorite?"checked":""}></td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
+  $("bulkCount").textContent=`${rows.length} players shown • ${bulkSelected.size} selected`;
+  $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
+}
+function saveBulkRow(tr){
+  const name=tr.dataset.bulkPlayer, old=getPersonalEvaluation(name)||{};
+  const ev={name,rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:tr.querySelector('.bulk-favorite').checked,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
+  if(ev.value&&ev.hardStop&&ev.hardStop<ev.value){tr.querySelector('.bulk-stop').value=old.hardStop||"";return alert(`Hard Stop cannot be below Your Value for ${name}.`);}
+  const meaningful=ev.rank||ev.tier||ev.value||ev.hardStop||ev.favorite||ev.flagPlant||ev.sleeper||ev.avoid||ev.notes;
+  if(meaningful)personalEvaluations[playerKey(name)]=ev;else delete personalEvaluations[playerKey(name)];
+  savePersonalEvaluations(); renderPersonalBoard(); renderCore();
+  $("bulkSaveState").textContent="Saved"; clearTimeout(window.bulkSaveTimer); window.bulkSaveTimer=setTimeout(()=>$("bulkSaveState").textContent="",900);
+}
+["bulkSearch","bulkPosition","bulkBoardFilter","bulkSort"].forEach(id=>$(id)?.addEventListener(id==="bulkSearch"?"input":"change",renderBulkBoard));
+$("bulkBoardBody")?.addEventListener("change",e=>{const tr=e.target.closest("tr[data-bulk-player]");if(!tr)return;if(e.target.classList.contains("bulk-select")){const key=playerKey(tr.dataset.bulkPlayer);e.target.checked?bulkSelected.add(key):bulkSelected.delete(key);renderBulkBoard();return;}saveBulkRow(tr);});
+$("bulkBoardBody")?.addEventListener("blur",e=>{const tr=e.target.closest("tr[data-bulk-player]");if(tr&&!e.target.classList.contains("bulk-select"))saveBulkRow(tr);},true);
+$("bulkSelectAll")?.addEventListener("change",e=>{bulkFilteredPlayers().forEach(p=>e.target.checked?bulkSelected.add(playerKey(p.name)):bulkSelected.delete(playerKey(p.name)));renderBulkBoard();});
+$("clearBulkSelectionBtn")?.addEventListener("click",()=>{bulkSelected.clear();renderBulkBoard();});
+$("applyBulkBtn")?.addEventListener("click",()=>{
+  if(!bulkSelected.size)return alert("Select at least one player.");
+  const selected=PLAYERS.filter(p=>bulkSelected.has(playerKey(p.name)));
+  const start=Number($("bulkStartRank").value||0),tier=$("bulkTier").value.trim(),value=$("bulkValue").value,stop=$("bulkHardStop").value,flag=$("bulkFlagAction").value;
+  selected.forEach((p,i)=>{const ev={name:p.name,...(getPersonalEvaluation(p.name)||{})};if(start)ev.rank=start+i;if(tier)ev.tier=tier;if(value!=="")ev.value=Math.max(0,Number(value));if(stop!=="")ev.hardStop=Math.max(0,Number(stop));if(flag){const [field,on]=flag.split(":");ev[field]=on==="on";}ev.updatedAt=new Date().toISOString();personalEvaluations[playerKey(p.name)]=ev;});
+  savePersonalEvaluations();renderPersonalBoard();renderCore();renderBulkBoard();$("bulkSaveState").textContent=`Updated ${selected.length} players`;
 });
 
 function freshDraftState(){ return {budget:Number(leagueConfig.budget||200),sales:[],roster:{},selected:null}; }
@@ -1100,7 +1184,7 @@ function shareLeague(){
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
-function clearPersonalBoard(){ personalEvaluations={}; savePersonalEvaluations(); scoutingSelectedName=null; renderPersonalBoard(); renderCore(); if(state.selected&&byName[state.selected])setSelected(byName[state.selected]); updateResetSummary(); }
+function clearPersonalBoard(){ personalEvaluations={}; savePersonalEvaluations(); scoutingSelectedName=null; renderPersonalBoard(); renderBulkBoard(); renderCore(); if(state.selected&&byName[state.selected])setSelected(byName[state.selected]); updateResetSummary(); }
 function fullCleanReset(){
   localStorage.removeItem("warRoomState"); localStorage.removeItem("warRoomLeagueConfig"); localStorage.removeItem(PERSONAL_EVAL_KEY);
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
@@ -1199,7 +1283,7 @@ $("newDraftBtn").addEventListener("click",()=>{if(confirm("Clear all sales, rost
 $("newLeagueBtn").addEventListener("click",()=>{if(!confirm("Start a new league while keeping your personal board?"))return; applyFreshDraft(); leagueConfig={...defaultLeagueConfig,teams:[]}; ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll(); updateResetSummary(); setResetStatus("New league ready.");});
 $("clearBoardBtn").addEventListener("click",()=>{if(confirmTyped("This permanently clears every personal value, tier, target and note in this browser.")){clearPersonalBoard();setResetStatus("Personal board cleared.");}});
 $("shareSafeResetBtn").addEventListener("click",()=>{if(confirmTyped("This clears the league, draft and personal board, then switches this browser to a clean share-safe experience.")){fullCleanReset();}});
-renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); updateResetSummary();
+renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
 fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
