@@ -430,6 +430,20 @@ body { overflow:auto; }
   <div class="workspace">
     <h2>SCOUTING</h2>
     <p class="lead">Search the complete player database and build your personal draft board.</p>
+    <section class="workspace-card" style="margin:0 0 14px">
+      <div class="card-head">PLAYER DATABASE</div>
+      <div class="card-body" style="display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+        <div style="min-width:260px;flex:1">
+          <div id="playerDataStatus" style="font-size:13px;color:var(--muted)">Loading player database…</div>
+          <div id="playerPoolAudit" style="font-size:12px;color:var(--muted);margin-top:5px"></div>
+          <div id="consensusStatus" style="font-size:12px;color:var(--muted);margin-top:5px">Consensus baseline ready.</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button id="refreshPlayerPoolBtn" class="secondary-btn" type="button">REFRESH PLAYER POOL</button>
+          <button id="rebuildConsensusBtn" class="primary-btn" type="button">REBUILD CONSENSUS RANKINGS</button>
+        </div>
+      </div>
+    </section>
     <section class="workspace-card scouting-card" style="margin-top:0">
       <div class="card-head">SCOUTING & PERSONALIZATION</div>
       <div class="card-body">
@@ -544,7 +558,6 @@ body { overflow:auto; }
         <div class="search-wrap">
           <input id="playerSearch" placeholder="Type player name…" autocomplete="off">
           <div id="suggestions"></div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:5px"><div id="playerDataStatus" style="font-size:11px;color:var(--muted);text-align:right">Loading player database…</div><button id="refreshPlayerPoolBtn" class="mini-btn" type="button">REFRESH PLAYER POOL</button></div><div id="playerPoolAudit" style="font-size:11px;color:var(--muted);text-align:right;margin-top:4px"></div>
         </div>
       </div>
       <div class="player-head hidden" id="playerHead">
@@ -749,6 +762,27 @@ async function loadCompletePlayerUniverse(force=false){
     renderPlayerDataStatus(`${PLAYERS.length} searchable players • offline/cache mode`);
     console.warn("Player database refresh failed",error);
   }
+}
+function rebuildConsensusRankings(){
+  const status=document.getElementById("consensusStatus");
+  if(status){status.textContent="Rebuilding market baseline…";status.style.color="var(--muted)";}
+  const eligible=PLAYERS.filter(p=>["QB","RB","WR","TE","K"].includes(p.pos));
+  eligible.sort((a,b)=>(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
+  let ranked=0;
+  eligible.forEach((p,i)=>{
+    const rank=adpFor(p)||i+1;
+    if(!Number(p.market_price||0) || p.audit==="MARKET"){
+      p.market_price=Math.round(marketPriceFromRank(rank));
+      p.audit="CONSENSUS";
+    }
+    if(!p.adp) p.adp=rank;
+    ranked++;
+  });
+  PLAYERS.sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
+  byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
+  renderBulkBoard(); renderPersonalBoard(); renderCore();
+  localStorage.setItem("warRoomConsensusRebuiltAt",String(Date.now()));
+  if(status){status.textContent=`Consensus baseline rebuilt for ${ranked} players • personal rankings unchanged`;status.style.color="var(--green)";}
 }
 const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
 let personalEvaluations = {};
@@ -1426,7 +1460,18 @@ $("shareSafeResetBtn").addEventListener("click",()=>{if(confirmTyped("This clear
 renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
-fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); document.getElementById("refreshPlayerPoolBtn")?.addEventListener("click",()=>{localStorage.removeItem(PLAYER_CACHE_TIME_KEY);loadCompletePlayerUniverse(true);}); loadCompletePlayerUniverse();
+fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]);
+document.getElementById("refreshPlayerPoolBtn")?.addEventListener("click",async()=>{
+  const btn=document.getElementById("refreshPlayerPoolBtn");
+  if(btn){btn.disabled=true;btn.textContent="REFRESHING…";}
+  localStorage.removeItem(PLAYER_CACHE_TIME_KEY);
+  await loadCompletePlayerUniverse(true);
+  if(btn){btn.disabled=false;btn.textContent="REFRESH PLAYER POOL";}
+});
+document.getElementById("rebuildConsensusBtn")?.addEventListener("click",rebuildConsensusRankings);
+const rebuiltAt=Number(localStorage.getItem("warRoomConsensusRebuiltAt")||0);
+if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`Consensus baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
+loadCompletePlayerUniverse();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
 <script>
