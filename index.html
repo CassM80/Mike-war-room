@@ -250,13 +250,13 @@ body { overflow:auto; }
   .hq-summary { grid-template-columns:1fr 1fr; }
 }
 
-/* Production Upgrade 4: Scouting & Personalization */
+/* Production Upgrade 4.1: Dedicated Scouting Tab */
 .scouting-card { margin-top:18px; }
 .scouting-layout { display:grid; grid-template-columns:minmax(260px,.85fr) minmax(0,1.6fr); gap:16px; }
 .scouting-search-panel,.scouting-editor { border:1px solid var(--line); background:#101419; border-radius:12px; padding:14px; }
 .scouting-search-panel h3,.scouting-editor h3 { margin:0 0 10px; font-size:14px; letter-spacing:.08em; }
 .scouting-search { position:relative; }
-.scouting-search input { width:100%; }
+.scouting-search input { width:100%; min-height:52px; font-size:17px; border-color:#66812f; }
 #scoutingSuggestions { display:none; position:absolute; z-index:60; width:100%; max-height:260px; overflow:auto; background:#101419; border:1px solid var(--line); border-radius:8px; box-shadow:0 12px 28px #000b; }
 .scouting-result { padding:10px 11px; border-bottom:1px solid var(--line); cursor:pointer; }
 .scouting-result:hover { background:#1b2420; }
@@ -287,6 +287,7 @@ body { overflow:auto; }
   <div class="nav-brand">WAR ROOM</div>
   <div class="nav-tabs">
     <button class="nav-tab" data-view="headquartersView">HEADQUARTERS</button>
+    <button class="nav-tab" data-view="scoutingView">SCOUTING</button>
     <button class="nav-tab active" data-view="warRoomView">WAR ROOM</button>
     <button class="nav-tab" data-view="debriefView">DEBRIEF</button>
   </div>
@@ -327,7 +328,14 @@ body { overflow:auto; }
         </div>
       </section>
     </div>
-    <section class="workspace-card scouting-card">
+  </div>
+</section>
+
+<section id="scoutingView" class="app-view">
+  <div class="workspace">
+    <h2>SCOUTING</h2>
+    <p class="lead">Search the complete player database and build your personal draft board.</p>
+    <section class="workspace-card scouting-card" style="margin-top:0">
       <div class="card-head">SCOUTING & PERSONALIZATION</div>
       <div class="card-body">
         <div class="scouting-layout">
@@ -369,6 +377,7 @@ body { overflow:auto; }
         </div>
       </div>
     </section>
+
   </div>
 </section>
 
