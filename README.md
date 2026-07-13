@@ -1,9 +1,7 @@
-# War Room Production Upgrade 12
+# War Room Production Upgrade 14
 
-Adds a streamlined bulk Scouting board for mass rankings, tiers, values, hard stops, flags and notes.
+Adds Strategy Sprints to Scouting.
 
-## Production Upgrade 13
-- Adds Consensus Price and ADP / Market Rank columns to the Bulk Scouting Board.
-- Adds sorting by Consensus Price and ADP / Market Rank.
-- Preserves personal ranks, tiers, values, flags, and notes.
-- ADP displays Sleeper market rank when a dedicated ADP value is unavailable.
+Users answer six short questions about roster construction, QB/TE approach, risk, auction discipline, and board size. War Room then auto-populates personal ranks, tiers, values, hard stops, favorites, flag plants, sleepers, avoids, and explanatory notes.
+
+Existing personal evaluations are preserved by default. A rebuild option is available in the final sprint. Every generated field remains editable in the Bulk Player Board.

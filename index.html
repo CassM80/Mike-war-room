@@ -308,6 +308,8 @@ body { overflow:auto; }
 .bulk-flag { text-align:center; }
 .bulk-summary { padding:9px 12px; color:var(--muted); font-size:11px; display:flex; justify-content:space-between; gap:12px; }
 .bulk-save-state { color:var(--green); font-weight:900; }
+.philosophy-launch{margin:0 0 18px;border:1px solid #4f7d1b;border-radius:14px;background:linear-gradient(135deg,#10180b,#0d1216);padding:18px;display:flex;justify-content:space-between;align-items:center;gap:18px}.philosophy-launch h3{margin:0 0 5px;color:var(--green);font-size:19px}.philosophy-launch p{margin:0;color:var(--muted);max-width:720px}.sprint-modal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:18px}.sprint-modal.hidden{display:none}.sprint-shell{width:min(860px,96vw);max-height:92vh;overflow:auto;background:#10151a;border:1px solid #50621e;border-radius:16px;box-shadow:0 24px 80px #000;padding:22px}.sprint-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:14px}.sprint-kicker{color:var(--green);font-size:11px;font-weight:950;letter-spacing:2px}.sprint-title{font-size:26px;font-weight:950;margin:4px 0}.sprint-progress{height:8px;background:#222a31;border-radius:999px;overflow:hidden;margin:16px 0 20px}.sprint-progress span{display:block;height:100%;background:var(--green);transition:width .2s}.sprint-question{font-size:20px;font-weight:900;margin-bottom:5px}.sprint-help{color:var(--muted);margin-bottom:15px}.sprint-options{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.sprint-option{background:#0a0e12;border:1px solid #39434d;border-radius:11px;padding:15px;cursor:pointer;min-height:105px}.sprint-option:hover{border-color:var(--green)}.sprint-option.selected{border-color:var(--green);background:#19280e;box-shadow:inset 0 0 0 1px var(--green)}.sprint-option strong{display:block;font-size:15px;margin-bottom:5px}.sprint-option span{color:var(--muted);font-size:12px}.sprint-actions{display:flex;justify-content:space-between;gap:12px;margin-top:22px}.sprint-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.sprint-summary div{border:1px solid var(--line);border-radius:10px;padding:12px;background:#0a0e12}.sprint-summary strong{display:block;color:var(--green);font-size:20px}.sprint-result{margin-top:14px;color:var(--green);font-weight:850}.sprint-close{background:transparent;color:#aaa;border:0;font-size:25px;cursor:pointer}@media(max-width:760px){.philosophy-launch{align-items:flex-start;flex-direction:column}.sprint-options,.sprint-summary{grid-template-columns:1fr}.sprint-shell{padding:16px}.sprint-title{font-size:21px}}
+
 @media(max-width:900px){.bulk-toolbar{grid-template-columns:1fr 1fr}.bulk-actions{grid-template-columns:1fr 1fr 1fr}.bulk-actions .primary-btn,.bulk-actions .secondary-btn{width:100%}}
 @media (max-width:800px){ .scouting-layout{grid-template-columns:1fr}.eval-grid{grid-template-columns:1fr 1fr}.eval-flags{grid-template-columns:1fr 1fr}.personal-board-list{grid-template-columns:1fr} }
 
@@ -449,6 +451,22 @@ body { overflow:auto; }
         </div>
       </div>
     </section>
+
+
+    <section class="philosophy-launch">
+      <div><h3>BUILD MY BOARD</h3><p>Answer a handful of fast strategy sprints. War Room will turn your philosophy into ranks, tiers, values, hard stops, and target flags—then you can fine-tune anything below.</p></div>
+      <button class="primary-btn" id="startBoardSprintsBtn">START STRATEGY SPRINTS</button>
+    </section>
+
+    <div id="strategySprintModal" class="sprint-modal hidden" role="dialog" aria-modal="true">
+      <div class="sprint-shell">
+        <div class="sprint-head"><div><div class="sprint-kicker" id="sprintKicker">SPRINT 1 OF 6</div><div class="sprint-title" id="sprintTitle">Build Philosophy</div></div><button class="sprint-close" id="closeSprintsBtn">×</button></div>
+        <div class="sprint-progress"><span id="sprintProgressBar" style="width:16.6%"></span></div>
+        <div id="sprintQuestionArea"></div>
+        <div class="sprint-actions"><button class="secondary-btn" id="sprintBackBtn">BACK</button><button class="primary-btn" id="sprintNextBtn">NEXT SPRINT</button></div>
+        <div class="sprint-result" id="sprintResult"></div>
+      </div>
+    </div>
 
     <section class="bulk-board">
       <div class="card-head">BULK PLAYER BOARD</div>
@@ -1081,6 +1099,111 @@ $("clearEvaluationBtn").addEventListener("click",()=>{
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
 });
 
+
+
+const STRATEGY_SPRINTS=[
+ {key:"build",title:"Roster Foundation",question:"How do you want to build the core of your team?",help:"This sets the first positional push on your board.",options:[
+  {value:"WR",label:"WR Powerhouse",desc:"Prioritize elite and high-volume wide receivers."},
+  {value:"HERO_RB",label:"Hero RB",desc:"Secure one cornerstone running back, then attack value."},
+  {value:"BALANCED",label:"Balanced",desc:"Let price and tiers decide between RB and WR."}]},
+ {key:"qb",title:"Quarterback Plan",question:"How aggressively should War Room value quarterbacks?",help:"This changes QB ranks and dollar recommendations.",options:[
+  {value:"ELITE",label:"Pay for an Edge",desc:"I am willing to invest for a top quarterback."},
+  {value:"VALUE",label:"Value Pocket",desc:"I will buy the right QB at the right price."},
+  {value:"WAIT",label:"Wait on QB",desc:"Push quarterbacks down and spend elsewhere."}]},
+ {key:"te",title:"Tight End Plan",question:"What is your tight end philosophy?",help:"Choose whether positional advantage is worth paying for.",options:[
+  {value:"ELITE",label:"Chase Elite",desc:"Boost premium tight ends for a weekly edge."},
+  {value:"VALUE",label:"Selective Value",desc:"Buy only when price meets the board."},
+  {value:"PUNT",label:"Wait / Punt",desc:"Move expensive tight ends down the board."}]},
+ {key:"risk",title:"Risk Profile",question:"What kind of roster feels most like you?",help:"War Room uses market position as a proxy until deeper risk data is added.",options:[
+  {value:"FLOOR",label:"Reliable Floor",desc:"Favor proven, expensive early-round profiles."},
+  {value:"BALANCED",label:"Balanced Risk",desc:"Blend reliable starters with upside swings."},
+  {value:"UPSIDE",label:"Ceiling Hunter",desc:"Boost middle and late-market upside opportunities."}]},
+ {key:"discipline",title:"Auction Discipline",question:"How much room should your hard stop allow?",help:"Your Value is the target; Hard Stop is the absolute ceiling.",options:[
+  {value:"STRICT",label:"Strict",desc:"Hard stop is usually only $1 above value."},
+  {value:"NORMAL",label:"Controlled",desc:"Allow roughly $3 above value for flexibility."},
+  {value:"AGGRESSIVE",label:"Conviction",desc:"Allow up to $5 above value for priority players."}]},
+ {key:"scope",title:"Board Size & Safety",question:"How much of the board should War Room build?",help:"Existing personal work is protected by default.",options:[
+  {value:"100_BLANK",label:"Top 100 · Blanks Only",desc:"Fastest setup. Preserve every existing evaluation."},
+  {value:"150_BLANK",label:"Top 150 · Blanks Only",desc:"Recommended for most auction leagues."},
+  {value:"150_REPLACE",label:"Top 150 · Rebuild",desc:"Replace current ranks and prices with this philosophy."}]}
+];
+let sprintStep=0;
+let sprintAnswers={build:"BALANCED",qb:"VALUE",te:"VALUE",risk:"BALANCED",discipline:"NORMAL",scope:"150_BLANK"};
+function openStrategySprints(){sprintStep=0;$("strategySprintModal").classList.remove("hidden");$("sprintResult").textContent="";renderStrategySprint();}
+function closeStrategySprints(){$("strategySprintModal").classList.add("hidden");}
+function renderStrategySprint(){
+ const sprint=STRATEGY_SPRINTS[sprintStep],done=sprintStep===STRATEGY_SPRINTS.length;
+ $("sprintKicker").textContent=done?"BOARD PREVIEW":`SPRINT ${sprintStep+1} OF ${STRATEGY_SPRINTS.length}`;
+ $("sprintProgressBar").style.width=`${Math.min(100,(sprintStep+1)/STRATEGY_SPRINTS.length*100)}%`;
+ $("sprintBackBtn").disabled=sprintStep===0;
+ if(done){
+  const preview=previewAutoBoard();
+  $("sprintTitle").textContent="Your Philosophy Is Ready";
+  $("sprintQuestionArea").innerHTML=`<div class="sprint-question">War Room can build your board now.</div><div class="sprint-help">Nothing is locked. Every generated answer remains editable in the Bulk Player Board.</div><div class="sprint-summary"><div><strong>${preview.count}</strong>Players populated</div><div><strong>${preview.flags}</strong>Targets identified</div><div><strong>${preview.avoids}</strong>Poor fits flagged</div></div><label class="flag-toggle" style="display:inline-flex"><input id="confirmAutoBoard" type="checkbox" checked> I understand this will ${preview.replace?"rebuild":"fill blanks on"} my personal board.</label>`;
+  $("sprintNextBtn").textContent="BUILD MY BOARD"; return;
+ }
+ $("sprintTitle").textContent=sprint.title;
+ $("sprintQuestionArea").innerHTML=`<div class="sprint-question">${sprint.question}</div><div class="sprint-help">${sprint.help}</div><div class="sprint-options">${sprint.options.map(o=>`<div class="sprint-option ${sprintAnswers[sprint.key]===o.value?"selected":""}" data-sprint-value="${o.value}"><strong>${o.label}</strong><span>${o.desc}</span></div>`).join("")}</div>`;
+ $("sprintNextBtn").textContent="NEXT SPRINT";
+}
+function marketSeedValue(p){
+ const direct=consensusPriceFor(p); if(direct>0)return direct;
+ const a=adpFor(p); if(!a)return 0;
+ if(a<=12)return 46;if(a<=24)return 33;if(a<=48)return 20;if(a<=72)return 12;if(a<=100)return 7;if(a<=150)return 3;if(a<=200)return 1;return 0;
+}
+function strategyPositionMultiplier(pos){
+ let m=1;
+ if(sprintAnswers.build==="WR"){if(pos==="WR")m*=1.12;if(pos==="RB")m*=.96;}
+ if(sprintAnswers.build==="HERO_RB"){if(pos==="RB")m*=1.1;if(pos==="WR")m*=1.02;}
+ if(pos==="QB")m*=sprintAnswers.qb==="ELITE"?1.22:sprintAnswers.qb==="WAIT"?.62:1;
+ if(pos==="TE")m*=sprintAnswers.te==="ELITE"?1.2:sprintAnswers.te==="PUNT"?.58:1;
+ return m;
+}
+function strategyScore(p){
+ const market=marketSeedValue(p),a=adpFor(p)||250;
+ let score=market*2.3+(260-Math.min(260,a))*.08;
+ if(sprintAnswers.build==="WR"&&p.pos==="WR")score+=10;
+ if(sprintAnswers.build==="HERO_RB"&&p.pos==="RB")score+=9;
+ if(sprintAnswers.qb==="ELITE"&&p.pos==="QB")score+=8;
+ if(sprintAnswers.qb==="WAIT"&&p.pos==="QB")score-=11;
+ if(sprintAnswers.te==="ELITE"&&p.pos==="TE")score+=8;
+ if(sprintAnswers.te==="PUNT"&&p.pos==="TE")score-=11;
+ if(sprintAnswers.risk==="FLOOR"&&a<=60)score+=6;
+ if(sprintAnswers.risk==="UPSIDE"&&a>=45&&a<=170)score+=7;
+ return score;
+}
+function autoBoardCandidates(){
+ const [countText]=sprintAnswers.scope.split("_"); const limit=Number(countText)||150;
+ return PLAYERS.filter(p=>["QB","RB","WR","TE"].includes(p.pos)&&(marketSeedValue(p)>0||adpFor(p)>0)).sort((a,b)=>strategyScore(b)-strategyScore(a)||a.name.localeCompare(b.name)).slice(0,limit);
+}
+function isAutoAvoid(p){
+ const market=marketSeedValue(p);
+ return (sprintAnswers.qb==="WAIT"&&p.pos==="QB"&&market>=15)||(sprintAnswers.te==="PUNT"&&p.pos==="TE"&&market>=15);
+}
+function previewAutoBoard(){const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith("REPLACE");let count=0,flags=0,avoids=0;rows.forEach((p,i)=>{if(replace||!getPersonalEvaluation(p.name)){count++;if(i<12)flags++;if(isAutoAvoid(p))avoids++;}});return{count,flags,avoids,replace};}
+function buildBoardFromSprints(){
+ if(!$("confirmAutoBoard")?.checked)return alert("Confirm before building the board.");
+ const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith("REPLACE"),buffer=sprintAnswers.discipline==="STRICT"?1:sprintAnswers.discipline==="AGGRESSIVE"?5:3;
+ let written=0;
+ rows.forEach((p,i)=>{
+  const old=getPersonalEvaluation(p.name);if(old&&!replace)return;
+  const seed=marketSeedValue(p),mult=strategyPositionMultiplier(p.pos);
+  let value=Math.max(1,Math.round(seed*mult));
+  if(sprintAnswers.risk==="UPSIDE"&&(adpFor(p)||999)>=45)value=Math.max(1,value+2);
+  if(sprintAnswers.risk==="FLOOR"&&(adpFor(p)||999)<=50)value=Math.max(1,value+2);
+  const rank=i+1,tier=rank<=12?"1":rank<=36?"2":rank<=72?"3":rank<=120?"4":"5";
+  const avoid=isAutoAvoid(p);
+  personalEvaluations[playerKey(p.name)]={name:p.name,rank,tier,value:avoid?Math.max(1,Math.round(value*.65)):value,hardStop:avoid?Math.max(1,Math.round(value*.65)+1):value+buffer,favorite:!avoid&&rank<=12,flagPlant:!avoid&&rank<=4,sleeper:!avoid&&rank>55&&rank<=110&&sprintAnswers.risk==="UPSIDE",avoid,notes:`Auto-built from strategy sprints: ${sprintAnswers.build.replace("_"," ")} • ${sprintAnswers.discipline.toLowerCase()} discipline`,updatedAt:new Date().toISOString()};written++;
+ });
+ savePersonalEvaluations();renderPersonalBoard();renderBulkBoard();renderCore();
+ $("sprintResult").textContent=`Board built: ${written} players populated. Review and fine-tune below.`;
+ setTimeout(closeStrategySprints,1200);
+}
+$("startBoardSprintsBtn")?.addEventListener("click",openStrategySprints);
+$("closeSprintsBtn")?.addEventListener("click",closeStrategySprints);
+$("strategySprintModal")?.addEventListener("click",e=>{if(e.target.id==="strategySprintModal")closeStrategySprints();const option=e.target.closest(".sprint-option");if(option&&sprintStep<STRATEGY_SPRINTS.length){sprintAnswers[STRATEGY_SPRINTS[sprintStep].key]=option.dataset.sprintValue;renderStrategySprint();}});
+$("sprintBackBtn")?.addEventListener("click",()=>{if(sprintStep>0){sprintStep--;renderStrategySprint();}});
+$("sprintNextBtn")?.addEventListener("click",()=>{if(sprintStep<STRATEGY_SPRINTS.length){sprintStep++;renderStrategySprint();}else buildBoardFromSprints();});
 
 let bulkSelected=new Set();
 function bulkFilteredPlayers(){
