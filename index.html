@@ -456,7 +456,7 @@ body { overflow:auto; }
         <input id="bulkSearch" placeholder="Filter players by name…">
         <select id="bulkPosition"><option value="ALL">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option></select>
         <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option></select>
-        <select id="bulkSort"><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option></select>
+        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Consensus Price</option><option value="ADP">Sort: ADP / Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option></select>
       </div>
       <div class="bulk-actions">
         <div class="form-field"><label>START RANK</label><input id="bulkStartRank" type="number" min="1" placeholder="1"></div>
@@ -467,8 +467,8 @@ body { overflow:auto; }
         <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
-      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Consensus $ uses the current market baseline. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -644,12 +644,14 @@ function genericPlayer(raw){
     pivots: "",
     budgetPivot: "No personal valuation yet — use your judgment and record the sale.",
     audit: "MARKET",
-    notes: "Complete player database"
+    notes: "Complete player database",
+    adp: Number(raw.adp || raw.search_rank || 0) || 0
   };
 }
 function mergePlayerUniverse(rows){
+  const sourceMap=new Map((rows||[]).map(raw=>[normalizePlayerName(raw.full_name || [raw.first_name,raw.last_name].filter(Boolean).join(" ")).toLowerCase(),raw]));
   const curatedMap=new Map(CURATED_PLAYERS.map(p=>[p.name.toLowerCase(),p]));
-  const merged=[...CURATED_PLAYERS,...NFL_DEFENSES];
+  const merged=[...CURATED_PLAYERS.map(p=>({...p,adp:Number(sourceMap.get(p.name.toLowerCase())?.adp || sourceMap.get(p.name.toLowerCase())?.search_rank || p.adp || 0)||0})),...NFL_DEFENSES];
   const seen=new Set(merged.map(p=>p.name.toLowerCase()));
   for(const raw of rows||[]){
     const pos=raw.position;
@@ -691,7 +693,7 @@ async function loadCompletePlayerUniverse(force=false){
     const response=await fetch("https://api.sleeper.app/v1/players/nfl",{cache:"no-store"});
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
     const data=await response.json();
-    const rows=Object.values(data||{}).filter(p=>p.active!==false && ["QB","RB","WR","TE","K"].includes(p.position)).map(p=>({full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active}));
+    const rows=Object.values(data||{}).filter(p=>p.active!==false && ["QB","RB","WR","TE","K"].includes(p.position)).map(p=>({full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active,search_rank:p.search_rank,adp:p.adp}));
     localStorage.setItem(PLAYER_CACHE_KEY,JSON.stringify(rows));
     localStorage.setItem(PLAYER_CACHE_TIME_KEY,String(Date.now()));
     mergePlayerUniverse(rows);
@@ -740,6 +742,17 @@ function effectivePlayer(base){
 function evaluationTags(ev){
   if(!ev) return [];
   return [[ev.flagPlant,"FLAG PLANT"],[ev.favorite,"FAVORITE"],[ev.sleeper,"SLEEPER"],[ev.avoid,"AVOID"]].filter(x=>x[0]).map(x=>x[1]);
+}
+
+function consensusPriceFor(base){
+  if(!base) return 0;
+  if(Number(base.fairLow||0)>0 && Number(base.fairHigh||0)>0) return Math.round((Number(base.fairLow)+Number(base.fairHigh))/2);
+  if(Number(base.buyHigh||0)>0) return Number(base.buyHigh);
+  return 0;
+}
+function adpFor(base){
+  const value=Number(base?.adp||base?.search_rank||0);
+  return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
 }
 function marketValueFor(base){
   if(!base) return 0;
@@ -1077,13 +1090,13 @@ function bulkFilteredPlayers(){
   const sort=$("bulkSort")?.value||"NAME";
   let rows=PLAYERS.filter(p=>(!q||p.name.toLowerCase().includes(q))&&(pos==="ALL"||p.pos===pos));
   rows=rows.filter(p=>{const ev=getPersonalEvaluation(p.name);if(filter==="PERSONALIZED")return !!ev;if(filter==="UNRANKED")return !ev;if(filter==="TARGETS")return !!(ev&&(ev.favorite||ev.flagPlant||ev.sleeper||ev.avoid));return true;});
-  rows.sort((a,b)=>{const ea=getPersonalEvaluation(a.name)||{},eb=getPersonalEvaluation(b.name)||{};if(sort==="RANK")return (Number(ea.rank)||9999)-(Number(eb.rank)||9999)||a.name.localeCompare(b.name);if(sort==="POSITION")return a.pos.localeCompare(b.pos)||a.name.localeCompare(b.name);if(sort==="VALUE")return (Number(eb.value)||0)-(Number(ea.value)||0)||a.name.localeCompare(b.name);return a.name.localeCompare(b.name);});
+  rows.sort((a,b)=>{const ea=getPersonalEvaluation(a.name)||{},eb=getPersonalEvaluation(b.name)||{};if(sort==="RANK")return (Number(ea.rank)||9999)-(Number(eb.rank)||9999)||a.name.localeCompare(b.name);if(sort==="POSITION")return a.pos.localeCompare(b.pos)||a.name.localeCompare(b.name);if(sort==="VALUE")return (Number(eb.value)||0)-(Number(ea.value)||0)||a.name.localeCompare(b.name);if(sort==="CONSENSUS_PRICE")return consensusPriceFor(b)-consensusPriceFor(a)||a.name.localeCompare(b.name);if(sort==="ADP")return (adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name);return a.name.localeCompare(b.name);});
   return rows.slice(0,500);
 }
 function renderBulkBoard(){
   const body=$("bulkBoardBody"); if(!body)return;
   const rows=bulkFilteredPlayers();
-  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-flag"><input class="bulk-favorite" type="checkbox" ${ev.favorite?"checked":""}></td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
+  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td><strong>${consensusPriceFor(p)?money(consensusPriceFor(p)):"—"}</strong></td><td><strong>${adpFor(p)||"—"}</strong></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-flag"><input class="bulk-favorite" type="checkbox" ${ev.favorite?"checked":""}></td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
   $("bulkCount").textContent=`${rows.length} players shown • ${bulkSelected.size} selected`;
   $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
 }
