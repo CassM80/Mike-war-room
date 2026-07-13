@@ -280,6 +280,25 @@ body { overflow:auto; }
 .personal-badge { display:inline-block; margin-left:6px; padding:3px 6px; border-radius:999px; background:#233126; color:var(--green); font-size:10px; font-weight:900; }
 @media (max-width:800px){ .scouting-layout{grid-template-columns:1fr}.eval-grid{grid-template-columns:1fr 1fr}.eval-flags{grid-template-columns:1fr 1fr}.personal-board-list{grid-template-columns:1fr} }
 
+
+/* Production Upgrade 5: Shared Player Dossier */
+.player-dossier-card{border:1px solid #40502f;border-radius:12px;background:linear-gradient(180deg,#111710,#0b0f0c);overflow:hidden;margin-top:12px}
+.player-dossier-title{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.player-dossier-title strong{font-size:24px}.player-dossier-title small{display:block;color:var(--muted);margin-top:4px;font-weight:800}
+.dossier-status{padding:5px 9px;border-radius:999px;background:#223016;color:var(--green);font-size:10px;font-weight:950;white-space:nowrap}
+.dossier-status.unsold{background:#171b20;color:#cbd5e1}.dossier-status.sold{background:#3a1717;color:#ff8c8c}
+.dossier-sections{display:grid;grid-template-columns:1.05fr .95fr;gap:0}
+.dossier-section{padding:14px 16px;border-right:1px solid var(--line)}.dossier-section:last-child{border-right:0}
+.dossier-section h4{margin:0 0 10px;color:var(--green);font-size:11px;letter-spacing:.12em}
+.dossier-stat{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #20272b;font-size:13px}.dossier-stat:last-child{border-bottom:0}
+.dossier-stat span:first-child{color:var(--muted)}.dossier-stat strong{color:var(--text)}
+.dossier-notes{padding:13px 16px;border-top:1px solid var(--line);color:#d1d5db;line-height:1.45;min-height:48px}
+.dossier-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dossier-tag{padding:4px 7px;border-radius:999px;background:#26351f;color:var(--green);font-size:10px;font-weight:900}.dossier-tag.avoid{background:#421c1c;color:#ff9292}
+.war-dossier-compact{margin-top:10px;border:1px solid #344029;border-radius:9px;background:#0b100c;display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}
+.war-dossier-cell{padding:8px 10px;text-align:center;border-right:1px solid var(--line);min-width:0}.war-dossier-cell:last-child{border-right:0}.war-dossier-cell span{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.06em}.war-dossier-cell strong{display:block;color:var(--text);font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.war-notes{margin-top:7px;color:#cbd5e1;font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:800px){.dossier-sections{grid-template-columns:1fr}.dossier-section{border-right:0;border-bottom:1px solid var(--line)}.dossier-section:last-child{border-bottom:0}.war-dossier-compact{grid-template-columns:1fr 1fr}.war-dossier-cell:nth-child(2){border-right:0}.war-dossier-cell:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
 </style>
 </head>
 <body>
@@ -345,7 +364,7 @@ body { overflow:auto; }
               <input id="scoutingSearch" placeholder="Search the complete player database…" autocomplete="off">
               <div id="scoutingSuggestions"></div>
             </div>
-            <div class="scouting-selected" id="scoutingSelected">Select a player to create or edit your evaluation.</div>
+            <div id="scoutingDossierPreview" class="player-dossier-card"><div class="dossier-notes">Select a player to open the dossier.</div></div>
             <div class="personal-board">
               <h3>YOUR PERSONAL BOARD</h3>
               <div class="personal-board-list" id="personalBoardList"></div>
@@ -427,6 +446,13 @@ body { overflow:auto; }
             <div class="price-card fair"><strong>FAIR</strong><div class="range" id="fairRange"></div></div>
             <div class="price-card stop"><strong>STOP</strong><div class="range" id="stopRange"></div></div>
           </div>
+          <div class="war-dossier-compact" id="warDossierCompact">
+            <div class="war-dossier-cell"><span>YOUR VALUE</span><strong id="warYourValue">—</strong></div>
+            <div class="war-dossier-cell"><span>HARD STOP</span><strong id="warHardStop">—</strong></div>
+            <div class="war-dossier-cell"><span>MARKET</span><strong id="warMarketValue">—</strong></div>
+            <div class="war-dossier-cell"><span>STATUS</span><strong id="warSaleStatus">UNSOLD</strong></div>
+          </div>
+          <div class="war-notes" id="warDossierNotes"></div>
         </div>
       </div>
       <div class="pivots">
@@ -582,6 +608,45 @@ function evaluationTags(ev){
   if(!ev) return [];
   return [[ev.flagPlant,"FLAG PLANT"],[ev.favorite,"FAVORITE"],[ev.sleeper,"SLEEPER"],[ev.avoid,"AVOID"]].filter(x=>x[0]).map(x=>x[1]);
 }
+function marketValueFor(base){
+  if(!base) return 0;
+  if(Number(base.fairLow||0)>0 && Number(base.fairHigh||0)>0) return Math.round((Number(base.fairLow)+Number(base.fairHigh))/2);
+  if(Number(base.buyHigh||0)>0) return Number(base.buyHigh);
+  return 0;
+}
+function saleForPlayer(name){ return state.sales.find(s=>s.player===name) || null; }
+function dossierHTML(base){
+  if(!base) return '<div class="dossier-notes">Select a player to open the dossier.</div>';
+  const ev=getPersonalEvaluation(base.name);
+  const sale=saleForPlayer(base.name);
+  const tags=evaluationTags(ev);
+  const market=marketValueFor(base);
+  const status=sale?`${sale.winner==="me"?"YOUR TEAM":"SOLD"} • ${money(sale.price)}`:"UNSOLD";
+  const statusClass=sale?'sold':'unsold';
+  return `<div class="player-dossier-title"><div><strong>${base.name}</strong><small>${base.pos}${base.team?" • "+base.team:""}</small>${tags.length?`<div class="dossier-tags">${tags.map(t=>`<span class="dossier-tag ${t==="AVOID"?"avoid":""}">${t}</span>`).join("")}</div>`:""}</div><span class="dossier-status ${statusClass}">${status}</span></div>
+  <div class="dossier-sections">
+    <div class="dossier-section"><h4>YOUR BOARD</h4>
+      <div class="dossier-stat"><span>Your Value</span><strong>${ev&&ev.value?money(ev.value):"Not set"}</strong></div>
+      <div class="dossier-stat"><span>Hard Stop</span><strong>${ev&&ev.hardStop?money(ev.hardStop):"Not set"}</strong></div>
+      <div class="dossier-stat"><span>Personal Tier</span><strong>${ev&&ev.tier?ev.tier:"Not set"}</strong></div>
+    </div>
+    <div class="dossier-section"><h4>MARKET REFERENCE</h4>
+      <div class="dossier-stat"><span>Market Value</span><strong>${market?money(market):"Not available"}</strong></div>
+      <div class="dossier-stat"><span>Market Tier</span><strong>${base.tier&&base.tier!=="UNRANKED"?base.tier:"Unranked"}</strong></div>
+      <div class="dossier-stat"><span>War Room Grade</span><strong>${base.action||"WATCH"}</strong></div>
+    </div>
+  </div>
+  <div class="dossier-notes"><strong style="color:var(--green)">NOTES</strong><br>${ev&&ev.notes?ev.notes:(base.notes||"No notes saved yet.")}</div>`;
+}
+function renderScoutingDossier(base){ const el=$("scoutingDossierPreview"); if(el) el.innerHTML=dossierHTML(base); }
+function renderWarDossier(base){
+  const ev=base?getPersonalEvaluation(base.name):null, sale=base?saleForPlayer(base.name):null, market=marketValueFor(base);
+  $("warYourValue").textContent=ev&&ev.value?money(ev.value):"—";
+  $("warHardStop").textContent=ev&&ev.hardStop?money(ev.hardStop):"—";
+  $("warMarketValue").textContent=market?money(market):"—";
+  $("warSaleStatus").textContent=sale?`${sale.winner==="me"?"YOURS":"SOLD"} ${money(sale.price)}`:"UNSOLD";
+  $("warDossierNotes").textContent=(ev&&ev.notes)||(base&&base.notes)||"";
+}
 const CORE = ["A.J. Brown", "CeeDee Lamb", "Omarion Hampton", "Kenneth Walker III", "Brock Bowers", "Jaxon Smith-Njigba", "Alec Pierce"];
 const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon-Ra St. Brown", "Malik Nabers", "Marvin Harrison Jr.", "Garrett Wilson", "Drake London", "Ladd McConkey", "Rome Odunze", "DJ Moore", "Xavier Worthy", "Jordan Addison", "Courtland Sutton", "Bijan Robinson", "Jahmyr Gibbs", "Saquon Barkley", "Christian McCaffrey", "Jonathan Taylor", "James Cook", "Josh Jacobs", "Breece Hall", "Kyren Williams", "Alvin Kamara", "Joe Mixon", "Josh Allen", "Lamar Jackson", "Jalen Hurts", "Patrick Mahomes", "Trey McBride", "George Kittle", "Sam LaPorta", "Travis Kelce"]);
 const ROSTER_SLOTS = ["QB","RB1","RB2","WR1","WR2","TE","FLEX1","FLEX2","K","DEF","BN1","BN2","BN3","BN4","BN5","BN6","BN7"];
@@ -654,7 +719,7 @@ function setSelected(p){
   $("recordPlayer").value=p?p.name:"";
   if(!p){
     $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
-    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; return;
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
   const ev=p.personalEvaluation;
@@ -668,6 +733,7 @@ function setSelected(p){
   $("stopRange").textContent=p.overpay?`$${p.overpay}+`:"PASS";
   const ps=(p.pivots||"").split("→").map(x=>x.trim()).filter(Boolean);
   $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
+  renderWarDossier(byName[p.name]||p);
 }
 function fillSelects(){
   $("recordPlayer").innerHTML='<option value="">Select player</option>'+PLAYERS.map(p=>`<option>${p.name}</option>`).join("");
@@ -704,7 +770,7 @@ function selectScoutingPlayer(name){
   const ev=getPersonalEvaluation(name)||{};
   $("scoutingSearch").value=name;
   $("scoutingSuggestions").style.display="none";
-  $("scoutingSelected").innerHTML=`<strong>${name}</strong>${base.pos}${base.team?" • "+base.team:""}${getPersonalEvaluation(name)?'<span class="personal-badge">PERSONALIZED</span>':''}`;
+  renderScoutingDossier(base);
   $("scoutingEditorEmpty").classList.add("hidden"); $("scoutingEditorFields").classList.remove("hidden");
   $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
   $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";

@@ -1,10 +1,14 @@
-# War Room — Production Upgrade 4
+# War Room Production Upgrade 5 — Shared Player Dossier
 
-Adds Scouting & Personalization to the confirmed complete-player production build.
+Built from the confirmed live Scouting release.
 
-## New
-- Search the complete player database from Headquarters
-- Save personal value, hard stop, tier, Favorite, Flag Plant, Sleeper, Avoid, and notes
-- Personal evaluations persist locally
-- War Room dossier uses personal settings immediately
-- Existing curated evaluations remain intact unless the user creates an override
+## Added
+- One shared player record across Scouting and War Room
+- Your evaluation displayed before market reference
+- Market value/tier shown only when available
+- Personal tags and notes in the dossier
+- Sale status and recorded price
+- Compact live-draft dossier beneath the decision ranges
+
+## Principle
+Scouting edits the record. War Room displays it. Draft sales update it.
