@@ -324,6 +324,12 @@ body { overflow:auto; }
 .reset-actions{display:flex;gap:10px;flex-wrap:wrap}.reset-btn{border:1px solid var(--line);background:#0b0f13;color:var(--text);padding:11px 14px;border-radius:8px;font-weight:900;cursor:pointer}.reset-btn.primary{background:var(--green);color:#081000;border-color:var(--green)}.reset-btn.danger{border-color:#8b3138;color:#ff777f}.reset-btn:hover{filter:brightness(1.12)}
 .reset-status{margin-top:14px;color:var(--green);font-weight:800;min-height:20px}.share-safe{border-color:#426f19}.share-safe strong{color:var(--green)}
 @media(max-width:760px){.reset-grid{grid-template-columns:1fr}}
+
+.save-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.save-options .reset-btn{min-height:76px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;white-space:normal}
+.save-options .reset-btn strong{font-size:14px}.save-options .reset-btn span{font-size:11px;color:var(--muted);font-weight:600;line-height:1.35}
+.restore-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:700px){.save-options{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -530,10 +536,16 @@ body { overflow:auto; }
     <h2>DEBRIEF & RESET</h2>
     <p class="lead">Finish a draft, save a backup, or prepare a clean room for the next league.</p>
     <div class="reset-grid">
-      <div class="reset-card">
-        <h3>EXPORT BACKUP</h3>
-        <p>Download this browser's league, teams, sales, roster and personal board before clearing anything.</p>
-        <div class="reset-actions"><button class="reset-btn primary" id="exportBackupBtn">EXPORT EVERYTHING</button><button class="reset-btn" id="importBackupBtn">IMPORT BACKUP</button><input id="importBackupFile" type="file" accept="application/json" hidden></div>
+      <div class="reset-card save-card">
+        <h3>SAVE WAR ROOM</h3>
+        <p>Choose a useful format. Technical backup files stay behind the scenes; reports open in a clean printable layout.</p>
+        <div class="save-options">
+          <button class="reset-btn primary" id="saveBackupBtn"><strong>BACKUP & RESTORE</strong><span>Save a private .warroom file</span></button>
+          <button class="reset-btn" id="draftReportBtn"><strong>DRAFT REPORT</strong><span>Readable report / Save as PDF</span></button>
+          <button class="reset-btn" id="personalBoardReportBtn"><strong>PERSONAL BOARD</strong><span>Printable rankings and notes</span></button>
+          <button class="reset-btn" id="shareLeagueBtn"><strong>SHARE LEAGUE</strong><span>League setup only — no private board</span></button>
+        </div>
+        <div class="reset-actions restore-row"><button class="reset-btn" id="importBackupBtn">RESTORE BACKUP</button><input id="importBackupFile" type="file" accept=".warroom,.warroom-league,.json,application/json" hidden></div>
       </div>
       <div class="reset-card">
         <h3>NEW DRAFT — SAME LEAGUE</h3>
@@ -1015,8 +1027,45 @@ $("clearEvaluationBtn").addEventListener("click",()=>{
 
 function freshDraftState(){ return {budget:Number(leagueConfig.budget||200),sales:[],roster:{},selected:null}; }
 function applyFreshDraft(){ const fresh=freshDraftState(); state.budget=fresh.budget; state.sales=[]; state.roster={}; state.selected=null; save(); setSelected(null); renderAll(); updateResetSummary(); }
-function downloadJSON(filename,data){ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),500); }
-function exportBackup(){ downloadJSON(`war-room-backup-${new Date().toISOString().slice(0,10)}.json`,{version:1,exportedAt:new Date().toISOString(),profileMode,leagueConfig,state,personalEvaluations}); setResetStatus("Backup downloaded."); }
+function downloadFile(filename,content,type="application/octet-stream"){
+  const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),700);
+}
+function privateBackupPayload(){ return {format:"warroom-backup",version:2,exportedAt:new Date().toISOString(),profileMode,leagueConfig,state,personalEvaluations}; }
+function saveWarRoomBackup(){ downloadFile(`war-room-backup-${new Date().toISOString().slice(0,10)}.warroom`,JSON.stringify(privateBackupPayload()),"application/x-warroom"); setResetStatus("Private War Room backup saved."); }
+function esc(v){return String(v??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function teamLabelForSale(sale){
+  if(sale.winnerTeamIndex!==undefined && leagueConfig.teams?.[Number(sale.winnerTeamIndex)]) return leagueConfig.teams[Number(sale.winnerTeamIndex)].teamName||`Team ${Number(sale.winnerTeamIndex)+1}`;
+  if(sale.winner==="me") return leagueConfig.teams?.[Number(leagueConfig.myTeamIndex||0)]?.teamName||"Your Team";
+  return sale.winnerName||"Other Team";
+}
+function printableShell(title,subtitle,body){
+  const w=window.open("","_blank"); if(!w){alert("Please allow pop-ups so War Room can open the printable report.");return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+  body{font-family:Arial,sans-serif;color:#111;margin:38px;line-height:1.4}h1{margin:0;font-size:30px}h2{margin-top:28px;border-bottom:2px solid #111;padding-bottom:6px}h3{margin:18px 0 5px}.sub{color:#555;margin:4px 0 22px}.meta{display:flex;gap:28px;flex-wrap:wrap;margin:16px 0}.metric{border:1px solid #bbb;border-radius:8px;padding:10px 14px;min-width:115px}.metric strong{display:block;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px 6px;font-size:13px}th{background:#f3f3f3}.tag{display:inline-block;border:1px solid #777;border-radius:999px;padding:2px 7px;margin:2px;font-size:11px}.note{color:#444}.actions{position:fixed;right:20px;top:20px}@media print{.actions{display:none}body{margin:18mm}}
+  </style></head><body><button class="actions" onclick="window.print()">PRINT / SAVE PDF</button><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>${body}</body></html>`);
+  w.document.close(); w.focus();
+}
+function draftReport(){
+  const myIdx=Number(leagueConfig.myTeamIndex||0), myTeam=leagueConfig.teams?.[myIdx]?.teamName||"Your Team";
+  const mySales=state.sales.filter(s=>s.winner==="me"||Number(s.winnerTeamIndex)===myIdx);
+  const spentAmt=mySales.reduce((a,s)=>a+Number(s.price||0),0), remaining=Math.max(0,Number(leagueConfig.budget||200)-spentAmt);
+  const rosterRows=Object.entries(state.roster||{}).map(([slot,r])=>`<tr><td>${esc(slot)}</td><td>${esc(r.player)}</td><td>$${Number(r.price||0)}</td></tr>`).join("")||'<tr><td colspan="3">No players recorded for your team.</td></tr>';
+  const saleRows=(state.sales||[]).map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.player)}</td><td>${esc(teamLabelForSale(s))}</td><td>$${Number(s.price||0)}</td></tr>`).join("")||'<tr><td colspan="4">No sales recorded.</td></tr>';
+  printableShell(`${leagueConfig.leagueName||"War Room"} — Draft Report`,`${leagueConfig.teamCount||12} teams • $${leagueConfig.budget||200} budget • ${leagueConfig.scoring||"PPR"}`,
+  `<div class="meta"><div class="metric"><strong>${esc(myTeam)}</strong>Your Team</div><div class="metric"><strong>$${spentAmt}</strong>Spent</div><div class="metric"><strong>$${remaining}</strong>Remaining</div><div class="metric"><strong>${state.sales.length}</strong>Total Sales</div></div><h2>Your Roster</h2><table><thead><tr><th>Slot</th><th>Player</th><th>Price</th></tr></thead><tbody>${rosterRows}</tbody></table><h2>Complete Draft Log</h2><table><thead><tr><th>#</th><th>Player</th><th>Winner</th><th>Price</th></tr></thead><tbody>${saleRows}</tbody></table>`);
+  setResetStatus("Draft report opened. Choose Print / Save PDF.");
+}
+function personalBoardReport(){
+  const rows=Object.values(personalEvaluations||{}).sort((a,b)=>(a.tier||"99").localeCompare(b.tier||"99")||(a.name||"").localeCompare(b.name||""));
+  const bodyRows=rows.map(ev=>{const tags=evaluationTags(ev).map(t=>`<span class="tag">${esc(t)}</span>`).join("");return `<tr><td><strong>${esc(ev.name)}</strong><div>${tags}</div></td><td>${esc(byName[ev.name]?.pos||"")}</td><td>${ev.value?"$"+Number(ev.value):"—"}</td><td>${ev.hardStop?"$"+Number(ev.hardStop):"—"}</td><td>${esc(ev.tier||"—")}</td><td class="note">${esc(ev.notes||"")}</td></tr>`}).join("")||'<tr><td colspan="6">No personal evaluations saved.</td></tr>';
+  printableShell(`${leagueConfig.leagueName||"War Room"} — Personal Board`,`Private scouting board • ${rows.length} evaluated players`, `<table><thead><tr><th>Player</th><th>Pos</th><th>Your Value</th><th>Hard Stop</th><th>Tier</th><th>Notes</th></tr></thead><tbody>${bodyRows}</tbody></table>`);
+  setResetStatus("Personal board opened. Choose Print / Save PDF.");
+}
+function shareLeague(){
+  const safe={format:"warroom-league",version:1,exportedAt:new Date().toISOString(),leagueConfig:{...leagueConfig,teams:(leagueConfig.teams||[]).map(t=>({ownerName:t.ownerName||"",teamName:t.teamName||""}))}};
+  downloadFile(`war-room-league-${new Date().toISOString().slice(0,10)}.warroom-league`,JSON.stringify(safe),"application/x-warroom-league"); setResetStatus("Share-safe league file saved — no rankings or notes included.");
+}
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
@@ -1027,7 +1076,13 @@ function fullCleanReset(){
   location.reload();
 }
 function importBackupObject(data){
-  if(!data||typeof data!=="object"||!data.state||!data.leagueConfig) throw new Error("Invalid War Room backup.");
+  if(!data||typeof data!=="object"||!data.leagueConfig) throw new Error("Invalid War Room file.");
+  if(data.format==="warroom-league"){
+    localStorage.setItem("warRoomLeagueConfig",JSON.stringify(data.leagueConfig));
+    localStorage.setItem("warRoomState",JSON.stringify(freshDraftState()));
+    location.reload(); return;
+  }
+  if(!data.state) throw new Error("Invalid War Room backup.");
   localStorage.setItem("warRoomState",JSON.stringify(data.state));
   localStorage.setItem("warRoomLeagueConfig",JSON.stringify(data.leagueConfig));
   localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(data.personalEvaluations||{}));
@@ -1103,7 +1158,10 @@ $("saveTeamsBtn").addEventListener("click",()=>{
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
 $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
-$("exportBackupBtn").addEventListener("click",exportBackup);
+$("saveBackupBtn").addEventListener("click",saveWarRoomBackup);
+$("draftReportBtn").addEventListener("click",draftReport);
+$("personalBoardReportBtn").addEventListener("click",personalBoardReport);
+$("shareLeagueBtn").addEventListener("click",shareLeague);
 $("importBackupBtn").addEventListener("click",()=>$("importBackupFile").click());
 $("importBackupFile").addEventListener("change",async e=>{const f=e.target.files[0]; if(!f)return; try{importBackupObject(JSON.parse(await f.text()));}catch(err){alert(err.message||"Could not import backup.");} e.target.value="";});
 $("newDraftBtn").addEventListener("click",()=>{if(confirm("Clear all sales, rosters and live-draft intelligence while keeping this league and personal board?")){applyFreshDraft();setResetStatus("New draft ready.");}});
