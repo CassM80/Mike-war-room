@@ -1,24 +1,10 @@
-# War Room Production Upgrade 5 — Shared Player Dossier
+# War Room Production Upgrade 6
 
-Built from the confirmed live Scouting release.
+Adds the first personalized recommendation engine.
 
-## Added
-- One shared player record across Scouting and War Room
-- Your evaluation displayed before market reference
-- Market value/tier shown only when available
-- Personal tags and notes in the dossier
-- Sale status and recorded price
-- Compact live-draft dossier beneath the decision ranges
-
-## Principle
-Scouting edits the record. War Room displays it. Draft sales update it.
-
-## Production Upgrade 5.1
-- Sold players remain searchable in War Room.
-- Sold search results are grayed out, struck through, and display the sale price.
-- Selecting a sold player opens the same dossier in a disabled gray state with SOLD status.
-- A sold player cannot be recorded a second time.
-
-
-## Upgrade 5.2
-- Replaced the record-sale player dropdown with a searchable type-ahead field backed by the complete player database.
+- Fit score from 0–100
+- Excellent / Strong / Situational / Poor Fit
+- Confidence rating
+- Up to three instant reasons
+- Uses personal designations, roster need, budget, hard stop, market temperature and curated tier
+- After a recorded sale, clears and returns focus to player search

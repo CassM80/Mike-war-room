@@ -305,6 +305,10 @@ body { overflow:auto; }
 .dossier-notes{padding:13px 16px;border-top:1px solid var(--line);color:#d1d5db;line-height:1.45;min-height:48px}
 .dossier-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dossier-tag{padding:4px 7px;border-radius:999px;background:#26351f;color:var(--green);font-size:10px;font-weight:900}.dossier-tag.avoid{background:#421c1c;color:#ff9292}
 .war-dossier-compact{margin-top:10px;border:1px solid #344029;border-radius:9px;background:#0b100c;display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}
+.recommendation-engine{margin-top:10px;border:1px solid #344029;border-radius:10px;background:linear-gradient(135deg,#0c120d,#111820);padding:10px 12px;display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center}
+.recommendation-summary{border-right:1px solid var(--line);padding-right:12px;text-align:center}.recommendation-kicker{font-size:9px;color:var(--muted);font-weight:950;letter-spacing:.12em}.recommendation-fit{font-size:20px;font-weight:950;color:var(--green);margin-top:3px}.recommendation-score{font-size:12px;color:var(--text);margin-top:3px}.recommendation-confidence{font-size:10px;color:var(--blue);font-weight:900;margin-top:2px}.recommendation-reasons{display:grid;gap:5px}.recommendation-reason{font-size:11px;color:#dce6ef;line-height:1.25}.recommendation-reason::before{content:"✓";color:var(--green);font-weight:950;margin-right:7px}.recommendation-reason.warning::before{content:"!";color:var(--orange)}.recommendation-engine.poor .recommendation-fit{color:var(--red)}.recommendation-engine.situational .recommendation-fit{color:var(--yellow)}.recommendation-engine.sold{filter:grayscale(1);opacity:.65}
+@media(max-width:800px){.recommendation-engine{grid-template-columns:1fr}.recommendation-summary{border-right:0;border-bottom:1px solid var(--line);padding:0 0 8px}.recommendation-reasons{grid-template-columns:1fr}}
+
 .war-dossier-cell{padding:8px 10px;text-align:center;border-right:1px solid var(--line);min-width:0}.war-dossier-cell:last-child{border-right:0}.war-dossier-cell span{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.06em}.war-dossier-cell strong{display:block;color:var(--text);font-size:14px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .war-notes{margin-top:7px;color:#cbd5e1;font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:800px){.dossier-sections{grid-template-columns:1fr}.dossier-section{border-right:0;border-bottom:1px solid var(--line)}.dossier-section:last-child{border-bottom:0}.war-dossier-compact{grid-template-columns:1fr 1fr}.war-dossier-cell:nth-child(2){border-right:0}.war-dossier-cell:nth-child(-n+2){border-bottom:1px solid var(--line)}}
@@ -462,6 +466,15 @@ body { overflow:auto; }
             <div class="war-dossier-cell"><span>MARKET</span><strong id="warMarketValue">—</strong></div>
             <div class="war-dossier-cell"><span>STATUS</span><strong id="warSaleStatus">UNSOLD</strong></div>
           </div>
+          <div class="recommendation-engine" id="recommendationEngine">
+            <div class="recommendation-summary">
+              <div class="recommendation-kicker">PERSONALIZED FIT</div>
+              <div class="recommendation-fit" id="recommendationFit">—</div>
+              <div class="recommendation-score" id="recommendationScore">—</div>
+              <div class="recommendation-confidence" id="recommendationConfidence">—</div>
+            </div>
+            <div class="recommendation-reasons" id="recommendationReasons"></div>
+          </div>
           <div class="war-notes" id="warDossierNotes"></div>
         </div>
       </div>
@@ -491,7 +504,7 @@ body { overflow:auto; }
       <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
       <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
     </div>
-    <button class="ready" id="readyBtn">✓ READY<small>NEXT NOMINATION</small></button>
+    <button class="ready" id="readyBtn">RECORD SALE<small>THEN CLEAR FOR NEXT</small></button>
   </section>
 </div>
 </section>
@@ -722,6 +735,54 @@ function renderAlerts(){
   const a=alerts();
   $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
 }
+function positionNeed(pos){
+  const open=availableSlots();
+  const direct={QB:["QB"],RB:["RB1","RB2"],WR:["WR1","WR2"],TE:["TE"],K:["K"],DEF:["DEF"]}[pos]||[];
+  if(direct.some(slot=>open.includes(slot))) return "STARTER";
+  if(["RB","WR","TE"].includes(pos) && ["FLEX1","FLEX2"].some(slot=>open.includes(slot))) return "FLEX";
+  return open.some(slot=>slot.startsWith("BN"))?"BENCH":"FULL";
+}
+function recommendationFor(base){
+  if(!base) return {score:0,fit:"—",confidence:"—",reasons:[]};
+  const sale=sold(base.name);
+  if(sale) return {score:0,fit:"SOLD",confidence:"FINAL",reasons:[`${sale.winner==="me"?"Your team":"Another team"} acquired him for ${money(sale.price)}`],sold:true};
+  const p=effectivePlayer(base), ev=p.personalEvaluation, reasons=[];
+  let score=45, confidence=40;
+  if(p.tier!=="UNRANKED"){ score+=Math.max(0,14-Number(p.pressure||5)); confidence+=18; reasons.push(`Curated Tier ${p.tier} player`); }
+  if(ev){
+    confidence+=30;
+    if(ev.avoid){score-=55; reasons.unshift("Marked AVOID on your board");}
+    if(ev.flagPlant){score+=20; reasons.unshift("Flag Plant — one of your strongest convictions");}
+    else if(ev.favorite){score+=13; reasons.unshift("Favorite on your personal board");}
+    if(ev.sleeper){score+=8; reasons.push("Sleeper designation adds upside appeal");}
+  }
+  const need=positionNeed(p.pos);
+  if(need==="STARTER"){score+=16; reasons.push(`Fills an open ${p.pos} starting spot`);}
+  else if(need==="FLEX"){score+=9; reasons.push("Fits an open FLEX spot");}
+  else if(need==="BENCH"){score-=3; reasons.push("Starter need is already covered");}
+  else {score-=25; reasons.push("No legal roster spot remains");}
+  const remaining=Number(leagueConfig.budget||200)-spent(), left=availableSlots().length, maxLegal=Math.max(0,remaining-(left-1));
+  const hard=Number(ev?.hardStop||p.overpay||0), value=Number(ev?.value||marketValueFor(p)||0);
+  if(hard && hard<=maxLegal){score+=6; reasons.push(`Hard stop ${money(hard)} fits your legal max bid`);}
+  if(hard && hard>maxLegal){score-=20; reasons.push(`Hard stop exceeds your legal max bid of ${money(maxLegal)}`);}
+  if(value && remaining>0 && value/remaining>.45){score-=5; reasons.push("Would consume a large share of remaining budget");}
+  const ms=marketStats();
+  if(ms.temp==="HOT"){score-=4; reasons.push("Market is running hot — stay disciplined");}
+  if(ms.temp==="COLD"){score+=4; reasons.push("Cold market may create a buying window");}
+  score=Math.max(0,Math.min(100,Math.round(score))); confidence=Math.max(25,Math.min(98,Math.round(confidence)));
+  let fit=score>=85?"EXCELLENT FIT":score>=70?"STRONG FIT":score>=50?"SITUATIONAL":"POOR FIT";
+  const dedup=[...new Set(reasons)].slice(0,3);
+  return {score,fit,confidence:confidence>=80?"HIGH CONFIDENCE":confidence>=55?"MEDIUM CONFIDENCE":"LOW CONFIDENCE",reasons:dedup};
+}
+function renderRecommendation(base){
+  const r=recommendationFor(base), box=$("recommendationEngine");
+  box.classList.remove("poor","situational","sold");
+  if(r.sold) box.classList.add("sold"); else if(r.fit==="POOR FIT") box.classList.add("poor"); else if(r.fit==="SITUATIONAL") box.classList.add("situational");
+  $("recommendationFit").textContent=r.fit;
+  $("recommendationScore").textContent=r.score?`${r.score}/100`:(r.sold?"FINAL":"—");
+  $("recommendationConfidence").textContent=r.confidence;
+  $("recommendationReasons").innerHTML=(r.reasons.length?r.reasons:["Select a player to generate personalized guidance"]).map((x,i)=>`<div class="recommendation-reason ${/avoid|exceeds|large share|No legal|hot/i.test(x)?"warning":""}">${x}</div>`).join("");
+}
 function setSelected(p){
   p=effectivePlayer(p);
   const existingSale=p?sold(p.name):null;
@@ -732,7 +793,7 @@ function setSelected(p){
   $("recordPlayer").value=p?p.name:"";
   if(!p){
     $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
-    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); return;
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
   const ev=p.personalEvaluation;
@@ -747,6 +808,7 @@ function setSelected(p){
   const ps=(p.pivots||"").split("→").map(x=>x.trim()).filter(Boolean);
   $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
   renderWarDossier(byName[p.name]||p);
+  renderRecommendation(byName[p.name]||p);
 }
 function fillSelects(){
   $("recordPlayerList").innerHTML=PLAYERS.map(p=>`<option value="${p.name}">${p.pos} • ${p.team||"FA"}</option>`).join("");
@@ -776,6 +838,8 @@ $("readyBtn").addEventListener("click",()=>{
   if(winner==="me") state.roster[slot]={player,price};
   $("finalPrice").value=0; $("winner").value="other"; $("rosterSlot").value=""; $("rosterSlot").disabled=true;
   setSelected(null); save(); renderAll();
+  const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
+  setTimeout(()=>{ btn.innerHTML="RECORD SALE<small>THEN CLEAR FOR NEXT</small>"; $("playerSearch").focus(); },700);
 });
 
 function selectScoutingPlayer(name){
@@ -891,7 +955,7 @@ $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number
 renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
-fillSelects(); $("rosterSlot").disabled=true; renderAll(); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
+fillSelects(); $("rosterSlot").disabled=true; renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]); loadCompletePlayerUniverse();
 </script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
 <script>
