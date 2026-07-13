@@ -1,7 +1,3 @@
-# War Room Production Upgrade 14
+# War Room Production Upgrade 15 — Draft DNA Builder
 
-Adds Strategy Sprints to Scouting.
-
-Users answer six short questions about roster construction, QB/TE approach, risk, auction discipline, and board size. War Room then auto-populates personal ranks, tiers, values, hard stops, favorites, flag plants, sleepers, avoids, and explanatory notes.
-
-Existing personal evaluations are preserved by default. A rebuild option is available in the final sprint. Every generated field remains editable in the Bulk Player Board.
+Adds a multi-stage Draft DNA experience with philosophy questions, player gut checks, price reactions, head-to-head choices, a visible DNA profile, deeper automatic board population, and a cleaner personal board.

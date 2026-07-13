@@ -353,6 +353,20 @@ body { overflow:auto; }
 .save-options .reset-btn strong{font-size:14px}.save-options .reset-btn span{font-size:11px;color:var(--muted);font-weight:600;line-height:1.35}
 .restore-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 @media(max-width:700px){.save-options{grid-template-columns:1fr}}
+
+/* Upgrade 15: Draft DNA Builder + cleaner personal board */
+.personal-board-list{display:flex!important;flex-direction:column;gap:5px;max-height:310px;overflow:auto;padding-right:4px}
+.personal-row{display:grid!important;grid-template-columns:42px minmax(0,1fr) 58px 58px;gap:8px;align-items:center;padding:9px 10px!important;min-height:0!important;background:#0b1014;border:1px solid #29333c;border-radius:8px;cursor:pointer}
+.personal-row:hover{border-color:var(--green)}
+.personal-rank{font-weight:950;color:var(--green);font-size:15px}.personal-name{min-width:0}.personal-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.personal-name small{color:var(--muted)}
+.personal-money{text-align:right;font-weight:900}.personal-money small{display:block;color:var(--muted);font-size:9px;font-weight:700}.personal-badges{grid-column:2/5;color:var(--green);font-size:9px;font-weight:900;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dna-profile{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0}.dna-trait{background:#0a0e12;border:1px solid var(--line);border-radius:10px;padding:10px}.dna-trait strong{display:block;color:var(--green);font-size:19px}.dna-trait span{font-size:10px;color:var(--muted);font-weight:800}.dna-bar{height:5px;background:#242c33;border-radius:99px;overflow:hidden;margin-top:7px}.dna-bar i{display:block;height:100%;background:var(--green)}
+.dna-card{background:#0a0e12;border:1px solid #39434d;border-radius:12px;padding:17px}.dna-player{font-size:27px;font-weight:950;margin:4px 0}.dna-meta{color:var(--muted);font-size:12px}.dna-buttons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:16px}.dna-buttons button{background:#121920;color:#fff;border:1px solid #3d4852;border-radius:9px;padding:12px 6px;font-weight:900;cursor:pointer}.dna-buttons button:hover{border-color:var(--green);color:var(--green)}
+.dna-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}.dna-choice{border:1px solid #39434d;background:#0a0e12;border-radius:12px;padding:22px;text-align:center;cursor:pointer}.dna-choice:hover{border-color:var(--green);background:#14200e}.dna-choice strong{display:block;font-size:21px}.dna-vs{align-self:center;font-weight:950;color:var(--green)}
+.dna-question-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.dna-q{border:1px solid #35404a;border-radius:10px;padding:12px}.dna-q label{display:block;font-weight:900;margin-bottom:7px}.dna-q select{width:100%}
+.dna-step-counter{color:var(--muted);font-size:12px;margin-bottom:8px}.dna-summary-text{border:1px solid #3e531c;background:#111a0c;border-radius:10px;padding:13px;margin:12px 0;color:#dce9d0}
+@media(max-width:760px){.dna-profile{grid-template-columns:1fr 1fr}.dna-buttons{grid-template-columns:1fr 1fr}.dna-question-grid{grid-template-columns:1fr}.dna-pair{grid-template-columns:1fr}.dna-vs{display:none}.personal-row{grid-template-columns:36px minmax(0,1fr) 52px 52px}}
+
 </style>
 </head>
 <body>
@@ -454,8 +468,8 @@ body { overflow:auto; }
 
 
     <section class="philosophy-launch">
-      <div><h3>BUILD MY BOARD</h3><p>Answer a handful of fast strategy sprints. War Room will turn your philosophy into ranks, tiers, values, hard stops, and target flags—then you can fine-tune anything below.</p></div>
-      <button class="primary-btn" id="startBoardSprintsBtn">START STRATEGY SPRINTS</button>
+      <div><h3>BUILD MY DRAFT DNA</h3><p>Make fast player, price, and strategy decisions. War Room will learn how you draft, show your DNA profile, and build a deeper personalized board automatically.</p></div>
+      <button class="primary-btn" id="startBoardSprintsBtn">START DRAFT DNA BUILDER</button>
     </section>
 
     <div id="strategySprintModal" class="sprint-modal hidden" role="dialog" aria-modal="true">
@@ -1069,9 +1083,9 @@ function selectScoutingPlayer(name){
   $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
 }
 function renderPersonalBoard(){
-  const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(Number(b.flagPlant)-Number(a.flagPlant))||(Number(b.favorite)-Number(a.favorite))||(a.name||"").localeCompare(b.name||""));
-  const box=$("personalBoardList"); if(!box) return;
-  box.innerHTML=rows.length?rows.map(ev=>`<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,"&quot;")}"><strong>${ev.rank?"#"+ev.rank+" ":""}${ev.name}</strong><span>${ev.value?money(ev.value):"—"} / ${ev.hardStop?money(ev.hardStop):"—"}</span><span class="personal-tags">${evaluationTags(ev).join(" · ")}</span></div>`).join(""):'<div class="personal-empty">No personal evaluations saved yet.</div>';
+  const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(a.name||'').localeCompare(b.name||'')).slice(0,40);
+  const box=$('personalBoardList');if(!box)return;
+  box.innerHTML=rows.length?rows.map(ev=>{const p=byName[ev.name]||{};const tags=evaluationTags(ev);return `<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,'&quot;')}"><div class="personal-rank">${ev.rank?'#'+ev.rank:'—'}</div><div class="personal-name"><strong>${ev.name}</strong><small>${p.pos||''}${p.team?' • '+p.team:''} • Tier ${ev.tier||'—'}</small></div><div class="personal-money">${ev.value?money(ev.value):'—'}<small>VALUE</small></div><div class="personal-money">${ev.hardStop?money(ev.hardStop):'—'}<small>STOP</small></div>${tags.length?`<div class="personal-badges">${tags.join(' · ')}</div>`:''}</div>`;}).join(''):'<div class="personal-empty">No personal evaluations saved yet.</div>';
 }
 $("scoutingSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("scoutingSuggestions");
@@ -1101,109 +1115,68 @@ $("clearEvaluationBtn").addEventListener("click",()=>{
 
 
 
-const STRATEGY_SPRINTS=[
- {key:"build",title:"Roster Foundation",question:"How do you want to build the core of your team?",help:"This sets the first positional push on your board.",options:[
-  {value:"WR",label:"WR Powerhouse",desc:"Prioritize elite and high-volume wide receivers."},
-  {value:"HERO_RB",label:"Hero RB",desc:"Secure one cornerstone running back, then attack value."},
-  {value:"BALANCED",label:"Balanced",desc:"Let price and tiers decide between RB and WR."}]},
- {key:"qb",title:"Quarterback Plan",question:"How aggressively should War Room value quarterbacks?",help:"This changes QB ranks and dollar recommendations.",options:[
-  {value:"ELITE",label:"Pay for an Edge",desc:"I am willing to invest for a top quarterback."},
-  {value:"VALUE",label:"Value Pocket",desc:"I will buy the right QB at the right price."},
-  {value:"WAIT",label:"Wait on QB",desc:"Push quarterbacks down and spend elsewhere."}]},
- {key:"te",title:"Tight End Plan",question:"What is your tight end philosophy?",help:"Choose whether positional advantage is worth paying for.",options:[
-  {value:"ELITE",label:"Chase Elite",desc:"Boost premium tight ends for a weekly edge."},
-  {value:"VALUE",label:"Selective Value",desc:"Buy only when price meets the board."},
-  {value:"PUNT",label:"Wait / Punt",desc:"Move expensive tight ends down the board."}]},
- {key:"risk",title:"Risk Profile",question:"What kind of roster feels most like you?",help:"War Room uses market position as a proxy until deeper risk data is added.",options:[
-  {value:"FLOOR",label:"Reliable Floor",desc:"Favor proven, expensive early-round profiles."},
-  {value:"BALANCED",label:"Balanced Risk",desc:"Blend reliable starters with upside swings."},
-  {value:"UPSIDE",label:"Ceiling Hunter",desc:"Boost middle and late-market upside opportunities."}]},
- {key:"discipline",title:"Auction Discipline",question:"How much room should your hard stop allow?",help:"Your Value is the target; Hard Stop is the absolute ceiling.",options:[
-  {value:"STRICT",label:"Strict",desc:"Hard stop is usually only $1 above value."},
-  {value:"NORMAL",label:"Controlled",desc:"Allow roughly $3 above value for flexibility."},
-  {value:"AGGRESSIVE",label:"Conviction",desc:"Allow up to $5 above value for priority players."}]},
- {key:"scope",title:"Board Size & Safety",question:"How much of the board should War Room build?",help:"Existing personal work is protected by default.",options:[
-  {value:"100_BLANK",label:"Top 100 · Blanks Only",desc:"Fastest setup. Preserve every existing evaluation."},
-  {value:"150_BLANK",label:"Top 150 · Blanks Only",desc:"Recommended for most auction leagues."},
-  {value:"150_REPLACE",label:"Top 150 · Rebuild",desc:"Replace current ranks and prices with this philosophy."}]}
+const DNA_BASE_QUESTIONS=[
+ {key:"build",label:"Roster foundation",options:[["WR","WR-first"],["HERO_RB","Hero RB"],["BALANCED","Balanced"]]},
+ {key:"qb",label:"Quarterback investment",options:[["ELITE","Pay for elite"],["VALUE","Value pocket"],["WAIT","Wait late"]]},
+ {key:"te",label:"Tight end investment",options:[["ELITE","Chase an edge"],["VALUE","Value only"],["PUNT","Wait / punt"]]},
+ {key:"risk",label:"Risk preference",options:[["FLOOR","Reliable floor"],["BALANCED","Balanced"],["UPSIDE","Ceiling hunter"]]},
+ {key:"stars",label:"Roster spending shape",options:[["STARS","Stars & scrubs"],["BALANCED","Balanced spend"],["DEPTH","Depth first"]]},
+ {key:"rookies",label:"Rookie confidence",options:[["LOW","Low"],["MEDIUM","Medium"],["HIGH","High"]]},
+ {key:"injury",label:"Injury discounts",options:[["AVOID","Avoid risk"],["NEUTRAL","Neutral"],["BUY","Buy discounts"]]},
+ {key:"discipline",label:"Hard-stop discipline",options:[["STRICT","Strict +$1"],["NORMAL","Controlled +$3"],["AGGRESSIVE","Conviction +$5"]]},
+ {key:"stack",label:"QB/WR stacks",options:[["IGNORE","Ignore"],["LIKE","Like them"],["CHASE","Actively chase"]]},
+ {key:"bye",label:"Bye-week conflicts",options:[["IGNORE","Ignore"],["NOTICE","Notice"],["AVOID","Actively avoid"]]},
+ {key:"market",label:"Consensus influence",options:[["LOW","Trust my board"],["MEDIUM","Use as guide"],["HIGH","Stay near market"]]},
+ {key:"scope",label:"Board size",options:[["100_BLANK","Top 100 · fill blanks"],["150_BLANK","Top 150 · fill blanks"],["150_REPLACE","Top 150 · rebuild"]]}
 ];
 let sprintStep=0;
-let sprintAnswers={build:"BALANCED",qb:"VALUE",te:"VALUE",risk:"BALANCED",discipline:"NORMAL",scope:"150_BLANK"};
-function openStrategySprints(){sprintStep=0;$("strategySprintModal").classList.remove("hidden");$("sprintResult").textContent="";renderStrategySprint();}
-function closeStrategySprints(){$("strategySprintModal").classList.add("hidden");}
-function renderStrategySprint(){
- const sprint=STRATEGY_SPRINTS[sprintStep],done=sprintStep===STRATEGY_SPRINTS.length;
- $("sprintKicker").textContent=done?"BOARD PREVIEW":`SPRINT ${sprintStep+1} OF ${STRATEGY_SPRINTS.length}`;
- $("sprintProgressBar").style.width=`${Math.min(100,(sprintStep+1)/STRATEGY_SPRINTS.length*100)}%`;
- $("sprintBackBtn").disabled=sprintStep===0;
- if(done){
-  const preview=previewAutoBoard();
-  $("sprintTitle").textContent="Your Philosophy Is Ready";
-  $("sprintQuestionArea").innerHTML=`<div class="sprint-question">War Room can build your board now.</div><div class="sprint-help">Nothing is locked. Every generated answer remains editable in the Bulk Player Board.</div><div class="sprint-summary"><div><strong>${preview.count}</strong>Players populated</div><div><strong>${preview.flags}</strong>Targets identified</div><div><strong>${preview.avoids}</strong>Poor fits flagged</div></div><label class="flag-toggle" style="display:inline-flex"><input id="confirmAutoBoard" type="checkbox" checked> I understand this will ${preview.replace?"rebuild":"fill blanks on"} my personal board.</label>`;
-  $("sprintNextBtn").textContent="BUILD MY BOARD"; return;
- }
- $("sprintTitle").textContent=sprint.title;
- $("sprintQuestionArea").innerHTML=`<div class="sprint-question">${sprint.question}</div><div class="sprint-help">${sprint.help}</div><div class="sprint-options">${sprint.options.map(o=>`<div class="sprint-option ${sprintAnswers[sprint.key]===o.value?"selected":""}" data-sprint-value="${o.value}"><strong>${o.label}</strong><span>${o.desc}</span></div>`).join("")}</div>`;
- $("sprintNextBtn").textContent="NEXT SPRINT";
+let dnaStage="BASE";
+let dnaIndex=0;
+let dnaAnswers=JSON.parse(localStorage.getItem("warRoomDraftDNAAnswers")||"{}")||{};
+let sprintAnswers=Object.assign({build:"BALANCED",qb:"VALUE",te:"VALUE",risk:"BALANCED",stars:"BALANCED",rookies:"MEDIUM",injury:"NEUTRAL",discipline:"NORMAL",stack:"LIKE",bye:"NOTICE",market:"MEDIUM",scope:"150_BLANK"},dnaAnswers.base||{});
+let dnaPlayerReactions=dnaAnswers.reactions||{};
+let dnaPriceReactions=dnaAnswers.prices||{};
+let dnaPairChoices=dnaAnswers.pairs||{};
+let dnaProfile=dnaAnswers.profile||null;
+function saveDNA(){localStorage.setItem("warRoomDraftDNAAnswers",JSON.stringify({base:sprintAnswers,reactions:dnaPlayerReactions,prices:dnaPriceReactions,pairs:dnaPairChoices,profile:dnaProfile}));}
+function dnaMarketPool(){return PLAYERS.filter(p=>["QB","RB","WR","TE"].includes(p.pos)&&(consensusPriceFor(p)>0||adpFor(p)>0)).sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)||(adpFor(a)||9999)-(adpFor(b)||9999));}
+function dnaReactionPlayers(){const pool=dnaMarketPool();const out=[];["QB","RB","WR","TE"].forEach(pos=>out.push(...pool.filter(p=>p.pos===pos).slice(0,pos==="QB"||pos==="TE"?4:7)));return out.slice(0,22);}
+function dnaPricePlayers(){return dnaMarketPool().filter((p,i)=>i%3===0).slice(0,12);}
+function dnaPairs(){const pool=dnaMarketPool();const by=pos=>pool.filter(p=>p.pos===pos);const pairs=[];["RB","WR","QB","TE"].forEach(pos=>{const a=by(pos);for(let i=0;i<Math.min(3,Math.floor(a.length/2));i++)pairs.push([a[i*2],a[i*2+1]]);});return pairs.slice(0,10);}
+function openStrategySprints(){dnaStage="BASE";dnaIndex=0;sprintStep=0;$('strategySprintModal').classList.remove('hidden');$('sprintResult').textContent='';renderStrategySprint();}
+function closeStrategySprints(){$('strategySprintModal').classList.add('hidden');}
+function stageCounts(){return{BASE:1,REACTION:dnaReactionPlayers().length,PRICE:dnaPricePlayers().length,PAIR:dnaPairs().length,RESULT:1};}
+function totalDNAItems(){const c=stageCounts();return DNA_BASE_QUESTIONS.length+c.REACTION+c.PRICE+c.PAIR+1;}
+function completedDNAItems(){if(dnaStage==='BASE')return sprintStep;if(dnaStage==='REACTION')return DNA_BASE_QUESTIONS.length+dnaIndex;if(dnaStage==='PRICE')return DNA_BASE_QUESTIONS.length+dnaReactionPlayers().length+dnaIndex;if(dnaStage==='PAIR')return DNA_BASE_QUESTIONS.length+dnaReactionPlayers().length+dnaPricePlayers().length+dnaIndex;return totalDNAItems();}
+function setDNAProgress(){const pct=Math.max(3,completedDNAItems()/totalDNAItems()*100);$('sprintProgressBar').style.width=pct+'%';$('sprintKicker').textContent=`DRAFT DNA · ${Math.min(completedDNAItems()+1,totalDNAItems())} OF ${totalDNAItems()}`;}
+function renderBaseQuestions(){
+ $('sprintTitle').textContent='Your Draft Philosophy';
+ $('sprintQuestionArea').innerHTML=`<div class="sprint-help">Choose quickly. These establish the foundation; player decisions in the next rounds personalize it further.</div><div class="dna-question-grid">${DNA_BASE_QUESTIONS.map(q=>`<div class="dna-q"><label>${q.label}</label><select data-dna-base="${q.key}">${q.options.map(o=>`<option value="${o[0]}" ${sprintAnswers[q.key]===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>`).join('')}</div>`;
+ $('sprintBackBtn').disabled=true;$('sprintNextBtn').textContent='START PLAYER GUT CHECK';
 }
-function marketSeedValue(p){
- const direct=consensusPriceFor(p); if(direct>0)return direct;
- const a=adpFor(p); if(!a)return 0;
- if(a<=12)return 46;if(a<=24)return 33;if(a<=48)return 20;if(a<=72)return 12;if(a<=100)return 7;if(a<=150)return 3;if(a<=200)return 1;return 0;
+function renderReaction(){const list=dnaReactionPlayers(),p=list[dnaIndex];$('sprintTitle').textContent='Player Gut Check';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Player ${dnaIndex+1} of ${list.length}</div><div class="dna-card"><div class="dna-meta">${p.pos}${p.team?' • '+p.team:''} • Consensus ${money(consensusPriceFor(p)||0)}</div><div class="dna-player">${p.name}</div><div class="sprint-help">What is your immediate reaction?</div><div class="dna-buttons">${[['LOVE','LOVE'],['LIKE','LIKE'],['NEUTRAL','NEUTRAL'],['DISLIKE','DISLIKE'],['NEVER','NEVER']].map(x=>`<button data-dna-reaction="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
+function renderPrice(){const list=dnaPricePlayers(),p=list[dnaIndex],price=consensusPriceFor(p)||marketSeedValue(p);$('sprintTitle').textContent='Price Reaction';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Price ${dnaIndex+1} of ${list.length}</div><div class="dna-card"><div class="dna-meta">${p.pos}${p.team?' • '+p.team:''}</div><div class="dna-player">${p.name} at ${money(price)}</div><div class="sprint-help">How does that price feel?</div><div class="dna-buttons">${[['SMASH','SMASH'],['GOOD','GOOD'],['FAIR','FAIR'],['HIGH','TOO HIGH'],['OUT','I’M OUT']].map(x=>`<button data-dna-price="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
+function renderPair(){const list=dnaPairs(),pair=list[dnaIndex];$('sprintTitle').textContent='Head-to-Head';$('sprintQuestionArea').innerHTML=`<div class="dna-step-counter">Matchup ${dnaIndex+1} of ${list.length}</div><div class="sprint-help">Who would you rather build around at a similar cost?</div><div class="dna-pair"><div class="dna-choice" data-dna-pair="0"><strong>${pair[0].name}</strong><span>${pair[0].pos} • ${money(consensusPriceFor(pair[0])||0)}</span></div><div class="dna-vs">VS</div><div class="dna-choice" data-dna-pair="1"><strong>${pair[1].name}</strong><span>${pair[1].pos} • ${money(consensusPriceFor(pair[1])||0)}</span></div></div>`;$('sprintBackBtn').disabled=dnaIndex===0;$('sprintNextBtn').textContent='SKIP';}
+function computeDNAProfile(){
+ const vals={wr:sprintAnswers.build==='WR'?88:sprintAnswers.build==='HERO_RB'?52:68,rb:sprintAnswers.build==='HERO_RB'?88:sprintAnswers.build==='WR'?48:68,qb:sprintAnswers.qb==='ELITE'?86:sprintAnswers.qb==='WAIT'?28:58,te:sprintAnswers.te==='ELITE'?86:sprintAnswers.te==='PUNT'?25:55,risk:sprintAnswers.risk==='UPSIDE'?85:sprintAnswers.risk==='FLOOR'?32:60,discipline:sprintAnswers.discipline==='STRICT'?92:sprintAnswers.discipline==='AGGRESSIVE'?48:72,market:sprintAnswers.market==='HIGH'?85:sprintAnswers.market==='LOW'?30:60,stars:sprintAnswers.stars==='STARS'?88:sprintAnswers.stars==='DEPTH'?35:60};
+ const reactionVals={LOVE:10,LIKE:5,NEUTRAL:0,DISLIKE:-5,NEVER:-12};
+ Object.entries(dnaPlayerReactions).forEach(([name,r])=>{const p=byName[name];if(!p)return;const v=reactionVals[r]||0;if(p.pos==='WR')vals.wr+=v*.35;if(p.pos==='RB')vals.rb+=v*.35;if(p.pos==='QB')vals.qb+=v*.4;if(p.pos==='TE')vals.te+=v*.4;});
+ Object.keys(vals).forEach(k=>vals[k]=Math.max(0,Math.min(100,Math.round(vals[k]))));return vals;
 }
-function strategyPositionMultiplier(pos){
- let m=1;
- if(sprintAnswers.build==="WR"){if(pos==="WR")m*=1.12;if(pos==="RB")m*=.96;}
- if(sprintAnswers.build==="HERO_RB"){if(pos==="RB")m*=1.1;if(pos==="WR")m*=1.02;}
- if(pos==="QB")m*=sprintAnswers.qb==="ELITE"?1.22:sprintAnswers.qb==="WAIT"?.62:1;
- if(pos==="TE")m*=sprintAnswers.te==="ELITE"?1.2:sprintAnswers.te==="PUNT"?.58:1;
- return m;
-}
-function strategyScore(p){
- const market=marketSeedValue(p),a=adpFor(p)||250;
- let score=market*2.3+(260-Math.min(260,a))*.08;
- if(sprintAnswers.build==="WR"&&p.pos==="WR")score+=10;
- if(sprintAnswers.build==="HERO_RB"&&p.pos==="RB")score+=9;
- if(sprintAnswers.qb==="ELITE"&&p.pos==="QB")score+=8;
- if(sprintAnswers.qb==="WAIT"&&p.pos==="QB")score-=11;
- if(sprintAnswers.te==="ELITE"&&p.pos==="TE")score+=8;
- if(sprintAnswers.te==="PUNT"&&p.pos==="TE")score-=11;
- if(sprintAnswers.risk==="FLOOR"&&a<=60)score+=6;
- if(sprintAnswers.risk==="UPSIDE"&&a>=45&&a<=170)score+=7;
- return score;
-}
-function autoBoardCandidates(){
- const [countText]=sprintAnswers.scope.split("_"); const limit=Number(countText)||150;
- return PLAYERS.filter(p=>["QB","RB","WR","TE"].includes(p.pos)&&(marketSeedValue(p)>0||adpFor(p)>0)).sort((a,b)=>strategyScore(b)-strategyScore(a)||a.name.localeCompare(b.name)).slice(0,limit);
-}
-function isAutoAvoid(p){
- const market=marketSeedValue(p);
- return (sprintAnswers.qb==="WAIT"&&p.pos==="QB"&&market>=15)||(sprintAnswers.te==="PUNT"&&p.pos==="TE"&&market>=15);
-}
-function previewAutoBoard(){const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith("REPLACE");let count=0,flags=0,avoids=0;rows.forEach((p,i)=>{if(replace||!getPersonalEvaluation(p.name)){count++;if(i<12)flags++;if(isAutoAvoid(p))avoids++;}});return{count,flags,avoids,replace};}
-function buildBoardFromSprints(){
- if(!$("confirmAutoBoard")?.checked)return alert("Confirm before building the board.");
- const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith("REPLACE"),buffer=sprintAnswers.discipline==="STRICT"?1:sprintAnswers.discipline==="AGGRESSIVE"?5:3;
- let written=0;
- rows.forEach((p,i)=>{
-  const old=getPersonalEvaluation(p.name);if(old&&!replace)return;
-  const seed=marketSeedValue(p),mult=strategyPositionMultiplier(p.pos);
-  let value=Math.max(1,Math.round(seed*mult));
-  if(sprintAnswers.risk==="UPSIDE"&&(adpFor(p)||999)>=45)value=Math.max(1,value+2);
-  if(sprintAnswers.risk==="FLOOR"&&(adpFor(p)||999)<=50)value=Math.max(1,value+2);
-  const rank=i+1,tier=rank<=12?"1":rank<=36?"2":rank<=72?"3":rank<=120?"4":"5";
-  const avoid=isAutoAvoid(p);
-  personalEvaluations[playerKey(p.name)]={name:p.name,rank,tier,value:avoid?Math.max(1,Math.round(value*.65)):value,hardStop:avoid?Math.max(1,Math.round(value*.65)+1):value+buffer,favorite:!avoid&&rank<=12,flagPlant:!avoid&&rank<=4,sleeper:!avoid&&rank>55&&rank<=110&&sprintAnswers.risk==="UPSIDE",avoid,notes:`Auto-built from strategy sprints: ${sprintAnswers.build.replace("_"," ")} • ${sprintAnswers.discipline.toLowerCase()} discipline`,updatedAt:new Date().toISOString()};written++;
- });
- savePersonalEvaluations();renderPersonalBoard();renderBulkBoard();renderCore();
- $("sprintResult").textContent=`Board built: ${written} players populated. Review and fine-tune below.`;
- setTimeout(closeStrategySprints,1200);
-}
-$("startBoardSprintsBtn")?.addEventListener("click",openStrategySprints);
-$("closeSprintsBtn")?.addEventListener("click",closeStrategySprints);
-$("strategySprintModal")?.addEventListener("click",e=>{if(e.target.id==="strategySprintModal")closeStrategySprints();const option=e.target.closest(".sprint-option");if(option&&sprintStep<STRATEGY_SPRINTS.length){sprintAnswers[STRATEGY_SPRINTS[sprintStep].key]=option.dataset.sprintValue;renderStrategySprint();}});
-$("sprintBackBtn")?.addEventListener("click",()=>{if(sprintStep>0){sprintStep--;renderStrategySprint();}});
-$("sprintNextBtn")?.addEventListener("click",()=>{if(sprintStep<STRATEGY_SPRINTS.length){sprintStep++;renderStrategySprint();}else buildBoardFromSprints();});
+function dnaTraitHTML(label,val){return `<div class="dna-trait"><strong>${val}%</strong><span>${label}</span><div class="dna-bar"><i style="width:${val}%"></i></div></div>`;}
+function renderDNAResult(){dnaProfile=computeDNAProfile();saveDNA();const preview=previewAutoBoard();$('sprintTitle').textContent='Your Draft DNA';$('sprintQuestionArea').innerHTML=`<div class="dna-summary-text">War Room learned from ${Object.keys(dnaPlayerReactions).length} player reactions, ${Object.keys(dnaPriceReactions).length} price reactions, and ${Object.keys(dnaPairChoices).length} head-to-head choices.</div><div class="dna-profile">${dnaTraitHTML('WR Investment',dnaProfile.wr)}${dnaTraitHTML('RB Investment',dnaProfile.rb)}${dnaTraitHTML('QB Investment',dnaProfile.qb)}${dnaTraitHTML('TE Investment',dnaProfile.te)}${dnaTraitHTML('Upside Appetite',dnaProfile.risk)}${dnaTraitHTML('Price Discipline',dnaProfile.discipline)}${dnaTraitHTML('Market Trust',dnaProfile.market)}${dnaTraitHTML('Stars & Scrubs',dnaProfile.stars)}</div><div class="sprint-summary"><div><strong>${preview.count}</strong>Players populated</div><div><strong>${preview.flags}</strong>Priority targets</div><div><strong>${preview.avoids}</strong>Avoids</div></div><label class="flag-toggle" style="display:inline-flex"><input id="confirmAutoBoard" type="checkbox" checked> Build my board from this Draft DNA.</label>`;$('sprintBackBtn').disabled=false;$('sprintNextBtn').textContent='BUILD MY BOARD';}
+function renderStrategySprint(){setDNAProgress();if(dnaStage==='BASE')renderBaseQuestions();else if(dnaStage==='REACTION')renderReaction();else if(dnaStage==='PRICE')renderPrice();else if(dnaStage==='PAIR')renderPair();else renderDNAResult();}
+function advanceDNA(){if(dnaStage==='BASE'){document.querySelectorAll('[data-dna-base]').forEach(el=>sprintAnswers[el.dataset.dnaBase]=el.value);dnaStage='REACTION';dnaIndex=0;}else if(dnaStage==='REACTION'){dnaIndex++;if(dnaIndex>=dnaReactionPlayers().length){dnaStage='PRICE';dnaIndex=0;}}else if(dnaStage==='PRICE'){dnaIndex++;if(dnaIndex>=dnaPricePlayers().length){dnaStage='PAIR';dnaIndex=0;}}else if(dnaStage==='PAIR'){dnaIndex++;if(dnaIndex>=dnaPairs().length){dnaStage='RESULT';dnaIndex=0;}}else return buildBoardFromSprints();saveDNA();renderStrategySprint();}
+function backDNA(){if(dnaStage==='BASE')return;if(dnaStage==='REACTION'){if(dnaIndex>0)dnaIndex--;else dnaStage='BASE';}else if(dnaStage==='PRICE'){if(dnaIndex>0)dnaIndex--;else{dnaStage='REACTION';dnaIndex=dnaReactionPlayers().length-1;}}else if(dnaStage==='PAIR'){if(dnaIndex>0)dnaIndex--;else{dnaStage='PRICE';dnaIndex=dnaPricePlayers().length-1;}}else if(dnaStage==='RESULT'){dnaStage='PAIR';dnaIndex=dnaPairs().length-1;}renderStrategySprint();}
+function marketSeedValue(p){const direct=consensusPriceFor(p);if(direct>0)return direct;const a=adpFor(p);if(!a)return 0;if(a<=12)return 46;if(a<=24)return 33;if(a<=48)return 20;if(a<=72)return 12;if(a<=100)return 7;if(a<=150)return 3;if(a<=200)return 1;return 0;}
+function playerDNAAdjustment(p){let adj=0;const r=dnaPlayerReactions[p.name];adj+=({LOVE:10,LIKE:5,NEUTRAL:0,DISLIKE:-6,NEVER:-18}[r]||0);const pr=dnaPriceReactions[p.name];adj+=({SMASH:8,GOOD:4,FAIR:0,HIGH:-5,OUT:-14}[pr]||0);Object.entries(dnaPairChoices).forEach(([key,name])=>{const names=key.split('|');if(name===p.name)adj+=4;else if(names.includes(p.name))adj-=2;});return adj;}
+function strategyPositionMultiplier(pos){let m=1;if(sprintAnswers.build==='WR'){if(pos==='WR')m*=1.12;if(pos==='RB')m*=.96;}if(sprintAnswers.build==='HERO_RB'){if(pos==='RB')m*=1.1;if(pos==='WR')m*=1.02;}if(pos==='QB')m*=sprintAnswers.qb==='ELITE'?1.22:sprintAnswers.qb==='WAIT'?.62:1;if(pos==='TE')m*=sprintAnswers.te==='ELITE'?1.2:sprintAnswers.te==='PUNT'?.58:1;return m;}
+function strategyScore(p){const market=marketSeedValue(p),a=adpFor(p)||250;let score=market*2.3+(260-Math.min(260,a))*.08+playerDNAAdjustment(p)*2;if(sprintAnswers.build==='WR'&&p.pos==='WR')score+=10;if(sprintAnswers.build==='HERO_RB'&&p.pos==='RB')score+=9;if(sprintAnswers.qb==='ELITE'&&p.pos==='QB')score+=8;if(sprintAnswers.qb==='WAIT'&&p.pos==='QB')score-=11;if(sprintAnswers.te==='ELITE'&&p.pos==='TE')score+=8;if(sprintAnswers.te==='PUNT'&&p.pos==='TE')score-=11;if(sprintAnswers.risk==='FLOOR'&&a<=60)score+=6;if(sprintAnswers.risk==='UPSIDE'&&a>=45&&a<=170)score+=7;return score;}
+function autoBoardCandidates(){const [countText]=sprintAnswers.scope.split('_');const limit=Number(countText)||150;return PLAYERS.filter(p=>['QB','RB','WR','TE'].includes(p.pos)&&(marketSeedValue(p)>0||adpFor(p)>0)).sort((a,b)=>strategyScore(b)-strategyScore(a)||a.name.localeCompare(b.name)).slice(0,limit);}
+function isAutoAvoid(p){return dnaPlayerReactions[p.name]==='NEVER'||dnaPriceReactions[p.name]==='OUT'||(sprintAnswers.qb==='WAIT'&&p.pos==='QB'&&marketSeedValue(p)>=15)||(sprintAnswers.te==='PUNT'&&p.pos==='TE'&&marketSeedValue(p)>=15);}
+function previewAutoBoard(){const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith('REPLACE');let count=0,flags=0,avoids=0;rows.forEach((p,i)=>{if(replace||!getPersonalEvaluation(p.name)){count++;if(i<18||dnaPlayerReactions[p.name]==='LOVE')flags++;if(isAutoAvoid(p))avoids++;}});return{count,flags,avoids,replace};}
+function buildBoardFromSprints(){if(!$('confirmAutoBoard')?.checked)return alert('Confirm before building the board.');const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith('REPLACE'),buffer=sprintAnswers.discipline==='STRICT'?1:sprintAnswers.discipline==='AGGRESSIVE'?5:3;let written=0;rows.forEach((p,i)=>{const old=getPersonalEvaluation(p.name);if(old&&!replace)return;const seed=marketSeedValue(p),mult=strategyPositionMultiplier(p.pos);let value=Math.max(1,Math.round(seed*mult+playerDNAAdjustment(p)));if(sprintAnswers.risk==='UPSIDE'&&(adpFor(p)||999)>=45)value+=2;if(sprintAnswers.risk==='FLOOR'&&(adpFor(p)||999)<=50)value+=2;const rank=i+1,tier=rank<=12?'1':rank<=36?'2':rank<=72?'3':rank<=120?'4':'5',avoid=isAutoAvoid(p),reaction=dnaPlayerReactions[p.name]||'',priceReaction=dnaPriceReactions[p.name]||'';personalEvaluations[playerKey(p.name)]={name:p.name,rank,tier,value:avoid?Math.max(1,Math.round(value*.65)):value,hardStop:avoid?Math.max(1,Math.round(value*.65)+1):value+buffer,favorite:!avoid&&(rank<=18||reaction==='LOVE'),flagPlant:!avoid&&(rank<=6||reaction==='LOVE'&&priceReaction==='SMASH'),sleeper:!avoid&&(rank>55&&rank<=120&&(sprintAnswers.risk==='UPSIDE'||reaction==='LIKE')),avoid,notes:`Draft DNA: ${reaction||'profile fit'}${priceReaction?' • price '+priceReaction.toLowerCase():''}`,updatedAt:new Date().toISOString()};written++;});savePersonalEvaluations();saveDNA();renderPersonalBoard();renderBulkBoard();renderCore();$('sprintResult').textContent=`Draft DNA board built: ${written} players populated.`;setTimeout(closeStrategySprints,1200);}
+$('startBoardSprintsBtn')?.addEventListener('click',openStrategySprints);$('closeSprintsBtn')?.addEventListener('click',closeStrategySprints);$('strategySprintModal')?.addEventListener('click',e=>{if(e.target.id==='strategySprintModal')closeStrategySprints();const rb=e.target.closest('[data-dna-reaction]');if(rb){dnaPlayerReactions[dnaReactionPlayers()[dnaIndex].name]=rb.dataset.dnaReaction;advanceDNA();}const pb=e.target.closest('[data-dna-price]');if(pb){dnaPriceReactions[dnaPricePlayers()[dnaIndex].name]=pb.dataset.dnaPrice;advanceDNA();}const pair=e.target.closest('[data-dna-pair]');if(pair){const ps=dnaPairs()[dnaIndex],chosen=ps[Number(pair.dataset.dnaPair)],key=ps.map(p=>p.name).sort().join('|');dnaPairChoices[key]=chosen.name;advanceDNA();}});$('sprintBackBtn')?.addEventListener('click',backDNA);$('sprintNextBtn')?.addEventListener('click',advanceDNA);
 
 let bulkSelected=new Set();
 function bulkFilteredPlayers(){
