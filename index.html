@@ -486,7 +486,7 @@ body { overflow:auto; }
 
   <section class="record">
     <div class="panel record-fields">
-      <div class="field"><label>1. PLAYER</label><select id="recordPlayer"></select></div>
+      <div class="field"><label>1. PLAYER</label><input id="recordPlayer" list="recordPlayerList" placeholder="Type player name..." autocomplete="off"><datalist id="recordPlayerList"></datalist></div>
       <div class="field"><label>2. WINNER</label><select id="winner"><option value="other">OTHER</option><option value="me">ME</option></select></div>
       <div class="field"><label>3. FINAL PRICE</label><input id="finalPrice" type="number" min="0" inputmode="numeric" value="0"></div>
       <div class="field"><label>4. ROSTER SLOT</label><select id="rosterSlot"></select></div>
@@ -749,7 +749,7 @@ function setSelected(p){
   renderWarDossier(byName[p.name]||p);
 }
 function fillSelects(){
-  $("recordPlayer").innerHTML='<option value="">Select player</option>'+PLAYERS.map(p=>`<option>${p.name}</option>`).join("");
+  $("recordPlayerList").innerHTML=PLAYERS.map(p=>`<option value="${p.name}">${p.pos} • ${p.team||"FA"}</option>`).join("");
   $("rosterSlot").innerHTML='<option value="">Select slot</option>'+ROSTER_SLOTS.map(s=>`<option>${s}</option>`).join("");
 }
 function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); }
@@ -763,7 +763,8 @@ $("playerSearch").addEventListener("input",e=>{
 $("suggestions").addEventListener("click",e=>{
   const el=e.target.closest(".suggestion"); if(!el)return; setSelected(byName[el.dataset.name]); $("suggestions").style.display="none";
 });
-$("recordPlayer").addEventListener("change",e=>{ if(e.target.value) setSelected(byName[e.target.value]); });
+$("recordPlayer").addEventListener("input",e=>{ const p=byName[e.target.value]; if(p) setSelected(p); });
+$("recordPlayer").addEventListener("change",e=>{ const p=byName[e.target.value]; if(p) setSelected(p); });
 $("winner").addEventListener("change",e=>{ $("rosterSlot").disabled=e.target.value!=="me"; });
 $("readyBtn").addEventListener("click",()=>{
   const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value), slot=$("rosterSlot").value;
