@@ -355,17 +355,17 @@ body { overflow:auto; }
 @media(max-width:700px){.save-options{grid-template-columns:1fr}}
 
 /* Upgrade 15: Draft DNA Builder + cleaner personal board */
-.personal-board-list{display:flex!important;flex-direction:column;gap:5px;max-height:310px;overflow:auto;padding-right:4px}
-.personal-row{display:grid!important;grid-template-columns:42px minmax(0,1fr) 58px 58px;gap:8px;align-items:center;padding:9px 10px!important;min-height:0!important;background:#0b1014;border:1px solid #29333c;border-radius:8px;cursor:pointer}
-.personal-row:hover{border-color:var(--green)}
-.personal-rank{font-weight:950;color:var(--green);font-size:15px}.personal-name{min-width:0}.personal-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.personal-name small{color:var(--muted)}
-.personal-money{text-align:right;font-weight:900}.personal-money small{display:block;color:var(--muted);font-size:9px;font-weight:700}.personal-badges{grid-column:2/5;color:var(--green);font-size:9px;font-weight:900;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.personal-board-list{display:block!important;max-height:360px;overflow:auto;border:1px solid #29333c;border-radius:9px;background:#090d11}
+.personal-board-head,.personal-row{display:grid!important;grid-template-columns:42px minmax(145px,1fr) 48px 58px 58px;gap:7px;align-items:center;padding:8px 9px!important}
+.personal-board-head{position:sticky;top:0;z-index:2;background:#182028;color:#9fb0bf;font-size:9px;font-weight:950;letter-spacing:.5px;border-bottom:1px solid #34414c}
+.personal-row{min-height:42px!important;border-bottom:1px solid #202932;cursor:pointer;background:#0b1014}
+.personal-row:last-child{border-bottom:0}.personal-row:hover{background:#13200e}.personal-rank{font-weight:950;color:var(--green);font-size:14px}.personal-name{min-width:0}.personal-name strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}.personal-name small{color:var(--muted);font-size:9px}.personal-tier{text-align:center;font-weight:900;color:#d8e4ee}.personal-money{text-align:right;font-weight:900;font-size:12px}.personal-tags{grid-column:2/6;color:var(--green);font-size:8px;font-weight:900;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-3px}
 .dna-profile{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0}.dna-trait{background:#0a0e12;border:1px solid var(--line);border-radius:10px;padding:10px}.dna-trait strong{display:block;color:var(--green);font-size:19px}.dna-trait span{font-size:10px;color:var(--muted);font-weight:800}.dna-bar{height:5px;background:#242c33;border-radius:99px;overflow:hidden;margin-top:7px}.dna-bar i{display:block;height:100%;background:var(--green)}
 .dna-card{background:#0a0e12;border:1px solid #39434d;border-radius:12px;padding:17px}.dna-player{font-size:27px;font-weight:950;margin:4px 0}.dna-meta{color:var(--muted);font-size:12px}.dna-buttons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:16px}.dna-buttons button{background:#121920;color:#fff;border:1px solid #3d4852;border-radius:9px;padding:12px 6px;font-weight:900;cursor:pointer}.dna-buttons button:hover{border-color:var(--green);color:var(--green)}
 .dna-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch}.dna-choice{border:1px solid #39434d;background:#0a0e12;border-radius:12px;padding:22px;text-align:center;cursor:pointer}.dna-choice:hover{border-color:var(--green);background:#14200e}.dna-choice strong{display:block;font-size:21px}.dna-vs{align-self:center;font-weight:950;color:var(--green)}
 .dna-question-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.dna-q{border:1px solid #35404a;border-radius:10px;padding:12px}.dna-q label{display:block;font-weight:900;margin-bottom:7px}.dna-q select{width:100%}
 .dna-step-counter{color:var(--muted);font-size:12px;margin-bottom:8px}.dna-summary-text{border:1px solid #3e531c;background:#111a0c;border-radius:10px;padding:13px;margin:12px 0;color:#dce9d0}
-@media(max-width:760px){.dna-profile{grid-template-columns:1fr 1fr}.dna-buttons{grid-template-columns:1fr 1fr}.dna-question-grid{grid-template-columns:1fr}.dna-pair{grid-template-columns:1fr}.dna-vs{display:none}.personal-row{grid-template-columns:36px minmax(0,1fr) 52px 52px}}
+@media(max-width:760px){.dna-profile{grid-template-columns:1fr 1fr}.dna-buttons{grid-template-columns:1fr 1fr}.dna-question-grid{grid-template-columns:1fr}.dna-pair{grid-template-columns:1fr}.dna-vs{display:none}.personal-board-head,.personal-row{grid-template-columns:34px minmax(105px,1fr) 38px 48px 48px;padding:7px 6px!important}}
 
 </style>
 </head>
@@ -395,6 +395,14 @@ body { overflow:auto; }
             <div class="form-field"><label>BUDGET PER TEAM</label><input id="leagueBudgetInput" type="number" min="1" step="1"></div>
             <div class="form-field"><label>SCORING</label><select id="scoringInput"><option>PPR</option><option>Half PPR</option><option>Standard</option></select></div>
             <div class="form-field"><label>YOUR TEAM</label><select id="myTeamInput"></select></div>
+            <div class="form-field"><label>STARTING QB</label><select id="qbSlotsInput"></select></div>
+            <div class="form-field"><label>STARTING RB</label><select id="rbSlotsInput"></select></div>
+            <div class="form-field"><label>STARTING WR</label><select id="wrSlotsInput"></select></div>
+            <div class="form-field"><label>STARTING TE</label><select id="teSlotsInput"></select></div>
+            <div class="form-field"><label>FLEX</label><select id="flexSlotsInput"></select></div>
+            <div class="form-field"><label>KICKER</label><select id="kSlotsInput"></select></div>
+            <div class="form-field"><label>DEFENSE</label><select id="defSlotsInput"></select></div>
+            <div class="form-field"><label>BENCH</label><select id="benchSlotsInput"></select></div>
           </div>
           <div class="form-actions"><button class="primary-btn" id="saveLeagueBtn">SAVE LEAGUE</button></div>
           <div class="saved-note" id="leagueSavedNote"></div>
@@ -402,7 +410,7 @@ body { overflow:auto; }
             <div class="summary-box"><strong id="summaryTeams">12</strong><span>TEAMS</span></div>
             <div class="summary-box"><strong id="summaryBudget">$200</strong><span>PER TEAM</span></div>
             <div class="summary-box"><strong id="summaryScoring">PPR</strong><span>SCORING</span></div>
-            <div class="summary-box"><strong>17</strong><span>ROSTER SPOTS</span></div>
+            <div class="summary-box"><strong id="summaryRoster">17</strong><span>ROSTER SPOTS</span></div>
           </div>
         </div>
       </section>
@@ -828,18 +836,20 @@ function renderWarDossier(base){
 }
 const CORE = ["A.J. Brown", "CeeDee Lamb", "Omarion Hampton", "Kenneth Walker III", "Brock Bowers", "Jaxon Smith-Njigba", "Alec Pierce"];
 const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon-Ra St. Brown", "Malik Nabers", "Marvin Harrison Jr.", "Garrett Wilson", "Drake London", "Ladd McConkey", "Rome Odunze", "DJ Moore", "Xavier Worthy", "Jordan Addison", "Courtland Sutton", "Bijan Robinson", "Jahmyr Gibbs", "Saquon Barkley", "Christian McCaffrey", "Jonathan Taylor", "James Cook", "Josh Jacobs", "Breece Hall", "Kyren Williams", "Alvin Kamara", "Joe Mixon", "Josh Allen", "Lamar Jackson", "Jalen Hurts", "Patrick Mahomes", "Trey McBride", "George Kittle", "Sam LaPorta", "Travis Kelce"]);
-const ROSTER_SLOTS = ["QB","RB1","RB2","WR1","WR2","TE","FLEX1","FLEX2","K","DEF","BN1","BN2","BN3","BN4","BN5","BN6","BN7"];
+function numberedSlots(prefix,count){return Array.from({length:Math.max(0,Number(count||0))},(_,i)=>prefix+(Number(count)===1?'':i+1));}
+function rosterSlots(){const r=leagueConfig.roster||{};return [...numberedSlots('QB',r.qb??1),...numberedSlots('RB',r.rb??2),...numberedSlots('WR',r.wr??2),...numberedSlots('TE',r.te??1),...numberedSlots('FLEX',r.flex??2),...numberedSlots('K',r.k??1),...numberedSlots('DEF',r.def??1),...numberedSlots('BN',r.bench??7)];}
+function rosterSize(){return rosterSlots().length;}
 const state = JSON.parse(localStorage.getItem("warRoomState") || "null") || {
   budget:200, sales:[], roster:{}, selected:null
 };
-const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", myTeamIndex:0, teams:[]};
-let leagueConfig = {...defaultLeagueConfig, ...(JSON.parse(localStorage.getItem("warRoomLeagueConfig") || "null") || {})};
+const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", myTeamIndex:0, roster:{qb:1,rb:2,wr:2,te:1,flex:2,k:1,def:1,bench:7}, teams:[]};
+let leagueConfig = {...defaultLeagueConfig, ...(JSON.parse(localStorage.getItem("warRoomLeagueConfig") || "null") || {})}; leagueConfig.roster={...defaultLeagueConfig.roster,...(leagueConfig.roster||{})};
 const $ = id=>document.getElementById(id);
 const money=n=>"$"+Math.round(Number(n||0));
 function save(){ localStorage.setItem("warRoomState",JSON.stringify(state)); }
 function spent(){ return state.sales.filter(s=>s.winner==="me").reduce((a,s)=>a+Number(s.price||0),0); }
 function sold(name){ return state.sales.find(s=>s.player===name); }
-function availableSlots(){ return ROSTER_SLOTS.filter(s=>!state.roster[s]); }
+function availableSlots(){ return rosterSlots().filter(s=>!state.roster[s]); }
 function tierRemaining(pos,tierSet=["1A","1B","2"]){ return PLAYERS.filter(p=>p.pos===pos && tierSet.includes(String(p.tier)) && !sold(p.name)).length; }
 function positionMarketStats(pos){
   const rows=state.sales.filter(s=>{const p=byName[s.player]; return p&&p.pos===pos&&Number(p.fairLow)>0&&Number(p.fairHigh)>0;});
@@ -865,7 +875,7 @@ function phase(){
   return "BUILDING";
 }
 function renderCommand(){
-  const leagueBudget=Number(leagueConfig.budget||200); const s=spent(), remaining=leagueBudget-s, left=17-Object.keys(state.roster).length;
+  const leagueBudget=Number(leagueConfig.budget||200); const s=spent(), remaining=leagueBudget-s, left=rosterSize()-Object.keys(state.roster).length;
   $("budget").textContent=money(remaining); $("budgetSub").textContent="OF "+money(leagueBudget);
   $("maxBid").textContent=money(Math.max(0,remaining-(left-1)));
   $("playersLeft").textContent=left;
@@ -878,7 +888,7 @@ function renderCommand(){
   $("totalSpent").textContent=money(s);
 }
 function renderRoster(){
-  $("roster").innerHTML=ROSTER_SLOTS.map(slot=>{
+  $("roster").innerHTML=rosterSlots().map(slot=>{
     const entry=state.roster[slot];
     return `<div class="roster-row"><span class="slot">${slot}</span><span>${entry?entry.player:"—"}</span><span class="cost">${entry?money(entry.price):"—"}</span></div>`;
   }).join("");
@@ -1040,18 +1050,11 @@ function autoRosterSlot(playerName){
   const player=byName[playerName];
   if(!player) return null;
   const open=availableSlots();
-  const direct={
-    QB:["QB"],
-    RB:["RB1","RB2"],
-    WR:["WR1","WR2"],
-    TE:["TE"],
-    K:["K"],
-    DEF:["DEF"]
-  }[player.pos]||[];
+  const direct=rosterSlots().filter(slot=>slot.startsWith(player.pos));
   const directSlot=direct.find(slot=>open.includes(slot));
   if(directSlot) return directSlot;
   if(["RB","WR","TE"].includes(player.pos)){
-    const flexSlot=["FLEX1","FLEX2"].find(slot=>open.includes(slot));
+    const flexSlot=rosterSlots().filter(slot=>slot.startsWith("FLEX")).find(slot=>open.includes(slot));
     if(flexSlot) return flexSlot;
   }
   return open.find(slot=>slot.startsWith("BN"))||null;
@@ -1083,9 +1086,10 @@ function selectScoutingPlayer(name){
   $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
 }
 function renderPersonalBoard(){
-  const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(a.name||'').localeCompare(b.name||'')).slice(0,40);
+  const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(a.name||'').localeCompare(b.name||'')).slice(0,75);
   const box=$('personalBoardList');if(!box)return;
-  box.innerHTML=rows.length?rows.map(ev=>{const p=byName[ev.name]||{};const tags=evaluationTags(ev);return `<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,'&quot;')}"><div class="personal-rank">${ev.rank?'#'+ev.rank:'—'}</div><div class="personal-name"><strong>${ev.name}</strong><small>${p.pos||''}${p.team?' • '+p.team:''} • Tier ${ev.tier||'—'}</small></div><div class="personal-money">${ev.value?money(ev.value):'—'}<small>VALUE</small></div><div class="personal-money">${ev.hardStop?money(ev.hardStop):'—'}<small>STOP</small></div>${tags.length?`<div class="personal-badges">${tags.join(' · ')}</div>`:''}</div>`;}).join(''):'<div class="personal-empty">No personal evaluations saved yet.</div>';
+  if(!rows.length){box.innerHTML='<div class="personal-empty">No personal evaluations saved yet.</div>';return;}
+  box.innerHTML=`<div class="personal-board-head"><span>#</span><span>PLAYER</span><span>TIER</span><span>VALUE</span><span>STOP</span></div>`+rows.map(ev=>{const p=byName[ev.name]||{};const tags=evaluationTags(ev);return `<div class="personal-row" data-personal-name="${String(ev.name).replace(/"/g,'&quot;')}"><div class="personal-rank">${ev.rank?'#'+ev.rank:'—'}</div><div class="personal-name"><strong>${ev.name}</strong><small>${p.pos||''}${p.team?' • '+p.team:''}</small></div><div class="personal-tier">${ev.tier||'—'}</div><div class="personal-money">${ev.value?money(ev.value):'—'}</div><div class="personal-money">${ev.hardStop?money(ev.hardStop):'—'}</div>${tags.length?`<div class="personal-tags">${tags.join(' · ')}</div>`:''}</div>`;}).join('');
 }
 $("scoutingSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("scoutingSuggestions");
@@ -1168,13 +1172,23 @@ function renderDNAResult(){dnaProfile=computeDNAProfile();saveDNA();const previe
 function renderStrategySprint(){setDNAProgress();if(dnaStage==='BASE')renderBaseQuestions();else if(dnaStage==='REACTION')renderReaction();else if(dnaStage==='PRICE')renderPrice();else if(dnaStage==='PAIR')renderPair();else renderDNAResult();}
 function advanceDNA(){if(dnaStage==='BASE'){document.querySelectorAll('[data-dna-base]').forEach(el=>sprintAnswers[el.dataset.dnaBase]=el.value);dnaStage='REACTION';dnaIndex=0;}else if(dnaStage==='REACTION'){dnaIndex++;if(dnaIndex>=dnaReactionPlayers().length){dnaStage='PRICE';dnaIndex=0;}}else if(dnaStage==='PRICE'){dnaIndex++;if(dnaIndex>=dnaPricePlayers().length){dnaStage='PAIR';dnaIndex=0;}}else if(dnaStage==='PAIR'){dnaIndex++;if(dnaIndex>=dnaPairs().length){dnaStage='RESULT';dnaIndex=0;}}else return buildBoardFromSprints();saveDNA();renderStrategySprint();}
 function backDNA(){if(dnaStage==='BASE')return;if(dnaStage==='REACTION'){if(dnaIndex>0)dnaIndex--;else dnaStage='BASE';}else if(dnaStage==='PRICE'){if(dnaIndex>0)dnaIndex--;else{dnaStage='REACTION';dnaIndex=dnaReactionPlayers().length-1;}}else if(dnaStage==='PAIR'){if(dnaIndex>0)dnaIndex--;else{dnaStage='PRICE';dnaIndex=dnaPricePlayers().length-1;}}else if(dnaStage==='RESULT'){dnaStage='PAIR';dnaIndex=dnaPairs().length-1;}renderStrategySprint();}
-function marketSeedValue(p){const direct=consensusPriceFor(p);if(direct>0)return direct;const a=adpFor(p);if(!a)return 0;if(a<=12)return 46;if(a<=24)return 33;if(a<=48)return 20;if(a<=72)return 12;if(a<=100)return 7;if(a<=150)return 3;if(a<=200)return 1;return 0;}
+function leagueValueMultiplier(p){
+ const r=leagueConfig.roster||defaultLeagueConfig.roster; const teams=Number(leagueConfig.teamCount||12), budget=Number(leagueConfig.budget||200);
+ const budgetScale=budget/200, depthScale=Math.pow(teams/12,.42), benchScale=Math.pow(Math.max(8,rosterSize())/17,.18);
+ const starterDemand={QB:Number(r.qb||0),RB:Number(r.rb||0)+Number(r.flex||0)*.45,WR:Number(r.wr||0)+Number(r.flex||0)*.45,TE:Number(r.te||0)+Number(r.flex||0)*.10,K:Number(r.k||0),DEF:Number(r.def||0)};
+ const baseDemand={QB:1,RB:2.9,WR:2.9,TE:1.2,K:1,DEF:1}; let posScale=Math.pow(Math.max(.25,(starterDemand[p.pos]||1)/(baseDemand[p.pos]||1)),.34);
+ if(leagueConfig.scoring==='PPR'&&['WR','TE'].includes(p.pos))posScale*=1.05; if(leagueConfig.scoring==='Standard'&&p.pos==='RB')posScale*=1.05; if(leagueConfig.scoring==='Standard'&&['WR','TE'].includes(p.pos))posScale*=.95;
+ return budgetScale*depthScale*benchScale*posScale;
+}
+function leagueAdjustedSeed(p){const raw=marketSeedValueRaw(p);return raw?Math.max(1,Math.round(raw*leagueValueMultiplier(p))):0;}
+function marketSeedValueRaw(p){const direct=consensusPriceFor(p);if(direct>0)return direct;const a=adpFor(p);if(!a)return 0;if(a<=12)return 46;if(a<=24)return 33;if(a<=48)return 20;if(a<=72)return 12;if(a<=100)return 7;if(a<=150)return 3;if(a<=200)return 1;return 0;}
 function playerDNAAdjustment(p){let adj=0;const r=dnaPlayerReactions[p.name];adj+=({LOVE:10,LIKE:5,NEUTRAL:0,DISLIKE:-6,NEVER:-18}[r]||0);const pr=dnaPriceReactions[p.name];adj+=({SMASH:8,GOOD:4,FAIR:0,HIGH:-5,OUT:-14}[pr]||0);Object.entries(dnaPairChoices).forEach(([key,name])=>{const names=key.split('|');if(name===p.name)adj+=4;else if(names.includes(p.name))adj-=2;});return adj;}
 function strategyPositionMultiplier(pos){let m=1;if(sprintAnswers.build==='WR'){if(pos==='WR')m*=1.12;if(pos==='RB')m*=.96;}if(sprintAnswers.build==='HERO_RB'){if(pos==='RB')m*=1.1;if(pos==='WR')m*=1.02;}if(pos==='QB')m*=sprintAnswers.qb==='ELITE'?1.22:sprintAnswers.qb==='WAIT'?.62:1;if(pos==='TE')m*=sprintAnswers.te==='ELITE'?1.2:sprintAnswers.te==='PUNT'?.58:1;return m;}
 function strategyScore(p){const market=marketSeedValue(p),a=adpFor(p)||250;let score=market*2.3+(260-Math.min(260,a))*.08+playerDNAAdjustment(p)*2;if(sprintAnswers.build==='WR'&&p.pos==='WR')score+=10;if(sprintAnswers.build==='HERO_RB'&&p.pos==='RB')score+=9;if(sprintAnswers.qb==='ELITE'&&p.pos==='QB')score+=8;if(sprintAnswers.qb==='WAIT'&&p.pos==='QB')score-=11;if(sprintAnswers.te==='ELITE'&&p.pos==='TE')score+=8;if(sprintAnswers.te==='PUNT'&&p.pos==='TE')score-=11;if(sprintAnswers.risk==='FLOOR'&&a<=60)score+=6;if(sprintAnswers.risk==='UPSIDE'&&a>=45&&a<=170)score+=7;return score;}
 function autoBoardCandidates(){const [countText]=sprintAnswers.scope.split('_');const limit=Number(countText)||150;return PLAYERS.filter(p=>['QB','RB','WR','TE'].includes(p.pos)&&(marketSeedValue(p)>0||adpFor(p)>0)).sort((a,b)=>strategyScore(b)-strategyScore(a)||a.name.localeCompare(b.name)).slice(0,limit);}
 function isAutoAvoid(p){return dnaPlayerReactions[p.name]==='NEVER'||dnaPriceReactions[p.name]==='OUT'||(sprintAnswers.qb==='WAIT'&&p.pos==='QB'&&marketSeedValue(p)>=15)||(sprintAnswers.te==='PUNT'&&p.pos==='TE'&&marketSeedValue(p)>=15);}
 function previewAutoBoard(){const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith('REPLACE');let count=0,flags=0,avoids=0;rows.forEach((p,i)=>{if(replace||!getPersonalEvaluation(p.name)){count++;if(i<18||dnaPlayerReactions[p.name]==='LOVE')flags++;if(isAutoAvoid(p))avoids++;}});return{count,flags,avoids,replace};}
+function recalculateDnaBoardForLeague(){let changed=0;Object.values(personalEvaluations).forEach(ev=>{if(!String(ev.notes||'').startsWith('Draft DNA:'))return;const p=byName[ev.name];if(!p)return;const avoid=!!ev.avoid,buffer=sprintAnswers.discipline==='STRICT'?1:sprintAnswers.discipline==='AGGRESSIVE'?5:3;let value=Math.max(1,Math.round(marketSeedValue(p)*strategyPositionMultiplier(p.pos)+playerDNAAdjustment(p)));if(sprintAnswers.risk==='UPSIDE'&&(adpFor(p)||999)>=45)value+=2;if(sprintAnswers.risk==='FLOOR'&&(adpFor(p)||999)<=50)value+=2;ev.value=avoid?Math.max(1,Math.round(value*.65)):value;ev.hardStop=avoid?ev.value+1:ev.value+buffer;ev.updatedAt=new Date().toISOString();changed++;});if(changed)savePersonalEvaluations();return changed;}
 function buildBoardFromSprints(){if(!$('confirmAutoBoard')?.checked)return alert('Confirm before building the board.');const rows=autoBoardCandidates(),replace=sprintAnswers.scope.endsWith('REPLACE'),buffer=sprintAnswers.discipline==='STRICT'?1:sprintAnswers.discipline==='AGGRESSIVE'?5:3;let written=0;rows.forEach((p,i)=>{const old=getPersonalEvaluation(p.name);if(old&&!replace)return;const seed=marketSeedValue(p),mult=strategyPositionMultiplier(p.pos);let value=Math.max(1,Math.round(seed*mult+playerDNAAdjustment(p)));if(sprintAnswers.risk==='UPSIDE'&&(adpFor(p)||999)>=45)value+=2;if(sprintAnswers.risk==='FLOOR'&&(adpFor(p)||999)<=50)value+=2;const rank=i+1,tier=rank<=12?'1':rank<=36?'2':rank<=72?'3':rank<=120?'4':'5',avoid=isAutoAvoid(p),reaction=dnaPlayerReactions[p.name]||'',priceReaction=dnaPriceReactions[p.name]||'';personalEvaluations[playerKey(p.name)]={name:p.name,rank,tier,value:avoid?Math.max(1,Math.round(value*.65)):value,hardStop:avoid?Math.max(1,Math.round(value*.65)+1):value+buffer,favorite:!avoid&&(rank<=18||reaction==='LOVE'),flagPlant:!avoid&&(rank<=6||reaction==='LOVE'&&priceReaction==='SMASH'),sleeper:!avoid&&(rank>55&&rank<=120&&(sprintAnswers.risk==='UPSIDE'||reaction==='LIKE')),avoid,notes:`Draft DNA: ${reaction||'profile fit'}${priceReaction?' • price '+priceReaction.toLowerCase():''}`,updatedAt:new Date().toISOString()};written++;});savePersonalEvaluations();saveDNA();renderPersonalBoard();renderBulkBoard();renderCore();$('sprintResult').textContent=`Draft DNA board built: ${written} players populated.`;setTimeout(closeStrategySprints,1200);}
 $('startBoardSprintsBtn')?.addEventListener('click',openStrategySprints);$('closeSprintsBtn')?.addEventListener('click',closeStrategySprints);$('strategySprintModal')?.addEventListener('click',e=>{if(e.target.id==='strategySprintModal')closeStrategySprints();const rb=e.target.closest('[data-dna-reaction]');if(rb){dnaPlayerReactions[dnaReactionPlayers()[dnaIndex].name]=rb.dataset.dnaReaction;advanceDNA();}const pb=e.target.closest('[data-dna-price]');if(pb){dnaPriceReactions[dnaPricePlayers()[dnaIndex].name]=pb.dataset.dnaPrice;advanceDNA();}const pair=e.target.closest('[data-dna-pair]');if(pair){const ps=dnaPairs()[dnaIndex],chosen=ps[Number(pair.dataset.dnaPair)],key=ps.map(p=>p.name).sort().join('|');dnaPairChoices[key]=chosen.name;advanceDNA();}});$('sprintBackBtn')?.addEventListener('click',backDNA);$('sprintNextBtn')?.addEventListener('click',advanceDNA);
 
@@ -1265,7 +1279,7 @@ function draftReport(){
   mySales.forEach(s=>{const ev=getPersonalEvaluation(s.player), price=Number(s.price||0); if(!ev)return; philosophyPossible+=10; if(ev.avoid) philosophyPoints-=10; else {philosophyPoints+=4; if(ev.flagPlant||ev.favorite||ev.sleeper) philosophyPoints+=3; const cap=Number(ev.hardStop||ev.value||0); if(cap) philosophyPoints+=price<=cap?3:-3;}});
   const philosophyScore=philosophyPossible?Math.max(0,Math.min(100,Math.round((philosophyPoints/philosophyPossible)*100))):null;
   const valueDelta=valuedMy.reduce((a,x)=>a+x.diff,0);
-  const startersFilled=["QB","RB1","RB2","WR1","WR2","TE","FLEX1","FLEX2"].filter(x=>state.roster?.[x]).length;
+  const startersFilled=rosterSlots().filter(x=>!x.startsWith("BN")&&!x.startsWith("K")&&!x.startsWith("DEF")&&state.roster?.[x]).length;
   let numericGrade=72 + Math.max(-15,Math.min(15,valueDelta)) + startersFilled*2;
   if(remaining<0) numericGrade-=30;
   if(philosophyScore!==null) numericGrade+=(philosophyScore-70)*.12;
@@ -1325,6 +1339,8 @@ function ensureTeams(){
 }
 function renderTeamCountOptions(){
   $("teamCountInput").innerHTML=Array.from({length:13},(_,i)=>i+4).map(n=>`<option value="${n}">${n}</option>`).join("");
+  const optionRange=(max,min=0)=>Array.from({length:max-min+1},(_,i)=>i+min).map(n=>`<option value="${n}">${n}</option>`).join("");
+  $("qbSlotsInput").innerHTML=optionRange(3); $("rbSlotsInput").innerHTML=optionRange(5); $("wrSlotsInput").innerHTML=optionRange(5); $("teSlotsInput").innerHTML=optionRange(3); $("flexSlotsInput").innerHTML=optionRange(5); $("kSlotsInput").innerHTML=optionRange(2); $("defSlotsInput").innerHTML=optionRange(2); $("benchSlotsInput").innerHTML=optionRange(15);
 }
 function renderMyTeamOptions(){
   $("myTeamInput").innerHTML=leagueConfig.teams.map((t,i)=>`<option value="${i}">${t.teamName||("Team "+(i+1))}</option>`).join("");
@@ -1346,10 +1362,12 @@ function renderLeagueSetup(){
   $("teamCountInput").value=String(leagueConfig.teamCount||12);
   $("leagueBudgetInput").value=String(leagueConfig.budget||200);
   $("scoringInput").value=leagueConfig.scoring||"PPR";
+  const r=leagueConfig.roster||defaultLeagueConfig.roster; $("qbSlotsInput").value=r.qb; $("rbSlotsInput").value=r.rb; $("wrSlotsInput").value=r.wr; $("teSlotsInput").value=r.te; $("flexSlotsInput").value=r.flex; $("kSlotsInput").value=r.k; $("defSlotsInput").value=r.def; $("benchSlotsInput").value=r.bench;
   renderTeamsEditor();
   $("summaryTeams").textContent=leagueConfig.teamCount;
   $("summaryBudget").textContent=money(leagueConfig.budget);
   $("summaryScoring").textContent=leagueConfig.scoring;
+  $("summaryRoster").textContent=rosterSize();
   $("navLeagueStatus").textContent=(leagueConfig.leagueName||"Unnamed League")+" • "+leagueConfig.teamCount+" teams • "+money(leagueConfig.budget);
 }
 function collectTeamsFromEditor(){
@@ -1373,8 +1391,9 @@ $("saveLeagueBtn").addEventListener("click",()=>{
   leagueConfig.teamCount=Number($("teamCountInput").value||12);
   leagueConfig.budget=Math.max(1,Number($("leagueBudgetInput").value||200));
   leagueConfig.scoring=$("scoringInput").value;
+  leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
   leagueConfig.myTeamIndex=Number($("myTeamInput").value||0);
-  ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll();
+  ensureTeams(); saveLeagueConfig(); if(!state.sales.length)state.budget=leagueConfig.budget; recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
   $("leagueSavedNote").textContent="League setup saved."; setTimeout(()=>$("leagueSavedNote").textContent="",1800);
 });
 $("saveTeamsBtn").addEventListener("click",()=>{
