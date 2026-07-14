@@ -1066,11 +1066,13 @@ function renderRoster(){
   }).join("");
 }
 function renderCore(){
-  let names;
-  if(profileMode==="clean"){
-    names=Object.values(personalEvaluations).filter(ev=>ev.flagPlant||ev.favorite||ev.sleeper).map(ev=>ev.name).slice(0,10);
-  }else names=CORE;
-  if(!names.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Add them in Scouting.</div>'; return; }
+  const names=Object.values(personalEvaluations)
+    .filter(ev=>ev && (ev.flagPlant||ev.favorite||ev.sleeper))
+    .sort((a,b)=>(Number(a.rank)||9999)-(Number(b.rank)||9999)||(a.name||"").localeCompare(b.name||""))
+    .map(ev=>ev.name)
+    .filter(Boolean)
+    .slice(0,10);
+  if(!names.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Complete Draft DNA or add targets in Scouting.</div>'; return; }
   $("coreTargets").innerHTML=names.map(name=>{
     const sale=sold(name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
     const p=effectivePlayer(byName[name]||{name,pos:"",tier:""});
@@ -1516,7 +1518,11 @@ function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.tex
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
 function clearPersonalBoard(){ personalEvaluations={}; savePersonalEvaluations(); scoutingSelectedName=null; renderPersonalBoard(); renderBulkBoard(); renderCore(); if(state.selected&&byName[state.selected])setSelected(byName[state.selected]); updateResetSummary(); }
 function fullCleanReset(){
-  localStorage.removeItem("warRoomState"); localStorage.removeItem("warRoomLeagueConfig"); localStorage.removeItem(PERSONAL_EVAL_KEY);
+  localStorage.removeItem("warRoomState");
+  localStorage.removeItem("warRoomLeagueConfig");
+  localStorage.removeItem(PERSONAL_EVAL_KEY);
+  localStorage.removeItem("warRoomPositionDNA2");
+  localStorage.removeItem("warRoomDNALeagueProfile");
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
   location.reload();
 }

@@ -1,3 +1,3 @@
-# War Room — Sprint 22.0
+# War Room — Sprint 22.1
 
-Adds the League-Aware Draft DNA Engine. DNA now reads league size, budget, scoring, starting positions, FLEX, and roster depth before generating player values, hard stops, global rankings, position budgets, targets, and flags. Existing manual player evaluations remain protected.
+Fixes reset behavior so the Core Targets panel is driven only by saved personal evaluations. Full Clean Reset now also removes Draft DNA progress and generated targets.
