@@ -1,3 +1,3 @@
-# War Room — Sprint 21.1
+# War Room — Sprint 21.2
 
-Repairs and stabilizes the Draft DNA Combine framework in the production single-file app. Adds four visible position modules, saved/resumable progress, current-player counts, empty-pool safeguards, and restores the missing league-aware market-value bridge that prevented the Combine from rendering.
+Draft DNA and the searchable player pool now use active NFL players only. Retired and inactive players are excluded during refresh, cached player data is rebuilt under a new cache version, and curated evaluations are retained only when the player exists in the current active feed.
