@@ -1,3 +1,3 @@
-# War Room Production Upgrade 19
+# War Room — Production Upgrade 20
 
-Corrects the auction market baseline with position-specific curves and league-aware scaling. One-QB quarterback prices are capped to realistic ranges; superflex/two-QB formats scale quarterback values upward. Market price is now explicitly separated from personal Draft DNA values.
+Adds a future-proof, position-by-position Draft DNA Lab for QB, RB, WR, and TE. Lightning-round questions are generated from the current player pool and league-aware market values. Each module can be completed independently and immediately applies a position-specific personalized board.
