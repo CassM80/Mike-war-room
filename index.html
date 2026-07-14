@@ -367,6 +367,18 @@ body { overflow:auto; }
 .dna-step-counter{color:var(--muted);font-size:12px;margin-bottom:8px}.dna-summary-text{border:1px solid #3e531c;background:#111a0c;border-radius:10px;padding:13px;margin:12px 0;color:#dce9d0}
 @media(max-width:760px){.dna-profile{grid-template-columns:1fr 1fr}.dna-buttons{grid-template-columns:1fr 1fr}.dna-question-grid{grid-template-columns:1fr}.dna-pair{grid-template-columns:1fr}.dna-vs{display:none}.personal-board-head,.personal-row{grid-template-columns:34px minmax(105px,1fr) 38px 48px 48px;padding:7px 6px!important}}
 
+
+/* Sprint 21.5: Draft DNA Combine cards */
+.dna-module-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0}
+.dna-module-card{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr) 126px 92px 28px;gap:14px;align-items:center;width:100%;min-height:88px;background:linear-gradient(180deg,#0d1216,#080b0e);border:1px solid #3b4650;border-radius:12px;padding:12px 14px;color:var(--text);text-align:left;cursor:pointer;overflow:hidden;appearance:none;-webkit-appearance:none}
+.dna-module-card:hover,.dna-module-card:focus-visible,.dna-module-card.done{border-color:var(--green);box-shadow:0 0 0 1px rgba(132,204,22,.2),inset 0 0 28px rgba(132,204,22,.05);outline:none}
+.dna-module-card:disabled{opacity:.45;cursor:not-allowed}
+.dna-module-pos{display:grid;place-items:center;width:58px;height:58px;border:1px solid #4e681d;border-radius:10px;background:#080c08;color:var(--green);font-size:25px;font-weight:1000}
+.dna-module-copy{display:flex;flex-direction:column;min-width:0}.dna-module-copy strong{font-size:18px;line-height:1.05;color:#fff}.dna-module-copy em{font-style:normal;color:var(--green);font-size:12px;font-weight:950;letter-spacing:.08em;margin-top:4px}.dna-module-copy small{color:#9fb0bf;font-size:10px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dna-module-action{justify-self:center;border:1px solid #46515b;border-radius:8px;padding:9px 13px;color:var(--green);font-size:11px;font-weight:950;letter-spacing:.04em;background:#0c1115;white-space:nowrap}
+.dna-module-count{text-align:center}.dna-module-count b{display:block;color:var(--green);font-size:20px}.dna-module-count small{display:block;color:#9fb0bf;font-size:9px;font-weight:850}.dna-module-chevron{color:var(--green);font-size:32px;font-weight:900;text-align:center}.dna-module-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:#20282f}.dna-module-bar i{display:block;height:100%;background:var(--green)}
+.dna-home-summary{display:flex;flex-direction:column;gap:5px;border:1px solid #34404a;border-radius:10px;padding:14px 16px;background:#0a0e12;color:#aebbc6}.dna-home-summary strong{color:var(--green);font-size:14px}
+@media(max-width:700px){.dna-module-card{grid-template-columns:52px minmax(0,1fr) 64px 20px;padding:10px}.dna-module-pos{width:48px;height:48px;font-size:21px}.dna-module-action{display:none}.dna-module-count b{font-size:16px}.dna-module-count small{font-size:8px}.dna-module-copy strong{font-size:15px}}
 </style>
 </head>
 <body>
@@ -811,27 +823,45 @@ async function loadCompletePlayerUniverse(force=false){
     console.warn("Player database refresh failed",error);
   }
 }
-function rebuildConsensusRankings(){
+async function rebuildConsensusRankings(){
   const status=document.getElementById("consensusStatus");
+  const btn=document.getElementById("rebuildConsensusBtn");
+  const started=Date.now();
+  if(btn){btn.disabled=true;btn.textContent="REBUILDING…";}
   if(status){status.textContent="Rebuilding market baseline…";status.style.color="var(--muted)";}
-  const eligible=PLAYERS.filter(p=>["QB","RB","WR","TE","K"].includes(p.pos));
-  eligible.sort((a,b)=>(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
-  let ranked=0;
-  eligible.forEach((p,i)=>{
-    const rank=adpFor(p)||i+1;
-    if(!Number(p.market_price||0) || p.audit==="MARKET"){
-      p.market_price=Math.round(marketPriceFromRank(rank));
-      p.audit="CONSENSUS";
-    }
-    if(!p.adp) p.adp=rank;
-    ranked++;
-  });
-  PLAYERS.sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
-  byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
-  renderBulkBoard(); renderPersonalBoard(); renderCore();
-  localStorage.setItem("warRoomConsensusRebuiltAt",String(Date.now()));
-  if(status){status.textContent=`Consensus baseline rebuilt for ${ranked} players • personal rankings unchanged`;status.style.color="var(--green)";}
+  try{
+    // Yield once so the loading state paints before the synchronous rebuild begins.
+    await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+    marketRankCache={count:-1,ranks:new Map()};
+    rebuildMarketRankCache();
+    const eligible=PLAYERS.filter(p=>["QB","RB","WR","TE","K","DEF"].includes(p.pos));
+    let ranked=0;
+    eligible.forEach(p=>{
+      // Rebuild only the internal baseline. Future direct provider values remain supported.
+      if(!Number(p.provider_market_price||0)){
+        p.market_price=positionAwareMarketPrice(p);
+        p.audit="MARKET";
+      }else{
+        p.market_price=Number(p.provider_market_price);
+        p.audit="PROVIDER";
+      }
+      if(!p.adp){const rank=positionRankFor(p);if(rank<999)p.adp=rank;}
+      ranked++;
+    });
+    PLAYERS.sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
+    byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
+    renderBulkBoard();renderPersonalBoard();renderCore();
+    const finished=Date.now();
+    localStorage.setItem("warRoomConsensusRebuiltAt",String(finished));
+    if(status){status.textContent=`Market baseline rebuilt for ${ranked} active players • completed ${new Date(finished).toLocaleTimeString()} • personal rankings unchanged`;status.style.color="var(--green)";}
+  }catch(error){
+    console.error("Consensus rebuild failed",error);
+    if(status){status.textContent=`Market baseline rebuild failed: ${error?.message||"Unknown error"}`;status.style.color="var(--red)";}
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="REBUILD CONSENSUS RANKINGS";}
+  }
 }
+
 const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
@@ -1384,8 +1414,6 @@ function printableShell(title,subtitle,body){
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
   body{font-family:Arial,sans-serif;color:#111;margin:38px;line-height:1.4}h1{margin:0;font-size:30px}h2{margin-top:28px;border-bottom:2px solid #111;padding-bottom:6px}h3{margin:18px 0 5px}.sub{color:#555;margin:4px 0 22px}.meta{display:flex;gap:28px;flex-wrap:wrap;margin:16px 0}.metric{border:1px solid #bbb;border-radius:8px;padding:10px 14px;min-width:115px}.metric strong{display:block;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px 6px;font-size:13px}th{background:#f3f3f3}.tag{display:inline-block;border:1px solid #777;border-radius:999px;padding:2px 7px;margin:2px;font-size:11px}.note{color:#444}.good{color:#137333;font-weight:700}.bad{color:#b3261e;font-weight:700}.neutral{color:#555;font-weight:700}.grade{font-size:32px;line-height:1}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.bar{height:10px;background:#e6e6e6;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:#111}.team-card{break-inside:avoid;border:1px solid #bbb;border-radius:10px;padding:12px;margin:12px 0}.team-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:12px;color:#666}.actions{position:fixed;right:20px;top:20px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}@media print{.actions{display:none}body{margin:18mm}.team-card{break-inside:avoid}}
   
-/* Upgrade 20: Position DNA Lab */
-.dna-module-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0}.dna-module-card{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr) 120px 92px 28px;gap:14px;align-items:center;width:100%;min-height:86px;background:linear-gradient(180deg,#0c1115,#080b0e);border:1px solid #3d4852;border-radius:12px;padding:12px 14px;color:#fff;text-align:left;cursor:pointer;overflow:hidden}.dna-module-card:hover,.dna-module-card:focus-visible,.dna-module-card.done{border-color:var(--green);box-shadow:0 0 0 1px rgba(132,204,22,.18),inset 0 0 28px rgba(132,204,22,.04)}.dna-module-card:disabled{opacity:.45;cursor:not-allowed}.dna-module-pos{display:grid;place-items:center;width:58px;height:58px;border:1px solid #4c641e;border-radius:10px;background:#080c08;color:var(--green);font-size:25px;font-weight:1000}.dna-module-copy{display:flex;flex-direction:column;min-width:0}.dna-module-copy strong{font-size:18px;line-height:1.05}.dna-module-copy em{font-style:normal;color:var(--green);font-size:12px;font-weight:950;letter-spacing:.08em;margin-top:4px}.dna-module-copy small{color:#9fb0bf;font-size:10px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dna-module-action{justify-self:center;border:1px solid #46515b;border-radius:8px;padding:9px 13px;color:var(--green);font-size:11px;font-weight:950;letter-spacing:.04em}.dna-module-count{text-align:center}.dna-module-count b{display:block;color:var(--green);font-size:20px}.dna-module-count small{display:block;color:#9fb0bf;font-size:9px;font-weight:850}.dna-module-chevron{color:var(--green);font-size:32px;font-weight:900;text-align:center}.dna-module-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:#20282f}.dna-module-bar i{display:block;height:100%;background:var(--green)}.dna-home-summary{display:flex;flex-direction:column;gap:5px;border:1px solid #34404a;border-radius:10px;padding:14px 16px;background:#0a0e12;color:#aebbc6}.dna-home-summary strong{color:var(--green);font-size:14px}.dna-question-title{font-size:26px!important;line-height:1.2}.dna-option-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dna-choice{appearance:none;width:100%;cursor:pointer}.dna-choice.selected,.dna-buttons button.selected{border-color:var(--green)!important;background:#17320d!important}.dna-target-heading{margin:18px 0 8px}.dna-target-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}.dna-target-list>div{display:flex;gap:10px;align-items:center;border:1px solid #34404a;border-radius:8px;padding:9px}.dna-target-list b{color:var(--green)}.dna-target-list span{display:flex;flex-direction:column;font-weight:800}.dna-target-list small{font-weight:400;color:#9fb0bf}@media(max-width:700px){.dna-module-card{grid-template-columns:52px minmax(0,1fr) 64px 20px;padding:10px}.dna-module-pos{width:48px;height:48px;font-size:21px}.dna-module-action{display:none}.dna-module-count b{font-size:16px}.dna-module-count small{font-size:8px}.dna-module-copy strong{font-size:15px}.dna-target-list,.dna-option-grid{grid-template-columns:1fr}}
 </style></head><body><button class="actions" onclick="window.print()">PRINT / SAVE PDF</button><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>${body}</body></html>`);
   w.document.close(); w.focus();
 }

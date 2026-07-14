@@ -1,3 +1,3 @@
-# War Room — Sprint 21.4
+# War Room — Sprint 21.5
 
-Adds a universal, auditable current-roster gate for player data. Players must be marked active, belong to a current NFL team, pass status and roster-signal checks, and meet basic age/experience sanity checks. The Scouting audit now reports excluded records and reasons. The Draft DNA Combine menu is restyled to match the War Room dark/lime design.
+Cleans up the Draft DNA Combine cards and fixes the market-baseline rebuild completion status.
