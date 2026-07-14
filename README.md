@@ -1,3 +1,3 @@
-# War Room — Sprint 21.6
+# War Room — Sprint 21.7
 
-Improves Draft DNA head-to-head readability and simplifies progress indicators.
+Fixes Draft DNA completion state, caps progress at 100%, and adds a clear position-combine completion screen.
