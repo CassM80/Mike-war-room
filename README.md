@@ -1,3 +1,3 @@
-# War Room — Sprint 21.7
+# War Room — Sprint 22.0
 
-Fixes Draft DNA completion state, caps progress at 100%, and adds a clear position-combine completion screen.
+Adds the League-Aware Draft DNA Engine. DNA now reads league size, budget, scoring, starting positions, FLEX, and roster depth before generating player values, hard stops, global rankings, position budgets, targets, and flags. Existing manual player evaluations remain protected.
