@@ -1,3 +1,3 @@
-# War Room — Sprint 21.5
+# War Room — Sprint 21.6
 
-Cleans up the Draft DNA Combine cards and fixes the market-baseline rebuild completion status.
+Improves Draft DNA head-to-head readability and simplifies progress indicators.
