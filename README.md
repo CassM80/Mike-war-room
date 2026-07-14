@@ -1,3 +1,3 @@
-# War Room — Sprint 21.2
+# War Room — Sprint 21.4
 
-Draft DNA and the searchable player pool now use active NFL players only. Retired and inactive players are excluded during refresh, cached player data is rebuilt under a new cache version, and curated evaluations are retained only when the player exists in the current active feed.
+Adds a universal, auditable current-roster gate for player data. Players must be marked active, belong to a current NFL team, pass status and roster-signal checks, and meet basic age/experience sanity checks. The Scouting audit now reports excluded records and reasons. The Draft DNA Combine menu is restyled to match the War Room dark/lime design.

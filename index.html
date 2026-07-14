@@ -689,11 +689,37 @@ function normalizePlayerName(name){
   if(["aj brown","a j brown"].includes(key)) return "A.J. Brown";
   return cleaned;
 }
+const CURRENT_NFL_TEAMS = new Set(["ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC","LV","LAC","LAR","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SEA","SF","TB","TEN","WAS"]);
+const PLAYER_POOL_AUDIT = {accepted:0,excluded:0,reasons:{}};
+function recordPlayerExclusion(reason){
+  PLAYER_POOL_AUDIT.excluded++;
+  PLAYER_POOL_AUDIT.reasons[reason]=(PLAYER_POOL_AUDIT.reasons[reason]||0)+1;
+  return false;
+}
+function resetPlayerPoolAudit(){PLAYER_POOL_AUDIT.accepted=0;PLAYER_POOL_AUDIT.excluded=0;PLAYER_POOL_AUDIT.reasons={};}
+function normalizedPlayerStatus(raw){return String(raw?.status||raw?.injury_status||"").trim().toLowerCase();}
+function playerAge(raw){
+  const birth=Date.parse(raw?.birth_date||"");
+  return Number.isFinite(birth)?Math.floor((Date.now()-birth)/(365.2425*24*60*60*1000)):0;
+}
 function isActiveNFLPlayer(raw){
-  if(!raw || raw.active!==true) return false;
-  if(!["QB","RB","WR","TE","K"].includes(raw.position)) return false;
-  const status=String(raw.status||"").toLowerCase();
-  if(["inactive","retired","suspended-retired","deleted"].includes(status)) return false;
+  if(!raw || raw.active!==true) return recordPlayerExclusion("not marked active");
+  if(!["QB","RB","WR","TE","K"].includes(raw.position)) return recordPlayerExclusion("unsupported position");
+  const name=normalizePlayerName(raw.full_name || [raw.first_name,raw.last_name].filter(Boolean).join(" "));
+  if(!name) return recordPlayerExclusion("missing name");
+  const team=String(raw.team||"").toUpperCase();
+  if(!CURRENT_NFL_TEAMS.has(team)) return recordPlayerExclusion("not on current NFL team");
+  const status=normalizedPlayerStatus(raw);
+  if(/retir|inactive|deleted|historical|deceased/.test(status)) return recordPlayerExclusion("retired/inactive status");
+  const age=playerAge(raw);
+  if(raw.position!=="K" && age>=45) return recordPlayerExclusion("age sanity check");
+  if(raw.position!=="K" && Number(raw.years_exp||0)>22) return recordPlayerExclusion("experience sanity check");
+  const fantasyPositions=Array.isArray(raw.fantasy_positions)?raw.fantasy_positions:[];
+  if(fantasyPositions.length && !fantasyPositions.includes(raw.position)) return recordPlayerExclusion("not fantasy-position eligible");
+  const searchRank=Number(raw.search_rank||raw.adp||0);
+  const hasRosterSignal=Boolean(raw.depth_chart_position)||Number(raw.depth_chart_order)>0||Number.isFinite(searchRank)&&searchRank>0&&searchRank<10000;
+  if(!hasRosterSignal) return recordPlayerExclusion("no current roster signal");
+  PLAYER_POOL_AUDIT.accepted++;
   return true;
 }
 function genericPlayer(raw){
@@ -716,6 +742,7 @@ function genericPlayer(raw){
   };
 }
 function mergePlayerUniverse(rows){
+  resetPlayerPoolAudit();
   const activeRows=(rows||[]).filter(isActiveNFLPlayer);
   const sourceMap=new Map(activeRows.map(raw=>[playerMatchKey(normalizePlayerName(raw.full_name || [raw.first_name,raw.last_name].filter(Boolean).join(" "))),raw]));
   const curatedMap=new Map(CURATED_PLAYERS.map(p=>[playerMatchKey(p.name),p]));
@@ -748,7 +775,14 @@ function mergePlayerUniverse(rows){
   renderPersonalBoard(); renderBulkBoard();
 }
 function auditPlayerPool(){const required=["Ja'Marr Chase","Bijan Robinson","Jahmyr Gibbs","CeeDee Lamb","Justin Jefferson","Puka Nacua","Amon-Ra St. Brown","Josh Allen","Brock Bowers","Trey McBride"];const missing=required.filter(n=>!PLAYERS.some(p=>playerMatchKey(p.name)===playerMatchKey(n)));const counts={QB:0,RB:0,WR:0,TE:0,DEF:0};PLAYERS.forEach(p=>{if(counts[p.pos]!=null)counts[p.pos]++;});return {missing,counts,verified:PLAYERS.length>=500&&counts.DEF===32&&missing.length===0};}
-function renderPlayerPoolAudit(){const el=document.getElementById("playerPoolAudit");if(!el)return;const a=auditPlayerPool();el.textContent=a.verified?`PLAYER POOL VERIFIED • ${PLAYERS.length} total • ${a.counts.QB} QB • ${a.counts.RB} RB • ${a.counts.WR} WR • ${a.counts.TE} TE • 32 DEF`:`PLAYER POOL CHECK • ${PLAYERS.length} total${a.missing.length?" • missing: "+a.missing.join(", "):""}`;el.style.color=a.verified?"var(--green)":"#ffcc4d";}
+function renderPlayerPoolAudit(){
+  const el=document.getElementById("playerPoolAudit"); if(!el)return;
+  const a=auditPlayerPool();
+  const topReasons=Object.entries(PLAYER_POOL_AUDIT.reasons).sort((x,y)=>y[1]-x[1]).slice(0,3).map(([k,v])=>`${v} ${k}`).join(" • ");
+  const base=a.verified?`PLAYER POOL VERIFIED • ${PLAYERS.length} total • ${a.counts.QB} QB • ${a.counts.RB} RB • ${a.counts.WR} WR • ${a.counts.TE} TE • 32 DEF`:`PLAYER POOL CHECK • ${PLAYERS.length} total${a.missing.length?" • missing: "+a.missing.join(", "):""}`;
+  el.textContent=`${base} • ${PLAYER_POOL_AUDIT.excluded} records excluded${topReasons?" • "+topReasons:""}`;
+  el.style.color=a.verified?"var(--green)":"#ffcc4d";
+}
 function renderPlayerDataStatus(message){
   const el=document.getElementById("playerDataStatus");
   if(!el) return;
@@ -767,7 +801,8 @@ async function loadCompletePlayerUniverse(force=false){
     const response=await fetch("https://api.sleeper.app/v1/players/nfl",{cache:"no-store"});
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
     const data=await response.json();
-    const rows=Object.values(data||{}).filter(isActiveNFLPlayer).map(p=>({full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active,status:p.status,search_rank:p.search_rank,adp:p.adp}));
+    resetPlayerPoolAudit();
+    const rows=Object.values(data||{}).filter(isActiveNFLPlayer).map(p=>({full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active,status:p.status,injury_status:p.injury_status,search_rank:p.search_rank,adp:p.adp,depth_chart_position:p.depth_chart_position,depth_chart_order:p.depth_chart_order,fantasy_positions:p.fantasy_positions,birth_date:p.birth_date,years_exp:p.years_exp}));
     localStorage.setItem(PLAYER_CACHE_KEY,JSON.stringify(rows));
     localStorage.setItem(PLAYER_CACHE_TIME_KEY,String(Date.now()));
     mergePlayerUniverse(rows);
@@ -1223,7 +1258,10 @@ const DNA_POSITION_LABELS={QB:'Quarterback',RB:'Running Back',WR:'Wide Receiver'
 let positionDNA=JSON.parse(localStorage.getItem('warRoomPositionDNA2')||'{}')||{};
 let dnaLab={screen:'HOME',pos:null,stage:'HOME',index:0};
 function savePositionDNA(){localStorage.setItem('warRoomPositionDNA2',JSON.stringify(positionDNA));}
-function positionPool(pos){return PLAYERS.filter(p=>p.pos===pos&&p.active!==false&&(marketSeedValue(p)>0||adpFor(p)>0)).sort((a,b)=>marketSeedValue(b)-marketSeedValue(a)||(adpFor(a)||9999)-(adpFor(b)||9999)||a.name.localeCompare(b.name));}
+function positionPool(pos){
+  const limits={QB:80,RB:220,WR:280,TE:160};
+  return PLAYERS.filter(p=>p.pos===pos&&p.active===true&&CURRENT_NFL_TEAMS.has(String(p.team||"").toUpperCase())&&(marketSeedValue(p)>0||adpFor(p)>0)&&(adpFor(p)<=limits[pos]||marketSeedValue(p)>0)).sort((a,b)=>marketSeedValue(b)-marketSeedValue(a)||(adpFor(a)||9999)-(adpFor(b)||9999)||a.name.localeCompare(b.name));
+}
 function dnaModule(pos){return positionDNA[pos]||(positionDNA[pos]={complete:false,philosophy:{},gut:{},prices:{},pairs:{},profile:null});}
 function dnaQuestionsFor(pos){
  const pool=positionPool(pos); const top=pool.slice(0,8); const mid=pool.slice(8,18); const deep=pool.slice(18,32);
@@ -1257,7 +1295,8 @@ function renderDNAHome(){
  const cards=DNA_POSITIONS.map(pos=>{
    const m=dnaModule(pos),pr=moduleProgress(pos),available=positionPool(pos).length;
    const status=!available?'PLAYER DATA NEEDED':m.complete?'COMPLETE':pr.done?pr.pct+'% STARTED':'START COMBINE';
-   return `<button class="dna-module-card ${m.complete?'done':''}" data-dna-module="${pos}" ${available?'':'disabled'}><span class="dna-module-pos">${pos}</span><strong>${DNA_POSITION_LABELS[pos]} COMBINE</strong><small>${status} • ${available} players available</small><span class="dna-module-bar"><i style="width:${m.complete?100:pr.pct}%"></i></span></button>`;
+   const action=m.complete?'REVIEW':pr.done?'RESUME':'START';
+   return `<button class="dna-module-card ${m.complete?'done':''}" data-dna-module="${pos}" ${available?'':'disabled'}><span class="dna-module-pos">${pos}</span><span class="dna-module-copy"><strong>${DNA_POSITION_LABELS[pos]}</strong><em>COMBINE</em><small>${status}</small></span><span class="dna-module-action">${action}</span><span class="dna-module-count"><b>${available}</b><small>PLAYERS</small></span><span class="dna-module-chevron">›</span><span class="dna-module-bar"><i style="width:${m.complete?100:pr.pct}%"></i></span></button>`;
  }).join('');
  $('sprintQuestionArea').innerHTML=`<div class="sprint-help">Complete each position separately. Progress saves after every answer, and manual player edits remain protected.</div><div class="dna-module-grid">${cards}</div><div class="dna-home-summary"><strong>${completed} of 4 combines complete</strong><span>Choose any available position to start or resume.</span></div>`;
  $('sprintBackBtn').disabled=true;
@@ -1346,7 +1385,7 @@ function printableShell(title,subtitle,body){
   body{font-family:Arial,sans-serif;color:#111;margin:38px;line-height:1.4}h1{margin:0;font-size:30px}h2{margin-top:28px;border-bottom:2px solid #111;padding-bottom:6px}h3{margin:18px 0 5px}.sub{color:#555;margin:4px 0 22px}.meta{display:flex;gap:28px;flex-wrap:wrap;margin:16px 0}.metric{border:1px solid #bbb;border-radius:8px;padding:10px 14px;min-width:115px}.metric strong{display:block;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px 6px;font-size:13px}th{background:#f3f3f3}.tag{display:inline-block;border:1px solid #777;border-radius:999px;padding:2px 7px;margin:2px;font-size:11px}.note{color:#444}.good{color:#137333;font-weight:700}.bad{color:#b3261e;font-weight:700}.neutral{color:#555;font-weight:700}.grade{font-size:32px;line-height:1}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.bar{height:10px;background:#e6e6e6;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:#111}.team-card{break-inside:avoid;border:1px solid #bbb;border-radius:10px;padding:12px;margin:12px 0}.team-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:12px;color:#666}.actions{position:fixed;right:20px;top:20px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}@media print{.actions{display:none}body{margin:18mm}.team-card{break-inside:avoid}}
   
 /* Upgrade 20: Position DNA Lab */
-.dna-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}.dna-module-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;background:#0d1318;border:1px solid #36414b;border-radius:12px;padding:18px;color:#fff;text-align:left;cursor:pointer}.dna-module-card:hover,.dna-module-card.done{border-color:var(--green);background:#101b0b}.dna-module-pos{font-size:30px;font-weight:1000;color:var(--green)}.dna-module-card strong{font-size:18px}.dna-module-card small{color:#9fb0bf}.dna-module-bar{width:100%;height:6px;background:#26313a;border-radius:99px;overflow:hidden}.dna-module-bar i{display:block;height:100%;background:var(--green)}.dna-home-summary{display:flex;flex-direction:column;gap:4px;border:1px solid #34404a;border-radius:10px;padding:14px;color:#aebbc6}.dna-question-title{font-size:26px!important;line-height:1.2}.dna-option-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dna-choice{appearance:none;width:100%;cursor:pointer}.dna-choice.selected,.dna-buttons button.selected{border-color:var(--green)!important;background:#17320d!important}.dna-target-heading{margin:18px 0 8px}.dna-target-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}.dna-target-list>div{display:flex;gap:10px;align-items:center;border:1px solid #34404a;border-radius:8px;padding:9px}.dna-target-list b{color:var(--green)}.dna-target-list span{display:flex;flex-direction:column;font-weight:800}.dna-target-list small{font-weight:400;color:#9fb0bf}@media(max-width:700px){.dna-module-grid,.dna-target-list,.dna-option-grid{grid-template-columns:1fr}}
+.dna-module-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0}.dna-module-card{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr) 120px 92px 28px;gap:14px;align-items:center;width:100%;min-height:86px;background:linear-gradient(180deg,#0c1115,#080b0e);border:1px solid #3d4852;border-radius:12px;padding:12px 14px;color:#fff;text-align:left;cursor:pointer;overflow:hidden}.dna-module-card:hover,.dna-module-card:focus-visible,.dna-module-card.done{border-color:var(--green);box-shadow:0 0 0 1px rgba(132,204,22,.18),inset 0 0 28px rgba(132,204,22,.04)}.dna-module-card:disabled{opacity:.45;cursor:not-allowed}.dna-module-pos{display:grid;place-items:center;width:58px;height:58px;border:1px solid #4c641e;border-radius:10px;background:#080c08;color:var(--green);font-size:25px;font-weight:1000}.dna-module-copy{display:flex;flex-direction:column;min-width:0}.dna-module-copy strong{font-size:18px;line-height:1.05}.dna-module-copy em{font-style:normal;color:var(--green);font-size:12px;font-weight:950;letter-spacing:.08em;margin-top:4px}.dna-module-copy small{color:#9fb0bf;font-size:10px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dna-module-action{justify-self:center;border:1px solid #46515b;border-radius:8px;padding:9px 13px;color:var(--green);font-size:11px;font-weight:950;letter-spacing:.04em}.dna-module-count{text-align:center}.dna-module-count b{display:block;color:var(--green);font-size:20px}.dna-module-count small{display:block;color:#9fb0bf;font-size:9px;font-weight:850}.dna-module-chevron{color:var(--green);font-size:32px;font-weight:900;text-align:center}.dna-module-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:#20282f}.dna-module-bar i{display:block;height:100%;background:var(--green)}.dna-home-summary{display:flex;flex-direction:column;gap:5px;border:1px solid #34404a;border-radius:10px;padding:14px 16px;background:#0a0e12;color:#aebbc6}.dna-home-summary strong{color:var(--green);font-size:14px}.dna-question-title{font-size:26px!important;line-height:1.2}.dna-option-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dna-choice{appearance:none;width:100%;cursor:pointer}.dna-choice.selected,.dna-buttons button.selected{border-color:var(--green)!important;background:#17320d!important}.dna-target-heading{margin:18px 0 8px}.dna-target-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}.dna-target-list>div{display:flex;gap:10px;align-items:center;border:1px solid #34404a;border-radius:8px;padding:9px}.dna-target-list b{color:var(--green)}.dna-target-list span{display:flex;flex-direction:column;font-weight:800}.dna-target-list small{font-weight:400;color:#9fb0bf}@media(max-width:700px){.dna-module-card{grid-template-columns:52px minmax(0,1fr) 64px 20px;padding:10px}.dna-module-pos{width:48px;height:48px;font-size:21px}.dna-module-action{display:none}.dna-module-count b{font-size:16px}.dna-module-count small{font-size:8px}.dna-module-copy strong{font-size:15px}.dna-target-list,.dna-option-grid{grid-template-columns:1fr}}
 </style></head><body><button class="actions" onclick="window.print()">PRINT / SAVE PDF</button><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>${body}</body></html>`);
   w.document.close(); w.focus();
 }
