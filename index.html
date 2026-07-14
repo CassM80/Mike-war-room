@@ -490,8 +490,8 @@ body { overflow:auto; }
 
 
     <section class="philosophy-launch">
-      <div><h3>BUILD MY DRAFT DNA</h3><p>Complete four fast, position-specific lightning rounds. Questions are generated from the current player pool, so QB, RB, WR, and TE DNA stay current every season.</p></div>
-      <button class="primary-btn" id="startBoardSprintsBtn">OPEN DRAFT DNA LAB</button>
+      <div><h3>DRAFT DNA COMBINE</h3><p>Build QB, RB, WR, and TE boards through fast position combines generated from the current player pool and your league settings.</p></div>
+      <button class="primary-btn" id="startBoardSprintsBtn">OPEN DRAFT DNA COMBINE</button>
     </section>
 
     <div id="strategySprintModal" class="sprint-modal hidden" role="dialog" aria-modal="true">
@@ -881,6 +881,11 @@ function marketValueFor(base){
   if(!base) return 0;
   return consensusPriceFor(base);
 }
+// Draft DNA uses the same position-aware market baseline as Scouting and War Room.
+// Keeping this as a named helper prevents the Combine from breaking when pricing logic changes.
+function marketSeedValue(base){
+  return marketValueFor(base);
+}
 function saleForPlayer(name){ return state.sales.find(s=>s.player===name) || null; }
 function dossierHTML(base){
   if(!base) return '<div class="dossier-notes">Select a player to open the dossier.</div>';
@@ -1228,15 +1233,24 @@ function dnaPhilosophyQuestions(pos){
  if(pos==='TE')common.push({key:'style',label:'Preferred TE approach',opts:[['ELITE','Elite edge'],['ANY','Best value'],['PUNT','Wait / punt']]});
  return common;
 }
-function openStrategySprints(){dnaLab={screen:'HOME',pos:null,stage:'HOME',index:0};$('strategySprintModal').classList.remove('hidden');$('sprintResult').textContent='';renderStrategySprint();}
+function openStrategySprints(){dnaLab={screen:'HOME',pos:null,stage:'HOME',index:0};$('strategySprintModal').classList.remove('hidden');$('sprintResult').textContent='';try{renderStrategySprint();}catch(err){console.error('Draft DNA Combine failed to open',err);$('sprintTitle').textContent='Draft DNA Combine';$('sprintQuestionArea').innerHTML='<div class="dna-summary-text">The Combine could not load. Refresh the player pool in Scouting, then reopen it.</div>';$('sprintResult').textContent=err?.message||'Unknown error';}}
 function closeStrategySprints(){$('strategySprintModal').classList.add('hidden');}
 function moduleProgress(pos){const m=dnaModule(pos),q=dnaQuestionsFor(pos);const done=Object.keys(m.philosophy||{}).length+Object.keys(m.gut||{}).length+Object.keys(m.prices||{}).length+Object.keys(m.pairs||{}).length;const total=dnaPhilosophyQuestions(pos).length+q.gut.length+q.price.length+q.pairs.length;return{done,total,pct:total?Math.round(done/total*100):0};}
 function renderDNAHome(){
- $('sprintTitle').textContent='Draft DNA Lab';$('sprintKicker').textContent='POSITION MODULES';$('sprintProgressBar').style.width=(DNA_POSITIONS.filter(p=>dnaModule(p).complete).length/4*100)+'%';
- $('sprintQuestionArea').innerHTML=`<div class="sprint-help">Build each position independently. Every lightning round uses the current searchable player pool and current league-aware market values.</div><div class="dna-module-grid">${DNA_POSITIONS.map(pos=>{const m=dnaModule(pos),pr=moduleProgress(pos);return `<button class="dna-module-card ${m.complete?'done':''}" data-dna-module="${pos}"><span class="dna-module-pos">${pos}</span><strong>${DNA_POSITION_LABELS[pos]} DNA</strong><small>${m.complete?'COMPLETE':pr.done?pr.pct+'% started':'Start lightning round'}</small><span class="dna-module-bar"><i style="width:${m.complete?100:pr.pct}%"></i></span></button>`}).join('')}</div><div class="dna-home-summary"><strong>${DNA_POSITIONS.filter(p=>dnaModule(p).complete).length} of 4 modules complete</strong><span>Complete one module at a time or return later. Existing manual player edits are preserved.</span></div>`;
- $('sprintBackBtn').disabled=true;$('sprintNextBtn').textContent=DNA_POSITIONS.every(p=>dnaModule(p).complete)?'REBUILD ALL POSITION BOARDS':'CLOSE';
+ const completed=DNA_POSITIONS.filter(p=>dnaModule(p).complete).length;
+ $('sprintTitle').textContent='Draft DNA Combine';
+ $('sprintKicker').textContent='POSITION COMBINES';
+ $('sprintProgressBar').style.width=(completed/4*100)+'%';
+ const cards=DNA_POSITIONS.map(pos=>{
+   const m=dnaModule(pos),pr=moduleProgress(pos),available=positionPool(pos).length;
+   const status=!available?'PLAYER DATA NEEDED':m.complete?'COMPLETE':pr.done?pr.pct+'% STARTED':'START COMBINE';
+   return `<button class="dna-module-card ${m.complete?'done':''}" data-dna-module="${pos}" ${available?'':'disabled'}><span class="dna-module-pos">${pos}</span><strong>${DNA_POSITION_LABELS[pos]} COMBINE</strong><small>${status} • ${available} players available</small><span class="dna-module-bar"><i style="width:${m.complete?100:pr.pct}%"></i></span></button>`;
+ }).join('');
+ $('sprintQuestionArea').innerHTML=`<div class="sprint-help">Complete each position separately. Progress saves after every answer, and manual player edits remain protected.</div><div class="dna-module-grid">${cards}</div><div class="dna-home-summary"><strong>${completed} of 4 combines complete</strong><span>Choose any available position to start or resume.</span></div>`;
+ $('sprintBackBtn').disabled=true;
+ $('sprintNextBtn').textContent=DNA_POSITIONS.every(p=>dnaModule(p).complete)?'REBUILD ALL POSITION BOARDS':'CLOSE';
 }
-function beginPositionDNA(pos){dnaLab={screen:'MODULE',pos,stage:'PHILOSOPHY',index:0};renderStrategySprint();}
+function beginPositionDNA(pos){if(!positionPool(pos).length){$('sprintResult').textContent=`No current ${pos} players are loaded. Refresh the player pool in Scouting and try again.`;return;}dnaLab={screen:'MODULE',pos,stage:'PHILOSOPHY',index:0};renderStrategySprint();}
 function dnaTotalSteps(pos){const q=dnaQuestionsFor(pos);return dnaPhilosophyQuestions(pos).length+q.gut.length+q.price.length+q.pairs.length+1;}
 function dnaDoneSteps(){const {pos,stage,index}=dnaLab,q=dnaQuestionsFor(pos),ph=dnaPhilosophyQuestions(pos).length;if(stage==='PHILOSOPHY')return index;if(stage==='GUT')return ph+index;if(stage==='PRICE')return ph+q.gut.length+index;if(stage==='PAIR')return ph+q.gut.length+q.price.length+index;return dnaTotalSteps(pos);}
 function setPositionProgress(){const total=dnaTotalSteps(dnaLab.pos),done=dnaDoneSteps();$('sprintKicker').textContent=`${dnaLab.pos} DNA · ${Math.min(done+1,total)} OF ${total}`;$('sprintProgressBar').style.width=Math.max(4,done/total*100)+'%';}

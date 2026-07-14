@@ -1,3 +1,3 @@
-# War Room — Production Upgrade 20
+# War Room — Sprint 21.1
 
-Adds a future-proof, position-by-position Draft DNA Lab for QB, RB, WR, and TE. Lightning-round questions are generated from the current player pool and league-aware market values. Each module can be completed independently and immediately applies a position-specific personalized board.
+Repairs and stabilizes the Draft DNA Combine framework in the production single-file app. Adds four visible position modules, saved/resumable progress, current-player counts, empty-pool safeguards, and restores the missing league-aware market-value bridge that prevented the Combine from rendering.
