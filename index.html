@@ -381,7 +381,7 @@ body { overflow:auto; }
 .dna-home-summary{display:flex;flex-direction:column;gap:5px;border:1px solid #34404a;border-radius:10px;padding:14px 16px;background:#0a0e12;color:#aebbc6}.dna-home-summary strong{color:var(--green);font-size:14px}
 @media(max-width:700px){.dna-module-card{grid-template-columns:52px minmax(0,1fr) 64px 20px;padding:10px}.dna-module-pos{width:48px;height:48px;font-size:21px}.dna-module-action{display:none}.dna-module-count b{font-size:16px}.dna-module-count small{font-size:8px}.dna-module-copy strong{font-size:15px}}
 
-/* Sprint 22.8: Verified post-reset DNA board generation */
+/* Sprint 22.9: Remove reset marker conflict and restore DNA regeneration */
 .dna-league-context{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px;padding:12px;border:1px solid #3d571b;border-radius:11px;background:linear-gradient(135deg,#10170d,#0b1014)}
 .dna-league-context div{min-width:0}.dna-league-context strong{display:block;color:var(--green);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dna-league-context span{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.05em;margin-top:3px}
 .dna-league-impact{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}.dna-impact-card{border:1px solid var(--line);border-radius:9px;background:#0a0f13;padding:11px}.dna-impact-card strong{display:block;color:var(--green);font-size:18px}.dna-impact-card span{display:block;color:var(--muted);font-size:10px;margin-top:3px}.dna-impact-card small{display:block;color:#d8e4ee;font-size:11px;margin-top:6px;line-height:1.35}
@@ -872,7 +872,6 @@ async function rebuildConsensusRankings(){
 }
 
 const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
-const PERSONAL_CLEAR_KEY = "warRoomPersonalBoardClearedAt";
 const RESET_INTENT_KEY = "warRoomResetIntent";
 (function applyPendingResetBeforeHydration(){
   const intent=sessionStorage.getItem(RESET_INTENT_KEY);
@@ -889,7 +888,6 @@ const RESET_INTENT_KEY = "warRoomResetIntent";
 })();
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
-if(localStorage.getItem(PERSONAL_CLEAR_KEY)) personalEvaluations = {};
 let scoutingSelectedName = null;
 const PROFILE_MODE_KEY = "warRoomProfileMode";
 let profileMode = localStorage.getItem(PROFILE_MODE_KEY);
@@ -903,7 +901,6 @@ function activatePersonalization(){
   // A cleared board is only a starting state. The first new manual edit or DNA build
   // must be allowed to create a fresh board immediately.
   window.__warRoomResetting=false;
-  localStorage.removeItem(PERSONAL_CLEAR_KEY);
   sessionStorage.removeItem(RESET_INTENT_KEY);
   profileMode="owner";
   localStorage.setItem(PROFILE_MODE_KEY,profileMode);
@@ -911,8 +908,7 @@ function activatePersonalization(){
 function savePersonalEvaluations(force=false){
   if(window.__warRoomResetting&&!force)return false;
   if(Object.keys(personalEvaluations||{}).length){
-    localStorage.removeItem(PERSONAL_CLEAR_KEY);
-    profileMode="owner";
+      profileMode="owner";
     localStorage.setItem(PROFILE_MODE_KEY,profileMode);
   }
   localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations));
@@ -1444,7 +1440,6 @@ function persistAndVerifyPersonalEvaluations(){
  activatePersonalization();
  const payload=JSON.stringify(personalEvaluations||{});
  localStorage.setItem(PERSONAL_EVAL_KEY,payload);
- localStorage.removeItem(PERSONAL_CLEAR_KEY);
  const saved=JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY)||'{}')||{};
  const expected=Object.keys(personalEvaluations||{}).length;
  const actual=Object.keys(saved).length;
@@ -1456,7 +1451,6 @@ function persistAndVerifyPersonalEvaluations(){
 }
 function applyPositionDNAAndRefresh(pos){
  activatePersonalization();
- localStorage.removeItem(PERSONAL_CLEAR_KEY);
  const before=Object.keys(personalEvaluations||{}).length;
  const changed=buildPositionBoard(pos);
  if(changed<1)throw new Error(`No ${pos} evaluations were generated. Refresh the player pool and retry.`);
@@ -1472,7 +1466,7 @@ function renderPositionApplied(){
  $('sprintKicker').textContent=`${pos} DNA · BOARD UPDATED`;
  $('sprintProgressBar').style.width='100%';
  $('sprintQuestionArea').innerHTML=`<div class="dna-complete-banner"><strong>✓ DRAFT DNA APPLIED SUCCESSFULLY</strong><span>${receipt.changed} ${pos} player evaluations were generated or refreshed.</span></div><div class="dna-league-impact"><div class="dna-impact-card"><strong>${receipt.changed}</strong><span>${pos} PLAYERS UPDATED</span><small>Ranks, tiers, values, hard stops and flags are now available.</small></div><div class="dna-impact-card"><strong>${receipt.total}</strong><span>TOTAL PERSONALIZED</span><small>Your current personal board is saved on this device.</small></div><div class="dna-impact-card"><strong>READY</strong><span>WAR ROOM STATUS</span><small>Scouting and live recommendations have been refreshed.</small></div></div>`;
- $('sprintResult').textContent=`${pos} board updated successfully.`;
+ $('sprintResult').textContent=`${pos} board updated successfully • ${Object.keys(personalEvaluations).length} evaluations active.`;
  $('sprintBackBtn').disabled=true;
  $('sprintNextBtn').textContent='RETURN TO COMBINES';
 }
@@ -1626,7 +1620,6 @@ function clearPersonalizationInMemory(){
   localStorage.setItem(PERSONAL_EVAL_KEY,"{}");
   localStorage.setItem("warRoomPositionDNA2","{}");
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
-  localStorage.setItem(PERSONAL_CLEAR_KEY,String(Date.now()));
   const body=$("bulkBoardBody"); if(body) body.innerHTML="";
   const core=$("coreTargets"); if(core) core.innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Complete Draft DNA or add targets in Scouting.</div>';
   renderPersonalBoard();
@@ -1656,7 +1649,6 @@ async function fullCleanReset(){
   }catch(e){console.warn("Reset cache cleanup",e);}
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
   localStorage.setItem(PERSONAL_EVAL_KEY,"{}");
-  localStorage.setItem(PERSONAL_CLEAR_KEY,String(Date.now()));
   const url=new URL(location.href);
   url.searchParams.set("factoryReset",Date.now().toString());
   location.replace(url.toString());

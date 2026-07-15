@@ -1,3 +1,3 @@
-# War Room — Sprint 22.8
+# War Room — Sprint 22.9
 
-Verified DNA board generation after a personal-board reset. DNA completion now always builds the board, persists it, reads it back, verifies the count, and refreshes Scouting and War Room.
+Removes the persistent personal-board-cleared marker that blocked Draft DNA from rebuilding a board after reset. Reset now relies on clean profile mode and empty evaluation storage; completing DNA can immediately create and persist a fresh personalized board.
