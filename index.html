@@ -872,6 +872,20 @@ async function rebuildConsensusRankings(){
 }
 
 const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
+const RESET_INTENT_KEY = "warRoomResetIntent";
+(function applyPendingResetBeforeHydration(){
+  const intent=sessionStorage.getItem(RESET_INTENT_KEY);
+  if(!intent) return;
+  window.__warRoomResetting=true;
+  if(intent==="full"){
+    Object.keys(localStorage).forEach(key=>{ if(key.startsWith("warRoom")) localStorage.removeItem(key); });
+  }else if(intent==="personal"){
+    [PERSONAL_EVAL_KEY,"warRoomPositionDNA2","warRoomDNALeagueProfile","warRoomDNAApplyReceipt"].forEach(key=>localStorage.removeItem(key));
+  }
+  localStorage.setItem("warRoomProfileMode","clean");
+  sessionStorage.removeItem(RESET_INTENT_KEY);
+  window.__warRoomResetting=false;
+})();
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
 let scoutingSelectedName = null;
@@ -883,7 +897,7 @@ if(!profileMode){
   localStorage.setItem(PROFILE_MODE_KEY,profileMode);
 }
 function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
-function savePersonalEvaluations(){ localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations)); }
+function savePersonalEvaluations(){ if(window.__warRoomResetting)return; localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations)); }
 function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
 function neutralPlayer(base){ return {...base,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Build your personal board in Scouting.",audit:"MARKET",notes:""}; }
 function effectivePlayer(base){
@@ -1460,6 +1474,7 @@ function renderBulkBoard(){
   $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
 }
 function saveBulkRow(tr){
+  if(window.__warRoomResetting)return;
   const name=tr.dataset.bulkPlayer, old=getPersonalEvaluation(name)||{};
   const ev={name,rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:tr.querySelector('.bulk-favorite').checked,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
   if(ev.value&&ev.hardStop&&ev.hardStop<ev.value){tr.querySelector('.bulk-stop').value=old.hardStop||"";return alert(`Hard Stop cannot be below Your Value for ${name}.`);}
@@ -1557,34 +1572,21 @@ function shareLeague(){
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
-function clearPersonalBoard(){
-  // Clear every personalization layer, not just the visible evaluation object.
-  personalEvaluations={};
-  positionDNA={};
-  profileMode="clean";
-  localStorage.removeItem(PERSONAL_EVAL_KEY);
-  localStorage.removeItem("warRoomPositionDNA2");
-  localStorage.removeItem("warRoomDNALeagueProfile");
-  localStorage.removeItem("warRoomDNAApplyReceipt");
+function resetReload(intent){
+  window.__warRoomResetting=true;
+  sessionStorage.setItem(RESET_INTENT_KEY,intent);
+  if(intent==="full"){
+    Object.keys(localStorage).forEach(key=>{ if(key.startsWith("warRoom")) localStorage.removeItem(key); });
+  }else{
+    [PERSONAL_EVAL_KEY,"warRoomPositionDNA2","warRoomDNALeagueProfile","warRoomDNAApplyReceipt"].forEach(key=>localStorage.removeItem(key));
+  }
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
-  scoutingSelectedName=null;
-  if(state.selected) state.selected=null;
-  save();
-  setSelected(null);
-  renderPersonalBoard();
-  renderBulkBoard();
-  renderCore();
-  renderAll();
-  updateResetSummary();
+  const url=new URL(location.href);
+  url.searchParams.set("reset",Date.now().toString());
+  location.replace(url.toString());
 }
-function fullCleanReset(){
-  // Remove all War Room-owned browser state so the app restarts like a first visit.
-  Object.keys(localStorage).forEach(key=>{
-    if(key.startsWith("warRoom")) localStorage.removeItem(key);
-  });
-  localStorage.setItem(PROFILE_MODE_KEY,"clean");
-  location.reload();
-}
+function clearPersonalBoard(){ resetReload("personal"); }
+function fullCleanReset(){ resetReload("full"); }
 function importBackupObject(data){
   if(!data||typeof data!=="object"||!data.leagueConfig) throw new Error("Invalid War Room file.");
   if(data.format==="warroom-league"){

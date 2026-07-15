@@ -1,3 +1,3 @@
-# War Room — Production Sprint 22.3
+# War Room — Production Sprint 22.4
 
-Fixes reset behavior. Clear Personal Board now removes rankings, tiers, values, hard stops, flags, notes, Draft DNA progress, DNA apply receipts, and the built-in owner starter board. Full Clean Reset now removes every War Room browser-storage key before restarting in clean mode.
+Fixes reset persistence at the hydration layer. Reset intent is applied before personal evaluations load, autosave is suppressed during reset, and navigation uses a cache-busting reload. The service worker now uses network-first navigation so stale app shells do not restore old reset logic.
