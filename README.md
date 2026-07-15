@@ -1,3 +1,3 @@
-# War Room — Production Sprint 22.7
+# War Room — Sprint 22.8
 
-Fixes the post-reset Draft DNA apply path. A cleared personal board can now be rebuilt immediately: applying a position Combine exits reset mode, creates fresh evaluations, persists them, and refreshes Scouting and War Room.
+Verified DNA board generation after a personal-board reset. DNA completion now always builds the board, persists it, reads it back, verifies the count, and refreshes Scouting and War Room.
