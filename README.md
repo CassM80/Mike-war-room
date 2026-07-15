@@ -1,3 +1,3 @@
-# War Room — Production Sprint 22.2
+# War Room — Production Sprint 22.3
 
-Makes Draft DNA application reliable on iPhone and desktop. Finishing a position combine now explicitly saves, rebuilds the personal board, refreshes Scouting and War Room, and displays a success receipt before returning to the Combine menu.
+Fixes reset behavior. Clear Personal Board now removes rankings, tiers, values, hard stops, flags, notes, Draft DNA progress, DNA apply receipts, and the built-in owner starter board. Full Clean Reset now removes every War Room browser-storage key before restarting in clean mode.

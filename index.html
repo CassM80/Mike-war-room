@@ -1557,13 +1557,31 @@ function shareLeague(){
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
-function clearPersonalBoard(){ personalEvaluations={}; savePersonalEvaluations(); scoutingSelectedName=null; renderPersonalBoard(); renderBulkBoard(); renderCore(); if(state.selected&&byName[state.selected])setSelected(byName[state.selected]); updateResetSummary(); }
-function fullCleanReset(){
-  localStorage.removeItem("warRoomState");
-  localStorage.removeItem("warRoomLeagueConfig");
+function clearPersonalBoard(){
+  // Clear every personalization layer, not just the visible evaluation object.
+  personalEvaluations={};
+  positionDNA={};
+  profileMode="clean";
   localStorage.removeItem(PERSONAL_EVAL_KEY);
   localStorage.removeItem("warRoomPositionDNA2");
   localStorage.removeItem("warRoomDNALeagueProfile");
+  localStorage.removeItem("warRoomDNAApplyReceipt");
+  localStorage.setItem(PROFILE_MODE_KEY,"clean");
+  scoutingSelectedName=null;
+  if(state.selected) state.selected=null;
+  save();
+  setSelected(null);
+  renderPersonalBoard();
+  renderBulkBoard();
+  renderCore();
+  renderAll();
+  updateResetSummary();
+}
+function fullCleanReset(){
+  // Remove all War Room-owned browser state so the app restarts like a first visit.
+  Object.keys(localStorage).forEach(key=>{
+    if(key.startsWith("warRoom")) localStorage.removeItem(key);
+  });
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
   location.reload();
 }
