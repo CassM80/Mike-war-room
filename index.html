@@ -899,10 +899,24 @@ if(!profileMode){
   localStorage.setItem(PROFILE_MODE_KEY,profileMode);
 }
 function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
-function savePersonalEvaluations(){
-  if(window.__warRoomResetting)return;
-  if(Object.keys(personalEvaluations||{}).length) localStorage.removeItem(PERSONAL_CLEAR_KEY);
+function activatePersonalization(){
+  // A cleared board is only a starting state. The first new manual edit or DNA build
+  // must be allowed to create a fresh board immediately.
+  window.__warRoomResetting=false;
+  localStorage.removeItem(PERSONAL_CLEAR_KEY);
+  sessionStorage.removeItem(RESET_INTENT_KEY);
+  profileMode="owner";
+  localStorage.setItem(PROFILE_MODE_KEY,profileMode);
+}
+function savePersonalEvaluations(force=false){
+  if(window.__warRoomResetting&&!force)return false;
+  if(Object.keys(personalEvaluations||{}).length){
+    localStorage.removeItem(PERSONAL_CLEAR_KEY);
+    profileMode="owner";
+    localStorage.setItem(PROFILE_MODE_KEY,profileMode);
+  }
   localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations));
+  return true;
 }
 function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
 function neutralPlayer(base){ return {...base,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Build your personal board in Scouting.",audit:"MARKET",notes:""}; }
@@ -1300,7 +1314,7 @@ $("saveEvaluationBtn").addEventListener("click",()=>{
   const hard=Math.max(0,Number($("evalHardStop").value||0));
   if(value && hard && hard<value) return alert("Hard Stop cannot be below Your Value.");
   const ev={name:scoutingSelectedName,rank:Math.max(0,Number($("evalRank").value||0)),value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:$("evalFavorite").checked,flagPlant:$("evalFlagPlant").checked,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
-  personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(); renderPersonalBoard(); renderBulkBoard(); selectScoutingPlayer(scoutingSelectedName);
+  activatePersonalization(); personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(true); renderPersonalBoard(); renderBulkBoard(); selectScoutingPlayer(scoutingSelectedName);
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
   $("evaluationSavedNote").textContent="Personal evaluation saved."; setTimeout(()=>$("evaluationSavedNote").textContent="",1800);
 });
@@ -1409,7 +1423,7 @@ function computePositionProfile(pos){const m=dnaModule(pos),gut=Object.values(m.
 function positionAdjustment(pos,p,profile,m){let adj=0;adj+=profile.investment==='HIGH'?4:profile.investment==='LOW'?-4:0;adj+=({LOVE:10,LIKE:5,NEUTRAL:0,FADE:-6,OUT:-15}[m.gut[p.name]]||0);adj+=({SMASH:8,BUY:4,FAIR:0,HIGH:-5,PASS:-12}[m.prices[p.name]]||0);Object.entries(m.pairs).forEach(([key,winner])=>{if(winner===p.name)adj+=4;else if(key.split('|').includes(p.name))adj-=2;});const a=adpFor(p)||999;if(profile.risk==='UPSIDE'&&a>45&&a<180)adj+=3;if(profile.risk==='FLOOR'&&a<=70)adj+=3;const leagueDelta=(Number(profile.leagueIntensity||1)-1)*3;adj+=Math.max(-3,Math.min(4,leagueDelta));return adj;}
 function positionCandidates(pos){const profile=computePositionProfile(pos),m=dnaModule(pos);return positionPool(pos).map(p=>({p,score:marketSeedValue(p)*2+(250-Math.min(250,adpFor(p)||250))*.06+positionAdjustment(pos,p,profile,m)*2})).sort((a,b)=>b.score-a.score).map(x=>x.p);}
 function renderPositionResult(){const pos=dnaLab.pos,m=dnaModule(pos),profile=computePositionProfile(pos),targets=positionCandidates(pos).slice(0,pos==='QB'||pos==='TE'?5:10),budgets=suggestedPositionBudgets(),ctx=leagueDNAContext();m.profile=profile;m.questionnaireComplete=true;savePositionDNA();$('sprintTitle').textContent=`${pos} COMBINE COMPLETE`;$('sprintKicker').textContent=`${pos} DNA · COMPLETE`;$('sprintProgressBar').style.width='100%';$('sprintQuestionArea').innerHTML=`<div class="dna-complete-banner"><strong>✓ ${DNA_POSITION_LABELS[pos]} COMBINE COMPLETE</strong><span>Your answers are saved. War Room combined them with your current league settings.</span></div>${leagueContextHTML()}<div class="dna-league-impact"><div class="dna-impact-card"><strong>${profile.leagueDemand}</strong><span>LEAGUE DEMAND</span><small>${profile.leagueReason}</small></div><div class="dna-impact-card"><strong>${money(budgets[pos])}</strong><span>SUGGESTED ${pos} BUDGET</span><small>Position-wide target, not a single-player limit.</small></div><div class="dna-impact-card"><strong>${profile.investment}</strong><span>YOUR PHILOSOPHY</span><small>${profile.discipline} price discipline • ${profile.risk} risk</small></div></div><div class="dna-profile">${dnaTraitHTML('Enthusiasm',profile.enthusiasm)}${dnaTraitHTML('Price Aggression',profile.priceAggression)}${dnaTraitHTML('Confidence',profile.confidence)}<div class="dna-trait"><strong>${profile.style}</strong><span>Player Style</span></div></div><h4 class="dna-target-heading">Your projected top ${pos} targets</h4><div class="dna-target-list">${targets.map((p,i)=>`<div><b>#${i+1}</b><span>${p.name}<small>${p.team||'FA'} • League Market ${money(marketSeedValue(p))}</small></span></div>`).join('')}</div><label class="flag-toggle" style="display:inline-flex"><input id="applyPositionDNA" type="checkbox" checked> Apply this league-aware ${pos} DNA to my personal board.</label>`;$('sprintBackBtn').disabled=false;$('sprintNextBtn').textContent=`APPLY ${pos} DNA & RETURN`;}
-function buildPositionBoard(pos){const m=dnaModule(pos),profile=computePositionProfile(pos),players=positionCandidates(pos),ctx=leagueDNAContext(),positionBudgets=suggestedPositionBudgets(),limit=pos==='QB'||pos==='TE'?36:90,buffer=profile.discipline==='STRICT'?1:profile.discipline==='AGGRESSIVE'?5:3;let changed=0;players.slice(0,limit).forEach((p,i)=>{const old=getPersonalEvaluation(p.name);if(old&&!String(old.notes||'').startsWith('Position DNA:'))return;let value=Math.max(1,Math.round(marketSeedValue(p)+positionAdjustment(pos,p,profile,m)));const reaction=m.gut[p.name],price=m.prices[p.name],avoid=reaction==='OUT'||price==='PASS';if(avoid)value=Math.max(1,Math.round(value*.65));const tier=i<(pos==='QB'||pos==='TE'?4:8)?'1':i<(pos==='QB'||pos==='TE'?12:24)?'2':i<(pos==='QB'||pos==='TE'?24:48)?'3':'4';personalEvaluations[playerKey(p.name)]={name:p.name,rank:i+1,tier,value,hardStop:value+(avoid?1:buffer),favorite:!avoid&&(reaction==='LOVE'||i<3),flagPlant:!avoid&&(reaction==='LOVE'&&price==='SMASH'),sleeper:!avoid&&i>12&&(reaction==='LIKE'||profile.risk==='UPSIDE'),avoid,notes:`Position DNA: ${pos} • ${profile.leagueDemand.toLowerCase()} • ${reaction||'profile fit'}${price?' • '+price.toLowerCase():''} • ${ctx.teams}T ${ctx.scoring} ${money(ctx.budget)}`,updatedAt:new Date().toISOString()};changed++;});m.complete=true;m.profile={...profile,suggestedBudget:positionBudgets[pos],leagueFingerprint:ctx.fingerprint};savePositionDNA();rebuildOverallDNARanks();savePersonalEvaluations();renderPersonalBoard();renderBulkBoard();renderCore();return changed;}
+function buildPositionBoard(pos){activatePersonalization();const m=dnaModule(pos),profile=computePositionProfile(pos),players=positionCandidates(pos),ctx=leagueDNAContext(),positionBudgets=suggestedPositionBudgets(),limit=pos==='QB'||pos==='TE'?36:90,buffer=profile.discipline==='STRICT'?1:profile.discipline==='AGGRESSIVE'?5:3;let changed=0;players.slice(0,limit).forEach((p,i)=>{const old=getPersonalEvaluation(p.name);if(old&&!String(old.notes||'').startsWith('Position DNA:'))return;let value=Math.max(1,Math.round(marketSeedValue(p)+positionAdjustment(pos,p,profile,m)));const reaction=m.gut[p.name],price=m.prices[p.name],avoid=reaction==='OUT'||price==='PASS';if(avoid)value=Math.max(1,Math.round(value*.65));const tier=i<(pos==='QB'||pos==='TE'?4:8)?'1':i<(pos==='QB'||pos==='TE'?12:24)?'2':i<(pos==='QB'||pos==='TE'?24:48)?'3':'4';personalEvaluations[playerKey(p.name)]={name:p.name,rank:i+1,tier,value,hardStop:value+(avoid?1:buffer),favorite:!avoid&&(reaction==='LOVE'||i<3),flagPlant:!avoid&&(reaction==='LOVE'&&price==='SMASH'),sleeper:!avoid&&i>12&&(reaction==='LIKE'||profile.risk==='UPSIDE'),avoid,notes:`Position DNA: ${pos} • ${profile.leagueDemand.toLowerCase()} • ${reaction||'profile fit'}${price?' • '+price.toLowerCase():''} • ${ctx.teams}T ${ctx.scoring} ${money(ctx.budget)}`,updatedAt:new Date().toISOString()};changed++;});m.complete=true;m.profile={...profile,suggestedBudget:positionBudgets[pos],leagueFingerprint:ctx.fingerprint};savePositionDNA();rebuildOverallDNARanks();savePersonalEvaluations(true);renderPersonalBoard();renderBulkBoard();renderCore();return changed;}
 function refreshViewsAfterDNA(){
  savePersonalEvaluations();
  renderPersonalBoard();
@@ -1427,9 +1441,13 @@ function refreshViewsAfterDNA(){
  }));
 }
 function applyPositionDNAAndRefresh(pos){
+ // Reset mode must not block the next board from being built.
+ activatePersonalization();
  const before=Object.keys(personalEvaluations||{}).length;
  const changed=buildPositionBoard(pos);
  const after=Object.keys(personalEvaluations||{}).length;
+ if(changed<1||after<1) throw new Error(`No ${pos} evaluations were generated. Refresh the player pool and retry.`);
+ savePersonalEvaluations(true);
  refreshViewsAfterDNA();
  try{localStorage.setItem('warRoomDNAApplyReceipt',JSON.stringify({position:pos,changed,total:after,appliedAt:new Date().toISOString()}));}catch(e){}
  return {changed,total:after,added:Math.max(0,after-before)};
