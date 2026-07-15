@@ -872,6 +872,7 @@ async function rebuildConsensusRankings(){
 }
 
 const PERSONAL_EVAL_KEY = "warRoomPersonalEvaluations";
+const PERSONAL_CLEAR_KEY = "warRoomPersonalBoardClearedAt";
 const RESET_INTENT_KEY = "warRoomResetIntent";
 (function applyPendingResetBeforeHydration(){
   const intent=sessionStorage.getItem(RESET_INTENT_KEY);
@@ -888,6 +889,7 @@ const RESET_INTENT_KEY = "warRoomResetIntent";
 })();
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
+if(localStorage.getItem(PERSONAL_CLEAR_KEY)) personalEvaluations = {};
 let scoutingSelectedName = null;
 const PROFILE_MODE_KEY = "warRoomProfileMode";
 let profileMode = localStorage.getItem(PROFILE_MODE_KEY);
@@ -897,7 +899,11 @@ if(!profileMode){
   localStorage.setItem(PROFILE_MODE_KEY,profileMode);
 }
 function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
-function savePersonalEvaluations(){ if(window.__warRoomResetting)return; localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations)); }
+function savePersonalEvaluations(){
+  if(window.__warRoomResetting)return;
+  if(Object.keys(personalEvaluations||{}).length) localStorage.removeItem(PERSONAL_CLEAR_KEY);
+  localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations));
+}
 function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
 function neutralPlayer(base){ return {...base,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Build your personal board in Scouting.",audit:"MARKET",notes:""}; }
 function effectivePlayer(base){
@@ -1572,37 +1578,56 @@ function shareLeague(){
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
+function personalStorageKeys(){
+  return Object.keys(localStorage).filter(key=>/personal|evaluation|draftdna|positiondna|dnaapply|strategy.?sprint|starter.?board|core.?target|ranking/i.test(key));
+}
 function clearPersonalizationInMemory(){
   window.__warRoomResetting=true;
+  const removedKeys=personalStorageKeys();
+  removedKeys.forEach(key=>localStorage.removeItem(key));
+  localStorage.removeItem(PERSONAL_EVAL_KEY);
+  localStorage.removeItem("warRoomPositionDNA2");
+  localStorage.removeItem("warRoomDNALeagueProfile");
+  localStorage.removeItem("warRoomDNAApplyReceipt");
   personalEvaluations={};
   positionDNA={};
   profileMode="clean";
   bulkSelected.clear();
   scoutingSelectedName=null;
-  [PERSONAL_EVAL_KEY,"warRoomPositionDNA2","warRoomDNALeagueProfile","warRoomDNAApplyReceipt","warRoomConsensusRebuiltAt"].forEach(key=>localStorage.removeItem(key));
   localStorage.setItem(PERSONAL_EVAL_KEY,"{}");
   localStorage.setItem("warRoomPositionDNA2","{}");
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
+  localStorage.setItem(PERSONAL_CLEAR_KEY,String(Date.now()));
+  const body=$("bulkBoardBody"); if(body) body.innerHTML="";
+  const core=$("coreTargets"); if(core) core.innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Complete Draft DNA or add targets in Scouting.</div>';
   renderPersonalBoard();
   renderBulkBoard();
   renderCore();
   setSelected(null);
   renderAll();
   updateResetSummary();
-  requestAnimationFrame(()=>{window.__warRoomResetting=false;});
+  window.__warRoomResetting=false;
+  return removedKeys.length;
 }
 function clearPersonalBoard(){
-  clearPersonalizationInMemory();
-  setResetStatus("Personal board cleared — 0 saved evaluations.");
+  const removed=clearPersonalizationInMemory();
+  setResetStatus(`Personal board cleared — 0 saved evaluations • ${removed} saved data keys removed.`);
+  alert("Personal board cleared. Rankings, tiers, values, flags, notes and Draft DNA were removed.");
 }
-function fullCleanReset(){
+async function fullCleanReset(){
   window.__warRoomResetting=true;
   personalEvaluations={};
   positionDNA={};
   bulkSelected.clear();
-  Object.keys(localStorage).forEach(key=>{ if(key.startsWith("warRoom")) localStorage.removeItem(key); });
-  sessionStorage.removeItem(RESET_INTENT_KEY);
+  localStorage.clear();
+  sessionStorage.clear();
+  try{
+    if("caches" in window){const names=await caches.keys();await Promise.all(names.map(name=>caches.delete(name)));}
+    if(navigator.serviceWorker){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()));}
+  }catch(e){console.warn("Reset cache cleanup",e);}
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
+  localStorage.setItem(PERSONAL_EVAL_KEY,"{}");
+  localStorage.setItem(PERSONAL_CLEAR_KEY,String(Date.now()));
   const url=new URL(location.href);
   url.searchParams.set("factoryReset",Date.now().toString());
   location.replace(url.toString());
@@ -1703,8 +1728,14 @@ $("importBackupBtn").addEventListener("click",()=>$("importBackupFile").click())
 $("importBackupFile").addEventListener("change",async e=>{const f=e.target.files[0]; if(!f)return; try{importBackupObject(JSON.parse(await f.text()));}catch(err){alert(err.message||"Could not import backup.");} e.target.value="";});
 $("newDraftBtn").addEventListener("click",()=>{if(confirm("Clear all sales, rosters and live-draft intelligence while keeping this league and personal board?")){applyFreshDraft();setResetStatus("New draft ready.");}});
 $("newLeagueBtn").addEventListener("click",()=>{if(!confirm("Start a new league while keeping your personal board?"))return; applyFreshDraft(); leagueConfig={...defaultLeagueConfig,teams:[]}; ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll(); updateResetSummary(); setResetStatus("New league ready.");});
-$("clearBoardBtn").addEventListener("click",()=>{if(confirmTyped("This permanently clears every personal value, tier, target and note in this browser.")){clearPersonalBoard();setResetStatus("Personal board cleared.");}});
-$("shareSafeResetBtn").addEventListener("click",()=>{if(confirmTyped("This clears the league, draft and personal board, then switches this browser to a clean share-safe experience.")){fullCleanReset();}});
+$("clearBoardBtn").addEventListener("click",()=>{
+  if(!confirm("Clear every personal ranking, tier, value, hard stop, flag, note and Draft DNA result in this browser?")) return;
+  clearPersonalBoard();
+});
+$("shareSafeResetBtn").addEventListener("click",()=>{
+  if(!confirm("This will erase the league, draft, personal board and Draft DNA from this browser. Continue?")) return;
+  fullCleanReset();
+});
 renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
