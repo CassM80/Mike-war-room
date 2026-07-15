@@ -1572,21 +1572,41 @@ function shareLeague(){
 function setResetStatus(msg){ const el=$("resetStatus"); if(el){el.textContent=msg; setTimeout(()=>{if(el.textContent===msg)el.textContent="";},2500);} }
 function updateResetSummary(){ const el=$("resetSummary"); if(!el)return; el.textContent=`${leagueConfig.leagueName||"No league"} • ${state.sales.length} sales • ${Object.keys(personalEvaluations).length} personal evaluations • ${profileMode==="clean"?"Clean shared mode":"Owner starter board active"}`; }
 function confirmTyped(message,word="RESET"){ if(!confirm(message))return false; return prompt(`Type ${word} to confirm:`)===word; }
-function resetReload(intent){
+function clearPersonalizationInMemory(){
   window.__warRoomResetting=true;
-  sessionStorage.setItem(RESET_INTENT_KEY,intent);
-  if(intent==="full"){
-    Object.keys(localStorage).forEach(key=>{ if(key.startsWith("warRoom")) localStorage.removeItem(key); });
-  }else{
-    [PERSONAL_EVAL_KEY,"warRoomPositionDNA2","warRoomDNALeagueProfile","warRoomDNAApplyReceipt"].forEach(key=>localStorage.removeItem(key));
-  }
+  personalEvaluations={};
+  positionDNA={};
+  profileMode="clean";
+  bulkSelected.clear();
+  scoutingSelectedName=null;
+  [PERSONAL_EVAL_KEY,"warRoomPositionDNA2","warRoomDNALeagueProfile","warRoomDNAApplyReceipt","warRoomConsensusRebuiltAt"].forEach(key=>localStorage.removeItem(key));
+  localStorage.setItem(PERSONAL_EVAL_KEY,"{}");
+  localStorage.setItem("warRoomPositionDNA2","{}");
+  localStorage.setItem(PROFILE_MODE_KEY,"clean");
+  renderPersonalBoard();
+  renderBulkBoard();
+  renderCore();
+  setSelected(null);
+  renderAll();
+  updateResetSummary();
+  requestAnimationFrame(()=>{window.__warRoomResetting=false;});
+}
+function clearPersonalBoard(){
+  clearPersonalizationInMemory();
+  setResetStatus("Personal board cleared — 0 saved evaluations.");
+}
+function fullCleanReset(){
+  window.__warRoomResetting=true;
+  personalEvaluations={};
+  positionDNA={};
+  bulkSelected.clear();
+  Object.keys(localStorage).forEach(key=>{ if(key.startsWith("warRoom")) localStorage.removeItem(key); });
+  sessionStorage.removeItem(RESET_INTENT_KEY);
   localStorage.setItem(PROFILE_MODE_KEY,"clean");
   const url=new URL(location.href);
-  url.searchParams.set("reset",Date.now().toString());
+  url.searchParams.set("factoryReset",Date.now().toString());
   location.replace(url.toString());
 }
-function clearPersonalBoard(){ resetReload("personal"); }
-function fullCleanReset(){ resetReload("full"); }
 function importBackupObject(data){
   if(!data||typeof data!=="object"||!data.leagueConfig) throw new Error("Invalid War Room file.");
   if(data.format==="warroom-league"){
