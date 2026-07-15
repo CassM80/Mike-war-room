@@ -1,3 +1,3 @@
-# War Room — Sprint 22.1
+# War Room — Production Sprint 22.2
 
-Fixes reset behavior so the Core Targets panel is driven only by saved personal evaluations. Full Clean Reset now also removes Draft DNA progress and generated targets.
+Makes Draft DNA application reliable on iPhone and desktop. Finishing a position combine now explicitly saves, rebuilds the personal board, refreshes Scouting and War Room, and displays a success receipt before returning to the Combine menu.
