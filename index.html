@@ -381,8 +381,8 @@ body { overflow:auto; }
 .dna-home-summary{display:flex;flex-direction:column;gap:5px;border:1px solid #34404a;border-radius:10px;padding:14px 16px;background:#0a0e12;color:#aebbc6}.dna-home-summary strong{color:var(--green);font-size:14px}
 @media(max-width:700px){.dna-module-card{grid-template-columns:52px minmax(0,1fr) 64px 20px;padding:10px}.dna-module-pos{width:48px;height:48px;font-size:21px}.dna-module-action{display:none}.dna-module-count b{font-size:16px}.dna-module-count small{font-size:8px}.dna-module-copy strong{font-size:15px}}
 
-/* Sprint 23.0: Conviction Score */
-.conviction-field{grid-column:1/-1}.conviction-picker{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.conviction-star{appearance:none;border:1px solid #46515b;background:#111820;color:#66717c;border-radius:9px;width:44px;height:40px;font-size:24px;line-height:1;cursor:pointer}.conviction-star.active{color:#ffd447;border-color:#b9901e;background:#211c0c;box-shadow:0 0 0 1px rgba(255,212,71,.12) inset}.conviction-star:hover{color:#ffe27a;border-color:#d3ad34}.conviction-copy{font-size:11px;color:var(--muted);font-weight:800;margin-left:4px}.conviction-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid #6c5a1c;border-radius:999px;background:#1b1709;color:#ffd447;font-size:10px;font-weight:950;white-space:nowrap}.bulk-conviction{min-width:118px}.bulk-conviction select{min-width:108px}.personal-board-head.conviction-head{grid-template-columns:44px minmax(150px,1fr) 70px 70px 70px 100px}.personal-row.with-conviction{grid-template-columns:44px minmax(150px,1fr) 70px 70px 70px 100px}.dossier-conviction{margin-top:8px}.conviction-legend{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45}
+/* Sprint 23.1: My Guys */
+.conviction-field{grid-column:1/-1}.conviction-picker{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.conviction-star{appearance:none;border:1px solid #46515b;background:#111820;color:#66717c;border-radius:9px;width:44px;height:40px;font-size:24px;line-height:1;cursor:pointer}.conviction-star.active{color:#ffd447;border-color:#b9901e;background:#211c0c;box-shadow:0 0 0 1px rgba(255,212,71,.12) inset}.conviction-star:hover{color:#ffe27a;border-color:#d3ad34}.conviction-copy{font-size:11px;color:var(--muted);font-weight:800;margin-left:4px}.conviction-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid #6c5a1c;border-radius:999px;background:#1b1709;color:#ffd447;font-size:10px;font-weight:950;white-space:nowrap}.bulk-conviction{min-width:118px}.bulk-conviction select{min-width:108px}.personal-board-head.conviction-head{grid-template-columns:44px minmax(150px,1fr) 70px 70px 70px 120px 55px}.personal-row.with-conviction{grid-template-columns:44px minmax(150px,1fr) 70px 70px 70px 120px 55px}.dossier-conviction{margin-top:8px}.conviction-legend{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45}
 /* Sprint 22.9: Remove reset marker conflict and restore DNA regeneration */
 .dna-league-context{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px;padding:12px;border:1px solid #3d571b;border-radius:11px;background:linear-gradient(135deg,#10170d,#0b1014)}
 .dna-league-context div{min-width:0}.dna-league-context strong{display:block;color:var(--green);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dna-league-context span{display:block;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.05em;margin-top:3px}
@@ -390,6 +390,15 @@ body { overflow:auto; }
 .dna-budget-plan{margin:12px 0;border:1px solid #33451d;border-radius:10px;overflow:hidden}.dna-budget-row{display:grid;grid-template-columns:54px 1fr 74px;gap:10px;align-items:center;padding:9px 11px;border-bottom:1px solid #253027;background:#0b100d}.dna-budget-row:last-child{border-bottom:0}.dna-budget-row b{color:var(--green)}.dna-budget-row span{color:#d8e4ee;font-size:12px}.dna-budget-row strong{text-align:right;color:white}
 @media(max-width:760px){.dna-league-context{grid-template-columns:1fr 1fr}.dna-league-impact{grid-template-columns:1fr}}
 
+
+/* Sprint 23.1: My Guys + Edge */
+.my-guys-tabs{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}.my-guys-tab{border:1px solid var(--line);background:#0b0e12;color:var(--muted);padding:9px 13px;border-radius:8px;font-weight:950;cursor:pointer}.my-guys-tab.active{background:var(--green);color:#071006;border-color:var(--green)}
+.my-guys-gallery{display:grid;gap:12px}.my-guys-tier{border:1px solid var(--line);border-radius:10px;background:#0a0e12;overflow:hidden}.my-guys-tier-head{padding:10px 12px;background:#121920;font-size:12px;font-weight:950;display:flex;justify-content:space-between;align-items:center}.my-guys-tier-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;padding:10px}.my-guy-card{border:1px solid #2c3740;background:#0d1318;border-radius:9px;padding:10px;cursor:pointer}.my-guy-card:hover{border-color:var(--green)}.my-guy-card strong{display:block}.my-guy-card small{color:var(--muted)}.my-guy-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;font-weight:900}.edge-positive{color:#55e58b}.edge-negative{color:#ff7272}.edge-neutral{color:var(--muted)}
+.my-guys-stars{display:inline-flex;gap:1px;white-space:nowrap}.my-guys-star{appearance:none;border:0;background:transparent;padding:0 1px;color:#4b535c;font-size:18px;line-height:1;cursor:pointer}.my-guys-star.filled[data-level="5"]{color:#ffd447}.my-guys-star.filled[data-level="4"]{color:#75e55d}.my-guys-star.filled[data-level="3"]{color:#9aa5af}.my-guys-star.filled[data-level="2"]{color:#ffad55}.my-guys-star.filled[data-level="1"]{color:#ff6666}.my-guys-star:hover{transform:scale(1.12)}
+.my-guys-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid #46515b;border-radius:999px;background:#111820;font-size:10px;font-weight:950;white-space:nowrap}.my-guys-badge.level-5{color:#ffd447;border-color:#806d23}.my-guys-badge.level-4{color:#75e55d;border-color:#3d7333}.my-guys-badge.level-3{color:#aeb7c0}.my-guys-badge.level-2{color:#ffad55;border-color:#80592d}.my-guys-badge.level-1{color:#ff7272;border-color:#7b3535}
+.bulk-my-guys{min-width:118px}.bulk-edge{font-weight:950;text-align:center}.bulk-table .my-guys-stars{min-width:104px}.bulk-table .my-guys-star{font-size:17px}
+.dossier-my-guys{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.edge-chip{padding:3px 7px;border-radius:999px;background:#121920;border:1px solid var(--line);font-size:10px;font-weight:950}
+@media(max-width:800px){.my-guys-tier-list{grid-template-columns:1fr}.bulk-table .my-guys-star{font-size:15px}}
 </style>
 </head>
 <body>
@@ -470,7 +479,9 @@ body { overflow:auto; }
     <section class="workspace-card scouting-card" style="margin-top:0">
       <div class="card-head">SCOUTING & PERSONALIZATION</div>
       <div class="card-body">
-        <div class="scouting-layout">
+        <div class="my-guys-tabs"><button class="my-guys-tab active" id="scoutingBoardTab" type="button">PLAYER BOARD</button><button class="my-guys-tab" id="myGuysTab" type="button">★ MY GUYS</button></div>
+        <div id="myGuysGallery" class="my-guys-gallery hidden"></div>
+        <div class="scouting-layout" id="scoutingMainLayout">
           <div class="scouting-search-panel">
             <h3>FIND ANY PLAYER</h3>
             <div class="scouting-search">
@@ -492,10 +503,9 @@ body { overflow:auto; }
                 <div class="form-field"><label>YOUR VALUE</label><input id="evalValue" type="number" min="0" step="1" placeholder="0"></div>
                 <div class="form-field"><label>HARD STOP</label><input id="evalHardStop" type="number" min="0" step="1" placeholder="0"></div>
                 <div class="form-field"><label>PERSONAL TIER</label><input id="evalTier" placeholder="Example: 2 or Green"></div>
-                <div class="form-field conviction-field"><label>CONVICTION SCORE</label><div id="evalConviction" class="conviction-picker" role="radiogroup" aria-label="Conviction score"></div><div class="conviction-legend">1★ Avoid unless deeply discounted · 3★ Neutral · 5★ Plant the flag</div></div>
+                <div class="form-field conviction-field"><label>MY GUYS</label><div id="evalConviction" class="conviction-picker" role="radiogroup" aria-label="My Guys score"></div><div class="conviction-legend">1★ Avoid · 2★ Discount only · 3★ Neutral · 4★ Strong target · 5★ Plant the flag</div></div>
               </div>
               <div class="eval-flags">
-                <label class="flag-toggle"><input id="evalFavorite" type="checkbox"> FAVORITE</label>
                 <label class="flag-toggle"><input id="evalFlagPlant" type="checkbox"> FLAG PLANT</label>
                 <label class="flag-toggle"><input id="evalSleeper" type="checkbox"> SLEEPER</label>
                 <label class="flag-toggle"><input id="evalAvoid" type="checkbox"> AVOID</label>
@@ -533,20 +543,20 @@ body { overflow:auto; }
       <div class="bulk-toolbar">
         <input id="bulkSearch" placeholder="Filter players by name…">
         <select id="bulkPosition"><option value="ALL">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option></select>
-        <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option><option value="HIGH_CONVICTION">4–5★ conviction</option><option value="LOW_CONVICTION">1–2★ conviction</option></select>
-        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Market Price</option><option value="ADP">Sort: ADP / Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option><option value="CONVICTION">Sort: Conviction</option></select>
+        <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option><option value="HIGH_CONVICTION">4–5★ My Guys</option><option value="LOW_CONVICTION">1–2★ My Guys</option></select>
+        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Market Price</option><option value="ADP">Sort: ADP / Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option><option value="CONVICTION">Sort: My Guys</option></select>
       </div>
       <div class="bulk-actions">
         <div class="form-field"><label>START RANK</label><input id="bulkStartRank" type="number" min="1" placeholder="1"></div>
         <div class="form-field"><label>SET TIER</label><input id="bulkTier" placeholder="No change"></div>
         <div class="form-field"><label>SET VALUE</label><input id="bulkValue" type="number" min="0" placeholder="No change"></div>
         <div class="form-field"><label>SET HARD STOP</label><input id="bulkHardStop" type="number" min="0" placeholder="No change"></div>
-        <div class="form-field"><label>SET CONVICTION</label><select id="bulkConviction"><option value="">No change</option><option value="5">5★ Plant Flag</option><option value="4">4★ Love</option><option value="3">3★ Neutral</option><option value="2">2★ Discount Only</option><option value="1">1★ Avoid</option></select></div><div class="form-field"><label>FLAG ACTION</label><select id="bulkFlagAction"><option value="">No flag change</option><option value="favorite:on">Favorite ON</option><option value="favorite:off">Favorite OFF</option><option value="flagPlant:on">Flag Plant ON</option><option value="flagPlant:off">Flag Plant OFF</option><option value="sleeper:on">Sleeper ON</option><option value="sleeper:off">Sleeper OFF</option><option value="avoid:on">Avoid ON</option><option value="avoid:off">Avoid OFF</option></select></div>
+        <div class="form-field"><label>SET MY GUYS</label><select id="bulkConviction"><option value="">No change</option><option value="5">5★ Plant the Flag</option><option value="4">4★ Strong Target</option><option value="3">3★ Neutral</option><option value="2">2★ Discount Only</option><option value="1">1★ Avoid</option></select></div><div class="form-field"><label>TAG ACTION</label><select id="bulkFlagAction"><option value="">No tag change</option><option value="flagPlant:on">Flag Plant ON</option><option value="flagPlant:off">Flag Plant OFF</option><option value="sleeper:on">Sleeper ON</option><option value="sleeper:off">Sleeper OFF</option><option value="avoid:on">Avoid ON</option><option value="avoid:off">Avoid OFF</option></select></div>
         <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
       <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Market $ uses a position-calibrated league baseline; direct provider values will override it when available. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>MARKET $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>CONVICTION</th><th class="bulk-flag">FAV</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>MARKET $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -919,9 +929,12 @@ function savePersonalEvaluations(force=false){
 }
 function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)] || null; }
 function normalizedConviction(value){const n=Number(value);return Number.isFinite(n)&&n>=1&&n<=5?Math.round(n):3;}
-function convictionLabel(score){return ({1:"Avoid",2:"Discount Only",3:"Neutral",4:"Love",5:"Plant the Flag"})[normalizedConviction(score)];}
+function convictionLabel(score){return ({1:"Avoid",2:"Discount Only",3:"Neutral",4:"Strong Target",5:"Plant the Flag"})[normalizedConviction(score)];}
 function convictionStars(score){const n=normalizedConviction(score);return "★".repeat(n)+"☆".repeat(5-n);}
-function convictionBadge(score){const n=normalizedConviction(score);return `<span class="conviction-badge" title="${convictionLabel(n)}">${convictionStars(n)} ${convictionLabel(n)}</span>`;}
+function convictionBadge(score){const n=normalizedConviction(score);return `<span class="my-guys-badge level-${n}" title="${convictionLabel(n)}">${convictionStars(n)} ${convictionLabel(n)}</span>`;}
+function myGuysStarsHTML(score,cls=""){const n=normalizedConviction(score);return `<span class="my-guys-stars ${cls}" role="radiogroup" aria-label="My Guys score">${[1,2,3,4,5].map(i=>`<button type="button" class="my-guys-star ${i<=n?'filled':''}" data-my-guys="${i}" data-level="${n}" title="${i}★ — ${convictionLabel(i)}" aria-label="${i} stars">★</button>`).join('')}</span>`;}
+function playerEdge(base,ev=getPersonalEvaluation(base?.name)){const your=Number(ev?.value||0),market=Number(base?consensusPriceFor(base):0);return your&&market?Math.round(your-market):0;}
+function edgeHTML(edge){const cls=edge>0?"edge-positive":edge<0?"edge-negative":"edge-neutral";return `<span class="${cls}" title="Your Value minus Market Value">${edge>0?"+":""}${edge||0}</span>`;}
 function renderConvictionPicker(score=3){const n=normalizedConviction(score),box=$("evalConviction");if(!box)return;box.dataset.value=String(n);box.innerHTML=[1,2,3,4,5].map(i=>`<button type="button" class="conviction-star ${i<=n?'active':''}" data-conviction="${i}" role="radio" aria-checked="${i===n}" title="${i} stars — ${convictionLabel(i)}">★</button>`).join('')+`<span class="conviction-copy">${n}★ · ${convictionLabel(n)}</span>`;}
 
 function neutralPlayer(base){ return {...base,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Build your personal board in Scouting.",audit:"MARKET",notes:""}; }
@@ -1028,6 +1041,7 @@ function dossierHTML(base){
       <div class="dossier-stat"><span>Your Value</span><strong>${ev&&ev.value?money(ev.value):"Not set"}</strong></div>
       <div class="dossier-stat"><span>Hard Stop</span><strong>${ev&&ev.hardStop?money(ev.hardStop):"Not set"}</strong></div>
       <div class="dossier-stat"><span>Personal Tier</span><strong>${ev&&ev.tier?ev.tier:"Not set"}</strong></div>
+      <div class="dossier-my-guys">${ev?convictionBadge(ev.conviction):convictionBadge(3)} ${ev&&ev.value&&market?`<span class="edge-chip ${playerEdge(base,ev)>0?'edge-positive':playerEdge(base,ev)<0?'edge-negative':'edge-neutral'}">EDGE ${playerEdge(base,ev)>0?'+':''}${playerEdge(base,ev)}</span>`:''}</div>
     </div>
     <div class="dossier-section"><h4>MARKET REFERENCE</h4>
       <div class="dossier-stat"><span>Market Value</span><strong>${market?money(market):"Not available"}</strong></div>
@@ -1180,10 +1194,13 @@ function recommendationFor(base){
   if(p.tier!=="UNRANKED"){ score+=Math.max(0,14-Number(p.pressure||5)); confidence+=18; reasons.push(`Curated Tier ${p.tier} player`); }
   if(ev){
     confidence+=30;
-    if(ev.avoid){score-=55; reasons.unshift("Marked AVOID on your board");}
-    if(ev.flagPlant){score+=20; reasons.unshift("Flag Plant — one of your strongest convictions");}
-    else if(ev.favorite){score+=13; reasons.unshift("Favorite on your personal board");}
+    const myGuys=normalizedConviction(ev.conviction); score+=(myGuys-3)*10;
+    if(ev.avoid||myGuys===1){score-=35; reasons.unshift("★ My Guys — Avoid");}
+    else if(myGuys===5){score+=15; reasons.unshift("★★★★★ My Guys — Plant the Flag");}
+    else if(myGuys===4){score+=8; reasons.unshift("★★★★☆ My Guys — Strong Target");}
+    else if(myGuys===2){score-=8; reasons.unshift("★★☆☆☆ My Guys — Discount Only");}
     if(ev.sleeper){score+=8; reasons.push("Sleeper designation adds upside appeal");}
+    const edge=playerEdge(base,ev); if(edge>=5){score+=8;reasons.push(`+${edge} personal market edge`);} else if(edge<=-5){score-=8;reasons.push(`${edge} personal market edge`);}
   }
   const need=positionNeed(p.pos);
   if(need==="STARTER"){score+=16; reasons.push(`Fills an open ${p.pos} starting spot`);}
@@ -1298,14 +1315,18 @@ function selectScoutingPlayer(name){
   $("scoutingEditorEmpty").classList.add("hidden"); $("scoutingEditorFields").classList.remove("hidden");
   $("evalRank").value=ev.rank??""; $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
   renderConvictionPicker(ev.conviction??3);
-  $("evalFavorite").checked=!!ev.favorite; $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
+  $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
 }
 function renderPersonalBoard(){
   const rows=Object.values(personalEvaluations).sort((a,b)=>((Number(a.rank)||9999)-(Number(b.rank)||9999))||(a.name||'').localeCompare(b.name||'')).slice(0,75);
   const box=$('personalBoardList');if(!box)return;
-  if(!rows.length){box.innerHTML='<div class="personal-empty">No personal evaluations saved yet.</div>';return;}
-  box.innerHTML=`<div class="personal-board-head conviction-head"><span>#</span><span>PLAYER</span><span>TIER</span><span>VALUE</span><span>STOP</span><span>CONVICTION</span></div>`+rows.map(ev=>{const p=byName[ev.name]||{};const tags=evaluationTags(ev);return `<div class="personal-row with-conviction" data-personal-name="${String(ev.name).replace(/"/g,'&quot;')}"><div class="personal-rank">${ev.rank?'#'+ev.rank:'—'}</div><div class="personal-name"><strong>${ev.name}</strong><small>${p.pos||''}${p.team?' • '+p.team:''}</small></div><div class="personal-tier">${ev.tier||'—'}</div><div class="personal-money">${ev.value?money(ev.value):'—'}</div><div class="personal-money">${ev.hardStop?money(ev.hardStop):'—'}</div><div>${convictionBadge(ev.conviction)}</div>${tags.length?`<div class="personal-tags">${tags.join(' · ')}</div>`:''}</div>`;}).join('');
+  if(!rows.length){box.innerHTML='<div class="personal-empty">No personal evaluations saved yet.</div>';renderMyGuysGallery();return;}
+  box.innerHTML=`<div class="personal-board-head conviction-head"><span>#</span><span>PLAYER</span><span>TIER</span><span>VALUE</span><span>STOP</span><span>MY GUYS</span><span>EDGE</span></div>`+rows.map(ev=>{const p=byName[ev.name]||{};const tags=evaluationTags(ev);return `<div class="personal-row with-conviction" data-personal-name="${String(ev.name).replace(/"/g,'&quot;')}"><div class="personal-rank">${ev.rank?'#'+ev.rank:'—'}</div><div class="personal-name"><strong>${ev.name}</strong><small>${p.pos||''}${p.team?' • '+p.team:''}</small></div><div class="personal-tier">${ev.tier||'—'}</div><div class="personal-money">${ev.value?money(ev.value):'—'}</div><div class="personal-money">${ev.hardStop?money(ev.hardStop):'—'}</div><div>${convictionBadge(ev.conviction)}</div><div class="bulk-edge">${edgeHTML(playerEdge(p,ev))}</div>${tags.length?`<div class="personal-tags">${tags.join(' · ')}</div>`:''}</div>`;}).join('');
+  renderMyGuysGallery();
 }
+function renderMyGuysGallery(){const box=$("myGuysGallery");if(!box)return;const groups=[5,4,3,2,1].map(level=>({level,rows:Object.values(personalEvaluations).filter(ev=>normalizedConviction(ev.conviction)===level).sort((a,b)=>(Number(a.rank)||9999)-(Number(b.rank)||9999))})).filter(g=>g.rows.length);if(!groups.length){box.innerHTML='<div class="personal-empty">Rate players in My Guys to build this view.</div>';return;}box.innerHTML=groups.map(g=>`<section class="my-guys-tier"><div class="my-guys-tier-head"><span>${convictionStars(g.level)} ${convictionLabel(g.level)}</span><span>${g.rows.length} PLAYER${g.rows.length===1?'':'S'}</span></div><div class="my-guys-tier-list">${g.rows.map(ev=>{const p=byName[ev.name]||{},edge=playerEdge(p,ev);return `<div class="my-guy-card" data-my-guy-name="${esc(ev.name)}"><strong>${esc(ev.name)}</strong><small>${esc(p.pos||'')}${p.team?' • '+esc(p.team):''}</small><div class="my-guy-meta"><span>${ev.value?`YOUR ${money(ev.value)}`:'VALUE —'}</span><span class="${edge>0?'edge-positive':edge<0?'edge-negative':'edge-neutral'}">EDGE ${edge>0?'+':''}${edge}</span></div></div>`}).join('')}</div></section>`).join('');}
+function showScoutingPanel(panel){const my=panel==='MY';$("scoutingMainLayout").classList.toggle('hidden',my);$("myGuysGallery").classList.toggle('hidden',!my);$("scoutingBoardTab").classList.toggle('active',!my);$("myGuysTab").classList.toggle('active',my);if(my)renderMyGuysGallery();}
+$("scoutingBoardTab")?.addEventListener('click',()=>showScoutingPanel('BOARD'));$("myGuysTab")?.addEventListener('click',()=>showScoutingPanel('MY'));$("myGuysGallery")?.addEventListener('click',e=>{const card=e.target.closest('[data-my-guy-name]');if(card){showScoutingPanel('BOARD');selectScoutingPlayer(card.dataset.myGuyName);}});
 $("scoutingSearch").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim(), box=$("scoutingSuggestions");
   if(!q){box.style.display="none";return;}
@@ -1321,7 +1342,7 @@ $("saveEvaluationBtn").addEventListener("click",()=>{
   const value=Math.max(0,Number($("evalValue").value||0));
   const hard=Math.max(0,Number($("evalHardStop").value||0));
   if(value && hard && hard<value) return alert("Hard Stop cannot be below Your Value.");
-  const ev={name:scoutingSelectedName,conviction:normalizedConviction($("evalConviction")?.dataset.value||3),rank:Math.max(0,Number($("evalRank").value||0)),value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:$("evalFavorite").checked,flagPlant:$("evalFlagPlant").checked,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
+  const myGuys=normalizedConviction($("evalConviction")?.dataset.value||3); const ev={name:scoutingSelectedName,conviction:myGuys,rank:Math.max(0,Number($("evalRank").value||0)),value,hardStop:hard,tier:$("evalTier").value.trim(),favorite:false,flagPlant:$("evalFlagPlant").checked||myGuys===5,sleeper:$("evalSleeper").checked,avoid:$("evalAvoid").checked||myGuys===1,notes:$("evalNotes").value.trim(),updatedAt:new Date().toISOString()};
   activatePersonalization(); personalEvaluations[playerKey(scoutingSelectedName)]=ev; savePersonalEvaluations(true); renderPersonalBoard(); renderBulkBoard(); selectScoutingPlayer(scoutingSelectedName);
   if(state.selected===scoutingSelectedName) setSelected(byName[scoutingSelectedName]);
   $("evaluationSavedNote").textContent="Personal evaluation saved."; setTimeout(()=>$("evaluationSavedNote").textContent="",1800);
@@ -1359,7 +1380,7 @@ function dnaPhilosophyQuestions(pos){
   {key:'investment',label:`How much draft capital do you want to invest at ${pos}?`,opts:[['LOW','Wait / bargain hunt'],['MEDIUM','Stay flexible'],['HIGH','Pay for an edge']]},
   {key:'risk',label:'What profile do you prefer?',opts:[['FLOOR','Reliable floor'],['BALANCED','Balanced'],['UPSIDE','Ceiling / breakout']]},
   {key:'depth',label:`How many ${pos}s do you normally want?`,opts:[['LEAN','Minimum needed'],['NORMAL','Normal depth'],['HEAVY','Extra depth']]},
-  {key:'discipline',label:'How should War Room treat your hard stop?',opts:[['STRICT','Strict'],['CONTROLLED','Controlled'],['AGGRESSIVE','Conviction premium']]}
+  {key:'discipline',label:'How should War Room treat your hard stop?',opts:[['STRICT','Strict'],['CONTROLLED','Controlled'],['AGGRESSIVE','My Guys premium']]}
  ];
  if(pos==='QB')common.push({key:'style',label:'Preferred QB profile',opts:[['RUSH','Rushing upside'],['ANY','Best value'],['POCKET','Pocket passer']]});
  if(pos==='RB')common.push({key:'style',label:'Preferred RB profile',opts:[['WORKHORSE','Workhorse volume'],['ANY','Best value'],['RECEIVING','Receiving upside']]});
@@ -1503,27 +1524,29 @@ function bulkFilteredPlayers(){
   const filter=$("bulkBoardFilter")?.value||"ALL";
   const sort=$("bulkSort")?.value||"NAME";
   let rows=PLAYERS.filter(p=>(!q||playerMatchKey(p.name).includes(q))&&(pos==="ALL"||p.pos===pos));
-  rows=rows.filter(p=>{const ev=getPersonalEvaluation(p.name);if(filter==="PERSONALIZED")return !!ev;if(filter==="UNRANKED")return !ev;if(filter==="TARGETS")return !!(ev&&(ev.favorite||ev.flagPlant||ev.sleeper||ev.avoid));if(filter==="HIGH_CONVICTION")return !!ev&&normalizedConviction(ev.conviction)>=4;if(filter==="LOW_CONVICTION")return !!ev&&normalizedConviction(ev.conviction)<=2;return true;});
+  rows=rows.filter(p=>{const ev=getPersonalEvaluation(p.name);if(filter==="PERSONALIZED")return !!ev;if(filter==="UNRANKED")return !ev;if(filter==="TARGETS")return !!(ev&&(normalizedConviction(ev.conviction)!==3||ev.flagPlant||ev.sleeper||ev.avoid));if(filter==="HIGH_CONVICTION")return !!ev&&normalizedConviction(ev.conviction)>=4;if(filter==="LOW_CONVICTION")return !!ev&&normalizedConviction(ev.conviction)<=2;return true;});
   rows.sort((a,b)=>{const ea=getPersonalEvaluation(a.name)||{},eb=getPersonalEvaluation(b.name)||{};if(sort==="RANK")return (Number(ea.rank)||9999)-(Number(eb.rank)||9999)||a.name.localeCompare(b.name);if(sort==="POSITION")return a.pos.localeCompare(b.pos)||a.name.localeCompare(b.name);if(sort==="VALUE")return (Number(eb.value)||0)-(Number(ea.value)||0)||a.name.localeCompare(b.name);if(sort==="CONVICTION")return normalizedConviction(eb.conviction)-normalizedConviction(ea.conviction)||(Number(ea.rank)||9999)-(Number(eb.rank)||9999)||a.name.localeCompare(b.name);if(sort==="CONSENSUS_PRICE")return consensusPriceFor(b)-consensusPriceFor(a)||a.name.localeCompare(b.name);if(sort==="ADP")return (adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name);return a.name.localeCompare(b.name);});
   return rows.slice(0,500);
 }
 function renderBulkBoard(){
   const body=$("bulkBoardBody"); if(!body)return;
   const rows=bulkFilteredPlayers();
-  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td><strong>${consensusPriceFor(p)?money(consensusPriceFor(p)):"—"}</strong></td><td><strong>${adpFor(p)||"—"}</strong></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-conviction"><select class="bulk-conviction-input">${[5,4,3,2,1].map(n=>`<option value="${n}" ${normalizedConviction(ev.conviction)===n?"selected":""}>${n}★ ${convictionLabel(n)}</option>`).join("")}</select></td><td class="bulk-flag"><input class="bulk-favorite" type="checkbox" ${ev.favorite?"checked":""}></td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
+  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td><strong>${consensusPriceFor(p)?money(consensusPriceFor(p)):"—"}</strong></td><td><strong>${adpFor(p)||"—"}</strong></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-my-guys" data-score="${normalizedConviction(ev.conviction)}">${myGuysStarsHTML(ev.conviction,"bulk-stars")}</td><td class="bulk-edge">${edgeHTML(playerEdge(p,ev))}</td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
   $("bulkCount").textContent=`${rows.length} players shown • ${bulkSelected.size} selected`;
   $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
 }
 function saveBulkRow(tr){
   if(window.__warRoomResetting)return;
   const name=tr.dataset.bulkPlayer, old=getPersonalEvaluation(name)||{};
-  const ev={name,conviction:normalizedConviction(tr.querySelector('.bulk-conviction-input').value),rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:tr.querySelector('.bulk-favorite').checked,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
+  const ev={name,conviction:normalizedConviction(tr.querySelector('.bulk-my-guys')?.dataset.score||3),rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:false,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
   if(ev.value&&ev.hardStop&&ev.hardStop<ev.value){tr.querySelector('.bulk-stop').value=old.hardStop||"";return alert(`Hard Stop cannot be below Your Value for ${name}.`);}
-  const meaningful=ev.rank||ev.tier||ev.value||ev.hardStop||ev.conviction!==3||ev.favorite||ev.flagPlant||ev.sleeper||ev.avoid||ev.notes;
+  const meaningful=ev.rank||ev.tier||ev.value||ev.hardStop||ev.conviction!==3||normalizedConviction(ev.conviction)!==3||ev.flagPlant||ev.sleeper||ev.avoid||ev.notes;
   if(meaningful)personalEvaluations[playerKey(name)]=ev;else delete personalEvaluations[playerKey(name)];
   savePersonalEvaluations(); renderPersonalBoard(); renderCore();
   $("bulkSaveState").textContent="Saved"; clearTimeout(window.bulkSaveTimer); window.bulkSaveTimer=setTimeout(()=>$("bulkSaveState").textContent="",900);
 }
+
+$("bulkBoardBody")?.addEventListener("click",e=>{const star=e.target.closest("[data-my-guys]");if(!star)return;const tr=star.closest("tr[data-bulk-player]"),cell=star.closest(".bulk-my-guys");cell.dataset.score=star.dataset.myGuys;const ev=getPersonalEvaluation(tr.dataset.bulkPlayer)||{};ev.conviction=normalizedConviction(star.dataset.myGuys);ev.favorite=false;ev.flagPlant=ev.conviction===5||!!ev.flagPlant;ev.avoid=ev.conviction===1||!!ev.avoid;personalEvaluations[playerKey(tr.dataset.bulkPlayer)]={name:tr.dataset.bulkPlayer,...ev,updatedAt:new Date().toISOString()};savePersonalEvaluations();renderPersonalBoard();renderCore();renderBulkBoard();});
 ["bulkSearch","bulkPosition","bulkBoardFilter","bulkSort"].forEach(id=>$(id)?.addEventListener(id==="bulkSearch"?"input":"change",renderBulkBoard));
 $("bulkBoardBody")?.addEventListener("change",e=>{const tr=e.target.closest("tr[data-bulk-player]");if(!tr)return;if(e.target.classList.contains("bulk-select")){const key=playerKey(tr.dataset.bulkPlayer);e.target.checked?bulkSelected.add(key):bulkSelected.delete(key);renderBulkBoard();return;}saveBulkRow(tr);});
 $("bulkBoardBody")?.addEventListener("blur",e=>{const tr=e.target.closest("tr[data-bulk-player]");if(tr&&!e.target.classList.contains("bulk-select"))saveBulkRow(tr);},true);
@@ -1603,7 +1626,7 @@ function draftReport(){
 function personalBoardReport(){
   const rows=Object.values(personalEvaluations||{}).sort((a,b)=>(a.tier||"99").localeCompare(b.tier||"99")||(a.name||"").localeCompare(b.name||""));
   const bodyRows=rows.map(ev=>{const tags=evaluationTags(ev).map(t=>`<span class="tag">${esc(t)}</span>`).join("");return `<tr><td><strong>${esc(ev.name)}</strong><div>${tags}</div></td><td>${esc(byName[ev.name]?.pos||"")}</td><td>${ev.value?"$"+Number(ev.value):"—"}</td><td>${ev.hardStop?"$"+Number(ev.hardStop):"—"}</td><td>${esc(ev.tier||"—")}</td><td class="note">${esc(ev.notes||"")}</td></tr>`}).join("")||'<tr><td colspan="6">No personal evaluations saved.</td></tr>';
-  printableShell(`${leagueConfig.leagueName||"War Room"} — Personal Board`,`Private scouting board • ${rows.length} evaluated players`, `<table><thead><tr><th>Player</th><th>Pos</th><th>Your Value</th><th>Hard Stop</th><th>Tier</th><th>Notes</th></tr></thead><tbody>${bodyRows}</tbody></table>`);
+  printableShell(`${leagueConfig.leagueName||"War Room"} — Personal Board`,`Private scouting board • ${rows.length} evaluated players`, `<table><thead><tr><th>Player</th><th>Pos</th><th>Your Value</th><th>Hard Stop</th><th>Tier</th><th>My Guys</th><th>Edge</th><th>Notes</th></tr></thead><tbody>${bodyRows}</tbody></table>`);
   setResetStatus("Personal board opened. Choose Print / Save PDF.");
 }
 function shareLeague(){
