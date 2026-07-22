@@ -1,10 +1,3 @@
-# War Room — Production Sprint 23.1
+War Room Production Sprint 24.0.1 — Navigation Recovery
 
-Adds the My Guys personalization system, interactive star scoring, personal-vs-market Edge, a dedicated My Guys scouting view, and My Guys-aware live recommendations. Favorite was removed as redundant; legacy favorite data remains readable for compatibility.
-
-## My Guys scale
-- 5★ Plant the Flag
-- 4★ Strong Target
-- 3★ Neutral
-- 2★ Discount Only
-- 1★ Avoid
+Restores full tab navigation and JavaScript execution after the broken Sprint 24 package. Includes the stable Sprint 23.1 My Guys + Edge feature set and the user-facing Draft Prep tab rename.
