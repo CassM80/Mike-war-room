@@ -399,3 +399,8 @@ body { overflow:auto; }
 
 /* Sprint 24.4 — Budget-aware Blueprint */
 .blueprint-budget-strip{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px}.blueprint-budget-strip>div{border:1px solid var(--line);background:#0a0e12;border-radius:9px;padding:9px 11px}.blueprint-budget-strip strong{display:block;color:var(--green);font-size:17px}.blueprint-budget-strip span{display:block;color:var(--muted);font-size:8px;font-weight:950;letter-spacing:.05em;margin-top:2px}.blueprint-slot.yours{border-left:3px solid var(--green)}.blueprint-slot.budget-warning{border-left:3px solid #d6a84b;background:#15130d}.blueprint-slot.budget-warning .slot-label span:last-child{color:#e7bd63}@media(max-width:700px){.blueprint-budget-strip{grid-template-columns:repeat(2,1fr)}}
+
+/* Sprint 24.5 — live market sync */
+.market-sync-status{font-size:11px;font-weight:850;letter-spacing:.02em;margin-top:7px;color:var(--muted)}
+.market-sync-btn{min-width:190px}
+@media(max-width:760px){.market-sync-btn{width:100%;min-width:0}.market-sync-status{line-height:1.35}}
