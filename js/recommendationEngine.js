@@ -8,7 +8,7 @@ function rebuildMarketRankCache(){
   marketRankCache={count:PLAYERS.length,ranks};
 }
 
-function positionRankFor(base){if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
+function positionRankFor(base){const provider=Number(base?.provider_pos_rank||0);if(provider>0)return provider;if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
 
 function leagueMarketMultiplier(pos){
   const r=leagueConfig.roster||defaultLeagueConfig.roster;
