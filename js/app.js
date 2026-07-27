@@ -4,6 +4,8 @@ let byName = Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
 const PLAYER_CACHE_KEY = "warRoomFullPlayerCacheV3ActiveOnly";
 const PLAYER_CACHE_TIME_KEY = "warRoomFullPlayerCacheTimeV2";
 const PLAYER_CACHE_MAX_AGE = 24*60*60*1000;
+const MARKET_SYNC_CACHE_KEY = "warRoomMarketSyncV1";
+const MARKET_SYNC_TIME_KEY = "warRoomMarketSyncTimeV1";
 const NFL_DEFENSES = ["ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC","LV","LAC","LAR","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SEA","SF","TB","TEN","WAS"].map(team=>({pos:"DEF",name:team+" Defense",team,tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"No personal valuation yet — use your judgment and record the sale.",audit:"MARKET",notes:"Complete player database"}));
 
 
@@ -32,7 +34,7 @@ async function loadCompletePlayerUniverse(force=false){
     if(!response.ok) throw new Error(`HTTP ${response.status}`);
     const data=await response.json();
     resetPlayerPoolAudit();
-    const rows=Object.values(data||{}).filter(isActiveNFLPlayer).map(p=>({full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active,status:p.status,injury_status:p.injury_status,search_rank:p.search_rank,adp:p.adp,depth_chart_position:p.depth_chart_position,depth_chart_order:p.depth_chart_order,fantasy_positions:p.fantasy_positions,birth_date:p.birth_date,years_exp:p.years_exp}));
+    const rows=Object.entries(data||{}).map(([player_id,p])=>({...p,player_id})).filter(isActiveNFLPlayer).map(p=>({player_id:p.player_id,full_name:p.full_name,first_name:p.first_name,last_name:p.last_name,position:p.position,team:p.team,active:p.active,status:p.status,injury_status:p.injury_status,practice_participation:p.practice_participation,search_rank:p.search_rank,adp:p.adp,depth_chart_position:p.depth_chart_position,depth_chart_order:p.depth_chart_order,fantasy_positions:p.fantasy_positions,birth_date:p.birth_date,years_exp:p.years_exp}));
     localStorage.setItem(PLAYER_CACHE_KEY,JSON.stringify(rows));
     localStorage.setItem(PLAYER_CACHE_TIME_KEY,String(Date.now()));
     mergePlayerUniverse(rows);
@@ -414,7 +416,8 @@ document.getElementById("refreshPlayerPoolBtn")?.addEventListener("click",async(
   await loadCompletePlayerUniverse(true);
   if(btn){btn.disabled=false;btn.textContent="REFRESH PLAYER POOL";}
 });
+document.getElementById("marketSyncBtn")?.addEventListener("click",()=>syncMarketData({force:true}));
 document.getElementById("rebuildConsensusBtn")?.addEventListener("click",rebuildConsensusRankings);
 const rebuiltAt=Number(localStorage.getItem("warRoomConsensusRebuiltAt")||0);
 if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`Consensus baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
-loadCompletePlayerUniverse();
+loadCompletePlayerUniverse().then(()=>hydrateMarketSyncCache());
