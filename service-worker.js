@@ -1,4 +1,4 @@
-const CACHE='war-room-sprint-24-3';
+const CACHE='war-room-sprint-24-4';
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./css/styles.css","./data/players.js","./js/playerData.js","./js/storage.js","./js/draftEngine.js","./js/recommendationEngine.js","./js/blueprint.js","./js/myGuys.js","./js/ui.js","./js/app.js"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
