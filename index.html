@@ -20,6 +20,7 @@
     <button class="nav-tab" data-view="headquartersView">HEADQUARTERS</button>
     <button class="nav-tab" data-view="scoutingView">DRAFT PREP</button>
     <button class="nav-tab active" data-view="warRoomView">WAR ROOM</button>
+    <button class="nav-tab" data-view="mockDraftView">MOCK DRAFT</button>
     <button class="nav-tab" data-view="debriefView">DEBRIEF</button>
   </div>
   <div class="nav-status" id="navLeagueStatus">League setup not completed</div>
@@ -277,6 +278,60 @@
 </div>
 </section>
 
+<section id="mockDraftView" class="app-view">
+  <div class="workspace mock-workspace">
+    <div class="mock-title-row">
+      <div><h2>AUCTION MOCK SIMULATOR</h2><p class="lead">Practice a complete auction against 11 simulated drafters without touching your live draft.</p></div>
+      <div class="mock-title-actions"><button class="secondary-btn" id="mockResetBtn" type="button">RESET MOCK</button><button class="primary-btn" id="mockStartBtn" type="button">START MOCK</button></div>
+    </div>
+    <div class="mock-stats">
+      <div class="mock-stat"><span>YOUR BUDGET</span><strong id="mockBudget">$200</strong></div>
+      <div class="mock-stat"><span>ROSTER SPOTS</span><strong id="mockSpots">17</strong></div>
+      <div class="mock-stat"><span>ROOM</span><strong id="mockRoomStyle">REALISTIC</strong></div>
+      <div class="mock-stat"><span>SALES</span><strong id="mockSalesCount">0</strong></div>
+    </div>
+    <div class="mock-grid">
+      <section class="workspace-card mock-stage">
+        <div class="card-head">LIVE NOMINATION</div>
+        <div class="card-body">
+          <div id="mockEmpty" class="mock-empty">Start a mock to generate the room and first nomination.</div>
+          <div id="mockLive" class="hidden">
+            <div class="mock-nominator" id="mockNominator">TEAM 2 NOMINATES</div>
+            <div class="mock-player" id="mockPlayer">—</div>
+            <div class="mock-player-meta" id="mockPlayerMeta">—</div>
+            <div class="mock-price-band">
+              <div><span>CURRENT BID</span><strong id="mockCurrentBid">$1</strong></div>
+              <div><span>HIGH BIDDER</span><strong id="mockHighBidder">—</strong></div>
+              <div><span>MARKET</span><strong id="mockMarket">—</strong></div>
+              <div><span>YOUR SAFE MAX</span><strong id="mockSafeMax">—</strong></div>
+            </div>
+            <div class="mock-advice" id="mockAdvice">—</div>
+            <div class="mock-controls">
+              <button class="mock-bid-btn" id="mockBidOneBtn" type="button">BID +$1</button>
+              <button class="mock-bid-btn primary" id="mockBidMaxBtn" type="button">BID TO SAFE MAX</button>
+              <button class="mock-pass-btn" id="mockPassBtn" type="button">PASS</button>
+            </div>
+          </div>
+          <div id="mockResult" class="mock-result hidden"></div>
+          <button class="primary-btn mock-next-btn hidden" id="mockNextBtn" type="button">NEXT NOMINATION</button>
+        </div>
+      </section>
+      <section class="workspace-card">
+        <div class="card-head">YOUR MOCK ROSTER</div>
+        <div class="card-body"><div id="mockRoster" class="mock-roster"></div></div>
+      </section>
+      <section class="workspace-card mock-room-card">
+        <div class="card-head">THE ROOM</div>
+        <div class="card-body"><div id="mockTeams" class="mock-teams"></div></div>
+      </section>
+      <section class="workspace-card mock-log-card">
+        <div class="card-head">DRAFT LOG</div>
+        <div class="card-body"><div id="mockLog" class="mock-log"></div></div>
+      </section>
+    </div>
+  </div>
+</section>
+
 <section id="debriefView" class="app-view">
   <div class="workspace">
     <h2>DEBRIEF & RESET</h2>
@@ -336,6 +391,7 @@
 <script src="./js/ui.js"></script>
 <script src="./js/mobileWarRoom.js"></script>
 <script src="./js/app.js"></script>
+<script src="./js/mockSimulator.js"></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
 
 
