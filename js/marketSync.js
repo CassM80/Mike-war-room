@@ -85,7 +85,7 @@ function derivePositionRanks(rows){
 
 function applyRankingSnapshot(rows,{fromCache=false}={}){
   const oldByKey=new Map(PLAYERS.map(p=>[playerMatchKey(p.name),{
-    rank:Number(p.provider_rank||0),price:Number(p.provider_market_price||p.market_price||0),tier:String(p.provider_tier||"")
+    rank:Number(p.provider_rank||0),tier:String(p.provider_tier||"")
   }]));
   let matched=0,rankMoves=0,valueMoves=0,tierMoves=0;
   for(const row of derivePositionRanks(rows.filter(Boolean))){
@@ -101,13 +101,12 @@ function applyRankingSnapshot(rows,{fromCache=false}={}){
     base.projected_points=row.projectedPoints||0;
     base.provider_rank_change=row.rankChange||0;
     if(row.team&&CURRENT_NFL_TEAMS.has(row.team)) base.team=row.team;
-    // League-specific dollar value: provider position rank -> War Room's roster/scoring/budget curve.
-    base.provider_market_price=positionAwareMarketPrice(base);
-    base.market_price=base.provider_market_price;
-    base.audit=fromCache?"CACHED PROVIDER":"LIVE PROVIDER";
+    // Rankings, tiers and projections may refresh. Auction dollars remain on the
+    // verified consensus/baseline layer and are never overwritten by rank sync.
+    base.audit=fromCache?"CACHED RANKINGS":"LIVE RANKINGS";
     matched++;
     if(old.rank&&Math.abs(old.rank-row.rank)>=2) rankMoves++;
-    if(old.price&&Math.abs(old.price-base.provider_market_price)>=3) valueMoves++;
+    // Intentionally no dollar-value movement: rank sync cannot alter Market $.
     if(old.tier&&row.tier&&old.tier!==row.tier) tierMoves++;
   }
   marketRankCache={count:-1,ranks:new Map()};

@@ -1,3 +1,3 @@
-# Mike Cassidy Auction War Room
+# Mike Cassidy Auction War Room — Sprint 25.1
 
-Sprint 25.0 introduces the Dynamic Auction Engine: live market prices, budget-aware Safe Max Now bids, draft-room inflation, positional scarcity, Draft DNA premiums, and true budget pivots.
+Market Price Integrity: Auction Consensus is the default; ranking sync cannot overwrite auction dollars. User-edited prices are highlighted inline without adding another draft-day column.

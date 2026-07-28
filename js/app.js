@@ -46,39 +46,17 @@ async function loadCompletePlayerUniverse(force=false){
 async function rebuildConsensusRankings(){
   const status=document.getElementById("consensusStatus");
   const btn=document.getElementById("rebuildConsensusBtn");
-  const started=Date.now();
-  if(btn){btn.disabled=true;btn.textContent="REBUILDING…";}
-  if(status){status.textContent="Rebuilding market baseline…";status.style.color="var(--muted)";}
+  if(btn){btn.disabled=true;btn.textContent="REFRESHING…";}
+  if(status){status.textContent="Refreshing rankings without changing auction prices…";status.style.color="var(--muted)";}
   try{
-    // Yield once so the loading state paints before the synchronous rebuild begins.
-    await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
-    marketRankCache={count:-1,ranks:new Map()};
-    rebuildMarketRankCache();
-    const eligible=PLAYERS.filter(p=>["QB","RB","WR","TE","K","DEF"].includes(p.pos));
-    let ranked=0;
-    eligible.forEach(p=>{
-      // Rebuild only the internal baseline. Future direct provider values remain supported.
-      if(!Number(p.provider_market_price||0)){
-        p.market_price=positionAwareMarketPrice(p);
-        p.audit="MARKET";
-      }else{
-        p.market_price=Number(p.provider_market_price);
-        p.audit="PROVIDER";
-      }
-      if(!p.adp){const rank=positionRankFor(p);if(rank<999)p.adp=rank;}
-      ranked++;
-    });
-    PLAYERS.sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
-    byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
+    await syncMarketData(true);
     renderBulkBoard();renderPersonalBoard();renderCore();
-    const finished=Date.now();
-    localStorage.setItem("warRoomConsensusRebuiltAt",String(finished));
-    if(status){status.textContent=`Market baseline rebuilt for ${ranked} active players • completed ${new Date(finished).toLocaleTimeString()} • personal rankings unchanged`;status.style.color="var(--green)";}
+    if(status){status.textContent="Rankings refreshed • Auction Consensus and your edited prices preserved";status.style.color="var(--green)";}
   }catch(error){
-    console.error("Consensus rebuild failed",error);
-    if(status){status.textContent=`Market baseline rebuild failed: ${error?.message||"Unknown error"}`;status.style.color="var(--red)";}
+    console.error("Ranking refresh failed",error);
+    if(status){status.textContent=`Ranking refresh failed: ${error?.message||"Unknown error"}`;status.style.color="var(--red)";}
   }finally{
-    if(btn){btn.disabled=false;btn.textContent="REBUILD CONSENSUS RANKINGS";}
+    if(btn){btn.disabled=false;btn.textContent="REFRESH MARKET DATA";}
   }
 }
 

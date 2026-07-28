@@ -36,11 +36,40 @@ function positionAwareMarketPrice(base){
   return Math.max(0,Math.round(value));
 }
 
+const MARKET_OVERRIDE_KEY = "warRoomMarketOverridesV1";
+let marketOverrides = {};
+try { marketOverrides = JSON.parse(localStorage.getItem(MARKET_OVERRIDE_KEY)||"{}")||{}; } catch(e) { marketOverrides = {}; }
+
+function normalizedConsensusKey(name){ return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+function marketOverrideFor(base){ const v=Number(marketOverrides[playerKey(base?.name)]||0); return Number.isFinite(v)&&v>0?Math.round(v):0; }
+function saveMarketOverride(base,value){
+  if(!base) return;
+  const key=playerKey(base.name), amount=Math.max(0,Math.round(Number(value)||0));
+  if(amount) marketOverrides[key]=amount; else delete marketOverrides[key];
+  localStorage.setItem(MARKET_OVERRIDE_KEY,JSON.stringify(marketOverrides));
+}
+function directConsensusFor(base){
+  const raw=(typeof AUCTION_CONSENSUS_VALUES!=="undefined")?AUCTION_CONSENSUS_VALUES[normalizedConsensusKey(base?.name)]:0;
+  const multiplier=(Number(leagueConfig?.budget||200)/200)*Math.pow(Number(leagueConfig?.teamCount||12)/12,.30);
+  return raw?Math.max(1,Math.round(raw*multiplier)):0;
+}
+function baselineMarketFor(base){
+  const direct=directConsensusFor(base);
+  if(direct) return direct;
+  // Curated fair ranges are a stable fallback; ranking-derived prices are always labeled estimates.
+  const low=Number(base?.fairLow||0), high=Number(base?.fairHigh||0);
+  if(low||high) return Math.max(1,Math.round(((low||high)+(high||low))/2));
+  return positionAwareMarketPrice(base);
+}
+function marketPriceSource(base){
+  if(marketOverrideFor(base)) return {code:"EDITED",label:"Your edited market price"};
+  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}`};
+  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:"War Room stable baseline"};
+  return {code:"ESTIMATE",label:"Rank-derived estimate"};
+}
 function consensusPriceFor(base){
   if(!base) return 0;
-  // Future licensed/provider values can be supplied directly as market_price.
-  if(Number(base.market_price||0)>0) return Math.round(Number(base.market_price));
-  return positionAwareMarketPrice(base);
+  return marketOverrideFor(base)||baselineMarketFor(base);
 }
 
 function adpFor(base){
