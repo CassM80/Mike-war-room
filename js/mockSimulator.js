@@ -1,6 +1,6 @@
 // Sprint 26.0 — isolated auction mock simulator. Never writes to the live draft state.
 (() => {
-  const KEY = "warRoomMockStateV3";
+  const KEY = "warRoomMockStateV4";
   const PERSONALITIES = [
     {name:"Stars & Scrubs",aggression:1.16,rb:1.00,wr:1.00,qb:1.02,value:0.92},
     {name:"Balanced",aggression:1.00,rb:1.00,wr:1.00,qb:1.00,value:1.00},
@@ -90,10 +90,14 @@
     if(!preferred) preferred=Math.round(market*(conviction(p)>=4?1.06:conviction(p)<=2?.82:.98));
     return Math.max(0,Math.min(legalMax(team),preferred));
   }
-  function providerRank(p){return Number(p.provider_rank||p.search_rank||9999);}
+  function providerRank(p){
+    // Live-provider/search ADP is the neutral room rank. Personal preferences must never bury an NFL star.
+    const rank=Number(p.provider_rank||p.search_rank||p.adp||0);
+    return Number.isFinite(rank)&&rank>0?rank:9999;
+  }
   function nominationRank(p){
-    const mine=personalRank(p);
-    return mine<9999?mine:providerRank(p);
+    // AI nomination order represents the public draft room, not Mike's personal board or Consensus $.
+    return providerRank(p);
   }
   function nominationTier(p){
     const raw=String(evaluation(p)?.tier||p.provider_tier||p.tier||"").toUpperCase().replace(/^TIER\s*/,"").trim();
@@ -109,23 +113,50 @@
     return PLAYERS.filter(p=>["QB","RB","WR","TE","K","DEF"].includes(p.pos)&&!drafted(p.name))
       .sort((a,b)=>nominationRank(a)-nominationRank(b)||providerRank(a)-providerRank(b)||a.name.localeCompare(b.name));
   }
+  function weightedChoice(items){
+    const total=items.reduce((sum,x)=>sum+Math.max(.001,Number(x.score)||0),0);
+    let roll=Math.random()*total;
+    for(const item of items){roll-=Math.max(.001,Number(item.score)||0);if(roll<=0)return item.p;}
+    return items[0]?.p||null;
+  }
+  function phaseCandidatePool(pool){
+    const pickNo=(mock?.sales?.length||0)+1;
+    const ranked=pool.filter(p=>nominationRank(p)<9999);
+    if(!ranked.length)return pool.slice(0,80);
+
+    // Hard realism guard: all public top-12 players must be nominated by pick 24.
+    const elite=ranked.filter(p=>nominationRank(p)<=12);
+    const slotsUntilDeadline=Math.max(1,25-pickNo);
+    if(elite.length>=slotsUntilDeadline)return elite;
+
+    // Early auctions overwhelmingly feature prominent players, with a little strategic variation.
+    const roll=Math.random();
+    let cutoff;
+    if(pickNo<=12) cutoff=roll<.88?24:roll<.98?48:90;
+    else if(pickNo<=30) cutoff=roll<.80?36:roll<.95?72:120;
+    else if(pickNo<=60) cutoff=roll<.65?72:roll<.92?130:200;
+    else cutoff=roll<.55?130:roll<.90?220:9999;
+    const phase=ranked.filter(p=>nominationRank(p)<=cutoff);
+    return phase.length?phase:ranked.slice(0,Math.min(40,ranked.length));
+  }
   function pickNominee(teamIndex){
-    const team=mock.teams[teamIndex],pool=candidatePool().slice(0,180);
-    if(!pool.length)return null;
+    const team=mock.teams[teamIndex],all=candidatePool().slice(0,240);
+    if(!all.length)return null;
+    const pool=phaseCandidatePool(all);
     const scored=pool.map(p=>{
       const need=positionNeed(team,p.pos),pers=team.personality||PERSONALITIES[1],rank=nominationRank(p);
       let score=nominationProminence(p)*need;
-      // Personalities change WHO gets nominated, but never use Consensus $ to set nomination priority.
-      if(pers.name==="Stars & Scrubs")score*=rank<=24?1.32:rank<=60?1.04:.78;
-      else if(pers.name==="RB Heavy")score*=p.pos==="RB"?1.22:.96;
-      else if(pers.name==="WR Collector")score*=p.pos==="WR"?1.22:.96;
-      else if(pers.name==="QB Homer")score*=p.pos==="QB"?1.38:.96;
-      else if(pers.name==="Value Hunter")score*=rank>18&&rank<110?1.14:.94;
-      if(pers.chaos)score*=.48+Math.random()*1.35;
-      score*=.82+Math.random()*.36;
+      // Personalities shape choices only inside the rank-based phase pool. Consensus $ is never consulted.
+      if(pers.name==="Stars & Scrubs")score*=rank<=24?1.25:1.00;
+      else if(pers.name==="RB Heavy")score*=p.pos==="RB"?1.18:.98;
+      else if(pers.name==="WR Collector")score*=p.pos==="WR"?1.18:.98;
+      else if(pers.name==="QB Homer")score*=p.pos==="QB"?1.30:.98;
+      else if(pers.name==="Value Hunter")score*=rank>18&&rank<110?1.10:.98;
+      if(pers.chaos)score*=.72+Math.random()*.70;
+      score*=.92+Math.random()*.16;
       return {p,score};
-    }).sort((a,b)=>b.score-a.score);
-    return scored[0].p;
+    });
+    return weightedChoice(scored);
   }
   function initTeams(){
     const count=Number(leagueConfig.teamCount||12),budget=Number(leagueConfig.budget||200);
