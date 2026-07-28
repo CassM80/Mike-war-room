@@ -171,8 +171,8 @@
         <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
-      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Market $ uses a position-calibrated league baseline; direct provider values will override it when available. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>MARKET $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Auction Consensus is the default price. Any price you edit is highlighted; market sync never overwrites auction dollars. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -323,6 +323,7 @@
 </section>
 
 <script src="./data/players.js"></script>
+<script src="./data/auctionConsensus.js"></script>
 <script src="./js/playerData.js"></script>
 <script src="./js/storage.js"></script>
 <script src="./js/draftEngine.js"></script>
