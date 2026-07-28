@@ -1,57 +1,40 @@
-// Sprint 24.3 — Blueprint and Draft DNA strategy logic.
+// Sprint 25.0 — Dynamic Blueprint powered by live auction recommendations.
 
-function blueprintCandidates(pos){return Object.values(personalEvaluations).filter(ev=>(byName[ev.name]||{}).pos===pos&&normalizedConviction(ev.conviction)>=4).sort((a,b)=>normalizedConviction(b.conviction)-normalizedConviction(a.conviction)||(Number(a.rank)||9999)-(Number(b.rank)||9999));}
+function blueprintCandidates(pos){
+  return Object.values(personalEvaluations)
+    .filter(ev=>(byName[ev.name]||{}).pos===pos&&normalizedConviction(ev.conviction)>=4&&!saleForPlayer(ev.name))
+    .sort((a,b)=>{
+      const score=x=>normalizedConviction(x.conviction)*100+Number(!!x.flagPlant)*35+Number(!!x.favorite)*20+Number(!!x.sleeper)*8-(Number(x.rank)||9999)*.1;
+      return score(b)-score(a)||(Number(a.rank)||9999)-(Number(b.rank)||9999);
+    });
+}
 
 function blueprintSlotCounts(){const r=leagueConfig.roster||{};return {QB:Number(r.qb||1),RB:Number(r.rb||2)+Math.ceil(Number(r.flex||0)/2),WR:Number(r.wr||2)+Math.floor(Number(r.flex||0)/2),TE:Number(r.te||1)};}
 
-function blueprintPrice(ev){const base=byName[ev?.name];const market=base?Number(marketValueFor(base)||0):0;const value=Number(ev?.value||0),stop=Number(ev?.hardStop||0);return Math.max(1,Math.round(value||market||stop||1));}
-
-function allocateBlueprintBudget(openSlots,pool){
-  const allocations=new Map();
-  if(!openSlots.length)return allocations;
-  const dollars=Math.max(openSlots.length,Math.floor(pool));
-  const weights=openSlots.map(slot=>Math.max(1,blueprintPrice(slot.seed)));
-  const weightTotal=weights.reduce((a,b)=>a+b,0)||1;
-  let assigned=0;
-  openSlots.forEach((slot,i)=>{
-    const left=openSlots.length-i-1;
-    const maxHere=Math.max(1,dollars-assigned-left);
-    const raw=i===openSlots.length-1?dollars-assigned:Math.round(dollars*weights[i]/weightTotal);
-    const amount=Math.max(1,Math.min(maxHere,raw));
-    allocations.set(slot.key,amount);assigned+=amount;
-  });
-  return allocations;
+function blueprintTargetForSlot(pool,used){
+  const primary=pool.find(ev=>!used.has(ev.name))||null;
+  if(primary)used.add(primary.name);
+  return primary;
 }
 
-function blueprintTargetForSlot(pos,pool,used,allocation){
-  const available=pool.filter(ev=>!used.has(ev.name)&&!saleForPlayer(ev.name));
-  if(!available.length)return {primary:null,competitivePivot:null,budgetPivot:null};
-  const fitLimit=Math.max(2,Math.round(allocation*1.15));
-  const affordable=available.filter(ev=>blueprintPrice(ev)<=fitLimit);
-  const primary=(affordable.length?affordable:available.slice().sort((a,b)=>blueprintPrice(a)-blueprintPrice(b)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction)))[0];
-  if(primary)used.add(primary.name);
-  if(!primary)return {primary:null,competitivePivot:null,budgetPivot:null};
-
-  const primaryPrice=blueprintPrice(primary);
-  const remaining=available.filter(ev=>ev.name!==primary.name);
-  const competitivePivot=remaining.slice().sort((a,b)=>{
+function blueprintPivots(primary,pool,safeMax,usedNames){
+  if(!primary)return {competitive:null,budget:null};
+  const base=byName[primary.name],market=auctionObservedMarket(base);
+  const remaining=pool.filter(ev=>ev.name!==primary.name&&!usedNames.has(ev.name)&&!saleForPlayer(ev.name));
+  const competitive=remaining.slice().sort((a,b)=>{
+    const aBase=byName[a.name],bBase=byName[b.name];
     const convictionGapA=Math.abs(normalizedConviction(a.conviction)-normalizedConviction(primary.conviction));
     const convictionGapB=Math.abs(normalizedConviction(b.conviction)-normalizedConviction(primary.conviction));
-    const rankGapA=Math.abs((Number(a.rank)||9999)-(Number(primary.rank)||9999));
-    const rankGapB=Math.abs((Number(b.rank)||9999)-(Number(primary.rank)||9999));
-    return convictionGapA-convictionGapB||rankGapA-rankGapB||blueprintPrice(a)-blueprintPrice(b);
+    const marketGapA=Math.abs(auctionObservedMarket(aBase)-market);
+    const marketGapB=Math.abs(auctionObservedMarket(bBase)-market);
+    return convictionGapA-convictionGapB||marketGapA-marketGapB||(Number(a.rank)||9999)-(Number(b.rank)||9999);
   })[0]||null;
-
-  // A budget pivot must truly reduce cost. Prefer a player that fits the current
-  // allocation; otherwise choose the largest useful savings without fabricating
-  // a supposedly "cheaper" option.
-  const cheaper=remaining.filter(ev=>blueprintPrice(ev)<primaryPrice);
-  const budgetPivot=cheaper.slice().sort((a,b)=>{
-    const aFits=blueprintPrice(a)<=fitLimit?0:1,bFits=blueprintPrice(b)<=fitLimit?0:1;
-    return aFits-bFits||Math.abs(blueprintPrice(a)-allocation)-Math.abs(blueprintPrice(b)-allocation)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction)||(Number(a.rank)||9999)-(Number(b.rank)||9999);
+  const budget=remaining.filter(ev=>auctionObservedMarket(byName[ev.name])<market).sort((a,b)=>{
+    const aPrice=auctionObservedMarket(byName[a.name]),bPrice=auctionObservedMarket(byName[b.name]);
+    const aFits=aPrice<=safeMax?0:1,bFits=bPrice<=safeMax?0:1;
+    return aFits-bFits||Math.abs(aPrice-safeMax)-Math.abs(bPrice-safeMax)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction)||(Number(a.rank)||9999)-(Number(b.rank)||9999);
   })[0]||null;
-
-  return {primary,competitivePivot,budgetPivot};
+  return {competitive,budget};
 }
 
 function renderBlueprint(){
@@ -59,7 +42,7 @@ function renderBlueprint(){
   const slots=blueprintSlotCounts(),positions=['QB','RB','WR','TE'];
   if(!Object.values(personalEvaluations).some(ev=>normalizedConviction(ev.conviction)>=4)){box.innerHTML='<div class="blueprint-empty">Add 4–5★ players in My Guys to generate your Blueprint.</div>';return;}
 
-  const budget=Number(leagueConfig.budget||200),spentNow=spent(),remaining=Math.max(0,budget-spentNow);
+  const auctionBudget=Number(leagueConfig.budget||200),spentNow=spent(),remaining=Math.max(0,auctionBudget-spentNow);
   const mySales=(state.sales||[]).filter(s=>s.winner==='me');
   const ownedByPos={QB:[],RB:[],WR:[],TE:[]};
   mySales.forEach(s=>{const pos=byName[s.player]?.pos;if(ownedByPos[pos]&&ownedByPos[pos].length<slots[pos])ownedByPos[pos].push(s);});
@@ -72,33 +55,44 @@ function renderBlueprint(){
   const planPool=Math.max(0,remaining-reserve);
 
   const slotDefs=[];
-  positions.forEach(pos=>{const pool=blueprintCandidates(pos);for(let i=0;i<slots[pos];i++)slotDefs.push({key:`${pos}${i+1}`,pos,index:i,seed:pool[i]||pool[0]||null});});
-  const openDefs=slotDefs.filter(s=>!ownedByPos[s.pos][s.index]);
-  const allocations=allocateBlueprintBudget(openDefs,planPool);
-  const used=new Set();
-  const rendered={QB:[],RB:[],WR:[],TE:[]};
-  let viable=0,checked=0;
-
+  positions.forEach(pos=>{for(let i=0;i<slots[pos];i++)slotDefs.push({key:`${pos}${i+1}`,pos,index:i});});
+  const used=new Set(mySales.map(s=>s.player));
+  const selected=[];
   slotDefs.forEach(slot=>{
     const owned=ownedByPos[slot.pos][slot.index];
-    if(owned){
-      const ev=getPersonalEvaluation(owned.player);used.add(owned.player);viable++;checked++;
-      rendered[slot.pos].push(`<div class="blueprint-slot yours" data-blueprint-name="${esc(owned.player)}"><div class="slot-label"><span>${slot.key}</span><span>LOCKED</span></div><strong>${esc(owned.player)}</strong><small>${ev?convictionStars(ev.conviction)+' • ':''}Paid ${money(owned.price)}</small><div class="blueprint-pivots">Budget locked into your roster.</div></div>`);return;
-    }
-    const allocation=allocations.get(slot.key)||0,pool=blueprintCandidates(slot.pos),pick=blueprintTargetForSlot(slot.pos,pool,used,allocation),primary=pick.primary;
-    checked++;
-    if(!primary){rendered[slot.pos].push(`<div class="blueprint-slot"><div class="slot-label"><span>${slot.key}</span><span>OPEN</span></div><strong>Target not set</strong><small>Plan ${money(allocation)} • add another 4–5★ ${slot.pos}</small></div>`);return;}
-    const target=blueprintPrice(primary),fitLimit=Math.max(2,Math.round(allocation*1.15)),fits=target<=fitLimit;if(fits)viable++;
-    const stop=Number(primary.hardStop||0),status=playerDraftStatus(primary.name),shortfall=Math.max(0,target-allocation);
-    const competitive=pick.competitivePivot?`${esc(pick.competitivePivot.name)} (${money(blueprintPrice(pick.competitivePivot))})`:'None identified';
-    const budget=pick.budgetPivot?`${esc(pick.budgetPivot.name)} (${money(blueprintPrice(pick.budgetPivot))})`:'No budget pivot identified';
-    rendered[slot.pos].push(`<div class="blueprint-slot ${fits?'':'budget-warning'}" data-blueprint-name="${esc(primary.name)}"><div class="slot-label"><span>${slot.key}</span><span>${fits?status.label:'BUDGET STRETCH'}</span></div><strong>${esc(primary.name)}</strong><small>${convictionStars(primary.conviction)} • Plan ${money(allocation)}${stop?` • Max ${money(stop)}`:''}${shortfall?` • Over plan by ${money(shortfall)}`:''}</small><div class="blueprint-pivots"><span><b>Competitive:</b> ${competitive}</span><span><b>Budget:</b> ${budget}</span></div></div>`);
+    if(owned){selected.push({slot,owned,ev:getPersonalEvaluation(owned.player)});return;}
+    const ev=blueprintTargetForSlot(blueprintCandidates(slot.pos),used);
+    selected.push({slot,owned:null,ev});
   });
 
-  const plannedOpen=[...allocations.values()].reduce((a,b)=>a+b,0),plannedTotal=spentNow+plannedOpen+reserve;
-  const health=checked?Math.round(viable/checked*100):100;
+  const openTargets=selected.filter(x=>!x.owned&&x.ev).map(x=>x.ev);
+  const safeCaps=blueprintSafeCaps(openTargets,planPool);
+  const capByName=new Map(openTargets.map((ev,i)=>[ev.name,safeCaps[i]]));
+  const expectedOpen=openTargets.reduce((sum,ev)=>sum+auctionObservedMarket(byName[ev.name]),0);
+  const projectedTotal=spentNow+reserve+expectedOpen;
+  const overBudget=Math.max(0,projectedTotal-auctionBudget);
+  const health=Math.max(0,Math.min(100,Math.round(100-(overBudget/Math.max(1,auctionBudget))*100)));
+  const rendered={QB:[],RB:[],WR:[],TE:[]};
+  const selectedNames=new Set(openTargets.map(ev=>ev.name));
+
+  selected.forEach(item=>{
+    const {slot,owned,ev}=item;
+    if(owned){
+      rendered[slot.pos].push(`<div class="blueprint-slot yours" data-blueprint-name="${esc(owned.player)}"><div class="slot-label"><span>${slot.key}</span><span>LOCKED</span></div><strong>${esc(owned.player)}</strong><div class="auction-price-grid"><span><small>PAID</small>${money(owned.price)}</span><span><small>STATUS</small>ROSTERED</span></div></div>`);return;
+    }
+    if(!ev){rendered[slot.pos].push(`<div class="blueprint-slot"><div class="slot-label"><span>${slot.key}</span><span>OPEN</span></div><strong>Target not set</strong><small>Add another 4–5★ ${slot.pos}</small></div>`);return;}
+    const base=byName[ev.name],cap=capByName.get(ev.name)||1,rec=dynamicAuctionRecommendation(base,ev,{blueprintCap:cap});
+    const pivots=blueprintPivots(ev,blueprintCandidates(slot.pos),rec.safeMax,selectedNames);
+    const competitive=pivots.competitive?`${esc(pivots.competitive.name)} (${money(auctionObservedMarket(byName[pivots.competitive.name]))})`:'None identified';
+    const budgetPivot=pivots.budget?`${esc(pivots.budget.name)} (${money(auctionObservedMarket(byName[pivots.budget.name]))})`:'No budget pivot identified';
+    const warning=rec.gap>0;
+    const statusText=warning?`NEED ${money(rec.gap)} DISCOUNT`:rec.cushion?`${money(rec.cushion)} CUSHION`:'MARKET READY';
+    rendered[slot.pos].push(`<div class="blueprint-slot ${warning?'budget-warning':'market-ready'}" data-blueprint-name="${esc(ev.name)}"><div class="slot-label"><span>${slot.key}</span><span>${rec.status}</span></div><strong>${esc(ev.name)}</strong><div class="auction-price-grid"><span><small>LIVE MARKET</small>${money(rec.market)}</span><span><small>SAFE MAX NOW</small>${money(rec.safeMax)}</span></div><div class="auction-budget-status ${warning?'warning':'ready'}">${statusText}</div><div class="blueprint-pivots"><span><b>Competitive:</b> ${competitive}</span><span><b>Budget:</b> ${budgetPivot}</span></div></div>`);
+  });
+
   const columns=positions.map(pos=>`<section class="blueprint-position"><h3>${pos} BLUEPRINT</h3>${rendered[pos].join('')}</section>`).join('');
-  box.innerHTML=`<div class="blueprint-head"><div><strong>YOUR BUDGET-AWARE DRAFT</strong><div style="color:var(--muted);font-size:10px;margin-top:3px">Every open target shares the same live ${money(budget)} auction budget. Plan prices rebalance after every purchase.</div></div><div class="blueprint-health"><strong style="color:var(--green);font-size:22px">${health}%</strong><br>BUDGET VIABILITY</div></div><div class="blueprint-budget-strip"><div><strong>${money(spentNow)}</strong><span>LOCKED</span></div><div><strong>${money(plannedOpen)}</strong><span>OPEN CORE PLAN</span></div><div><strong>${money(reserve)}</strong><span>OTHER SPOTS RESERVE</span></div><div><strong>${money(plannedTotal)}</strong><span>TOTAL PLAN / ${money(budget)}</span></div></div><div class="blueprint-grid">${columns}</div>`;
+  const planMessage=overBudget?`Current targets project ${money(overBudget)} over budget. Safe Max Now shows exactly where discounts or pivots are required.`:`Current targets fit the live budget with ${money(auctionBudget-projectedTotal)} projected room.`;
+  box.innerHTML=`<div class="blueprint-head"><div><strong>YOUR DYNAMIC AUCTION BLUEPRINT</strong><div class="blueprint-subhead">${planMessage}</div></div><div class="blueprint-health"><strong>${health}%</strong><br>PLAN HEALTH</div></div><div class="blueprint-budget-strip"><div><strong>${money(spentNow)}</strong><span>LOCKED</span></div><div><strong>${money(expectedOpen)}</strong><span>LIVE CORE MARKET</span></div><div><strong>${money(reserve)}</strong><span>OTHER SPOTS RESERVE</span></div><div><strong>${money(projectedTotal)}</strong><span>PROJECTED / ${money(auctionBudget)}</span></div></div><div class="blueprint-grid">${columns}</div>`;
 }
 
 function savePositionDNA(){localStorage.setItem('warRoomPositionDNA2',JSON.stringify(positionDNA));}
