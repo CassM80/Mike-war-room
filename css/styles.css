@@ -416,100 +416,106 @@ body { overflow:auto; }
 /* Sprint 25.1 — simple, source-safe consensus editing */
 .bulk-market-cell{position:relative;white-space:nowrap}.bulk-market-cell .market-dollar{font-weight:900;margin-right:2px}.bulk-market{width:48px!important;padding:3px 2px!important;border:1px solid transparent!important;background:transparent!important;color:var(--text)!important;font-weight:900;text-align:left}.bulk-market:hover,.bulk-market:focus{border-color:var(--border)!important;background:var(--panel)!important;outline:none}.bulk-market-cell small{display:block;font-size:8px;line-height:1;color:var(--muted);letter-spacing:.08em}.bulk-market-cell.is-edited{background:rgba(255,190,46,.08)}.bulk-market-cell.is-edited .bulk-market{color:var(--yellow)!important}.bulk-market-cell.is-edited small{color:var(--yellow);font-weight:900}
 
-/* Sprint 25.3 — Mobile War Room */
-@media (max-width:700px) and (orientation:portrait) {
-  html,body { overflow-x:hidden; overscroll-behavior-y:auto; }
-  body { overflow-y:auto; }
+/* Sprint 25.3.1 — Clean phone War Room */
+@media (max-width:900px) {
+  html,body { overflow-x:hidden!important; overflow-y:auto!important; overscroll-behavior-y:auto; }
+  body { padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
   .top-nav {
-    position:sticky; top:0; z-index:300; padding:6px 8px;
-    grid-template-columns:1fr; gap:5px; background:rgba(7,9,11,.97);
+    position:sticky; top:0; z-index:300; padding:7px 8px;
+    grid-template-columns:1fr; gap:6px; background:rgba(7,9,11,.98);
   }
-  .nav-brand,.nav-status { display:none; }
-  .nav-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; width:100%; }
-  .nav-tab { min-width:0; padding:8px 4px; font-size:10px; border-radius:7px; }
+  .nav-brand,.nav-status { display:none!important; }
+  .nav-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; width:100%; }
+  .nav-tab { min-width:0; min-height:44px; padding:8px 3px; font-size:10px; border-radius:8px; white-space:nowrap; }
 
-  #warRoomView.active { overflow:visible; }
+  #warRoomView.active { overflow:visible!important; }
   #warRoomView #app {
-    width:100%; height:auto; min-height:calc(100dvh - 48px); overflow:visible;
-    display:flex; flex-direction:column; gap:8px; padding:8px 8px calc(18px + env(safe-area-inset-bottom));
+    width:100%; max-width:none; height:auto!important; min-height:0!important; overflow:visible!important;
+    display:flex!important; flex-direction:column; gap:10px; padding:8px 8px calc(18px + env(safe-area-inset-bottom));
   }
   #warRoomView header {
-    order:1; min-height:66px; grid-template-columns:70px 1fr 74px; padding:7px 9px; border-radius:10px;
+    order:1; min-height:78px; height:auto; grid-template-columns:82px minmax(0,1fr) 82px;
+    padding:8px 10px; border-radius:11px;
   }
-  #warRoomView .brand-small { font-size:8px; line-height:1.35; letter-spacing:.13em; }
-  #warRoomView h1 { font-size:26px; letter-spacing:.18em; }
-  #warRoomView .slogan { font-size:7px; letter-spacing:.18em; margin-top:5px; }
+  #warRoomView .brand-small { font-size:8px; line-height:1.35; letter-spacing:.14em; }
+  #warRoomView h1 { font-size:clamp(24px,7vw,36px); letter-spacing:.16em; white-space:nowrap; }
+  #warRoomView .slogan { font-size:7px; letter-spacing:.14em; margin-top:5px; white-space:nowrap; }
   #warRoomView .header-right { font-size:10px; line-height:1.45; }
 
   #warRoomView .command {
-    order:2; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px;
+    order:2; display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;
   }
-  #warRoomView .metric { min-height:84px; padding:7px 4px; }
-  #warRoomView .metric .label { font-size:8px; line-height:1.15; }
-  #warRoomView .metric .value { font-size:22px; margin:4px 0; white-space:nowrap; }
-  #warRoomView .metric .sub { font-size:7px; line-height:1.15; }
+  #warRoomView .metric { min-width:0; min-height:92px; padding:9px 5px; }
+  #warRoomView .metric .label { font-size:8px; line-height:1.2; }
+  #warRoomView .metric .value { font-size:clamp(21px,6vw,29px); margin:5px 0; white-space:nowrap; }
+  #warRoomView .metric .sub { font-size:7px; line-height:1.2; }
   #warRoomView .command .metric:nth-child(2),
-  #warRoomView .command .metric:nth-child(4) { display:none; }
-  #warRoomView .command .metric:nth-child(5) .value,
-  #warRoomView .command .metric:nth-child(6) .value { font-size:18px; }
+  #warRoomView .command .metric:nth-child(4),
+  #warRoomView .command .metric:nth-child(5) { display:none!important; }
+  #warRoomView .command .metric:nth-child(6) .value { font-size:clamp(18px,5vw,25px); }
 
-  #warRoomView .main { display:contents; }
-  #warRoomView .dossier { order:3; min-height:0; display:block; overflow:visible; }
-  #warRoomView .record { order:4; }
-  #warRoomView .side { order:5; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  #warRoomView .main { display:contents!important; }
+  #warRoomView .dossier {
+    order:3; display:block!important; position:static!important; height:auto!important; min-height:0!important;
+    overflow:visible!important; z-index:auto!important;
+  }
+  #warRoomView .record {
+    order:4; display:flex!important; flex-direction:column; gap:8px; position:static!important;
+    height:auto!important; min-height:0!important; overflow:visible!important; z-index:auto!important;
+  }
+  #warRoomView .side { order:5; display:flex!important; flex-direction:column; gap:8px; min-height:0; }
   #warRoomView .roster { order:6; min-height:0; }
 
   #warRoomView .dossier .search-row {
-    display:flex; flex-direction:column; align-items:stretch; gap:7px; padding:10px;
+    display:flex!important; flex-direction:column; align-items:stretch; gap:8px; padding:11px;
   }
-  #warRoomView .dossier .search-row .panel-title { justify-content:center; font-size:12px; }
-  #warRoomView #playerSearch { height:50px; font-size:17px; }
-  #warRoomView #suggestions { top:54px; max-height:42vh; }
-  #warRoomView .player-head { flex-direction:column; gap:2px; padding:11px 10px 5px; text-align:center; }
-  #warRoomView .player-name { font-size:25px; line-height:1.05; }
-  #warRoomView .meta { font-size:11px; }
-  #warRoomView .decision-area { padding:8px 10px 10px; }
-  #warRoomView .waiting { min-height:135px; padding:20px 8px; }
+  #warRoomView .dossier .search-row .panel-title { height:auto; min-height:30px; justify-content:center; font-size:12px; border:0; padding:0; }
+  #warRoomView .search-wrap { width:100%; }
+  #warRoomView #playerSearch { height:52px; font-size:17px; }
+  #warRoomView #suggestions { top:56px; max-height:42vh; }
+  #warRoomView .player-head { display:block!important; padding:14px 12px 7px; text-align:center; }
+  #warRoomView .player-name { font-size:clamp(25px,7vw,34px); line-height:1.05; overflow-wrap:anywhere; }
+  #warRoomView .meta { font-size:11px; line-height:1.35; margin-top:7px; }
+  #warRoomView .meta span { margin:0 4px; }
+  #warRoomView .decision-area {
+    display:block!important; position:static!important; height:auto!important; min-height:0!important;
+    overflow:visible!important; padding:9px 10px 12px;
+  }
+  #warRoomView .waiting { min-height:120px; height:auto!important; padding:18px 8px; }
   #warRoomView .waiting strong { font-size:17px; line-height:1.25; }
-  #warRoomView .command-text { font-size:25px; margin:2px 0 8px; }
-  #warRoomView .price-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-  #warRoomView .price-card { min-height:80px; padding:6px 3px; }
-  #warRoomView .price-card strong { font-size:17px; }
-  #warRoomView .price-card .range { font-size:16px; margin-top:5px; }
-  #warRoomView .war-dossier-compact { margin-top:8px; grid-template-columns:repeat(2,1fr); }
-  #warRoomView .war-dossier-cell { min-height:58px; padding:8px 5px; }
+  #warRoomView .command-text { font-size:clamp(24px,7vw,32px); line-height:1.05; margin:4px 0 12px; overflow-wrap:anywhere; }
+  #warRoomView .price-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+  #warRoomView .price-card { min-width:0; min-height:92px; padding:8px 3px; }
+  #warRoomView .price-card strong { font-size:clamp(16px,5vw,22px); }
+  #warRoomView .price-card .range { font-size:clamp(14px,4.5vw,20px); margin-top:6px; overflow-wrap:anywhere; }
+  #warRoomView .war-dossier-compact { margin-top:9px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #warRoomView .war-dossier-cell { min-width:0; min-height:56px; padding:8px 5px; }
   #warRoomView .war-dossier-cell span { font-size:7px; }
-  #warRoomView .war-dossier-cell strong { font-size:18px; }
-  #warRoomView .recommendation-engine { margin-top:8px; }
-  #warRoomView .recommendation-summary { padding:10px; }
-  #warRoomView .recommendation-fit { font-size:18px; }
-  #warRoomView .recommendation-reasons { padding:10px; }
-  #warRoomView .war-notes { font-size:11px; line-height:1.4; }
-  #warRoomView .pivots {
-    grid-template-columns:1fr; border-top:1px solid var(--line); margin-top:0;
-  }
+  #warRoomView .war-dossier-cell strong { font-size:17px; overflow-wrap:anywhere; }
+  #warRoomView .recommendation-engine { margin-top:9px; display:block!important; padding:0; }
+  #warRoomView .recommendation-summary { border-right:0; border-bottom:1px solid var(--line); padding:9px; }
+  #warRoomView .recommendation-fit { font-size:17px; }
+  #warRoomView .recommendation-reasons { padding:9px; }
+  #warRoomView .war-notes { font-size:11px; line-height:1.4; padding:0 2px; }
+  #warRoomView .pivots { display:grid!important; grid-template-columns:1fr!important; position:static!important; height:auto!important; }
   #warRoomView .pivot { min-height:58px; border-right:0; border-bottom:1px solid var(--line); padding:9px; }
   #warRoomView .pivot:last-child { border-bottom:0; }
-  #warRoomView .pivot-value { font-size:15px; margin-top:4px; }
+  #warRoomView .pivot-value { font-size:15px; margin-top:4px; overflow-wrap:anywhere; }
 
-  #warRoomView .record {
-    display:flex; flex-direction:column; gap:7px; min-height:0; position:static;
-  }
-  #warRoomView .record-fields {
-    display:grid; grid-template-columns:1fr; gap:9px; padding:12px;
-  }
-  #warRoomView .field label { font-size:9px; }
+  #warRoomView .record-fields { display:grid!important; grid-template-columns:1fr!important; gap:10px; padding:12px; }
+  #warRoomView .field label { font-size:10px; }
   #warRoomView .field select,#warRoomView .field input { height:52px; min-height:52px; font-size:17px; }
-  #warRoomView .ready { min-height:76px; padding:10px; font-size:24px; border-radius:10px; }
-  #warRoomView .ready small { font-size:9px; }
+  #warRoomView .ready {
+    width:100%; min-height:78px; padding:12px; font-size:clamp(23px,7vw,32px); border-radius:11px;
+    position:static!important; z-index:auto!important;
+  }
+  #warRoomView .ready small { font-size:9px; margin-top:4px; }
 
   #warRoomView .side > .panel,#warRoomView .roster { overflow:hidden; }
   #warRoomView .mobile-collapsible > .panel-title {
-    cursor:pointer; user-select:none; justify-content:space-between; min-height:46px; height:auto;
+    cursor:pointer; user-select:none; justify-content:space-between; min-height:48px; height:auto;
   }
-  #warRoomView .mobile-collapsible > .panel-title::after {
-    content:'▾'; color:var(--green); font-size:16px; margin-left:auto;
-  }
+  #warRoomView .mobile-collapsible > .panel-title::after { content:'▾'; color:var(--green); font-size:16px; margin-left:auto; }
   #warRoomView .mobile-collapsible.mobile-collapsed > .panel-title::after { content:'▸'; }
   #warRoomView .mobile-collapsible.mobile-collapsed > :not(.panel-title) { display:none!important; }
   #warRoomView .core-list { max-height:330px; padding:4px 10px; }
@@ -518,9 +524,20 @@ body { overflow:auto; }
   #warRoomView .nomination-card { margin:0 8px 8px; }
 }
 
-@media (max-width:430px) and (orientation:portrait) {
+@media (max-width:430px) {
+  #warRoomView header { grid-template-columns:70px minmax(0,1fr) 70px; }
+  #warRoomView .brand-small { font-size:7px; }
+  #warRoomView .header-right { font-size:9px; }
   #warRoomView .command { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  #warRoomView .command .metric:nth-child(5) { display:none; }
-  #warRoomView .metric { min-height:78px; }
-  #warRoomView .metric .value { font-size:21px; }
+  #warRoomView .command .metric:nth-child(6) { grid-column:1 / -1; min-height:78px; }
+}
+
+@media (min-width:600px) and (max-width:900px) and (orientation:landscape) {
+  #warRoomView #app { padding-left:10px; padding-right:10px; }
+  #warRoomView .command { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  #warRoomView .dossier .search-row { display:grid!important; grid-template-columns:180px minmax(0,1fr); align-items:center; }
+  #warRoomView .dossier .search-row .panel-title { justify-content:flex-start; }
+  #warRoomView .record { display:grid!important; grid-template-columns:minmax(0,1fr) 240px; align-items:stretch; }
+  #warRoomView .record-fields { grid-template-columns:1.5fr 1fr .7fr!important; align-items:end; }
+  #warRoomView .ready { height:100%; min-height:0; }
 }
