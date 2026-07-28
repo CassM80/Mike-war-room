@@ -1,6 +1,6 @@
 // Sprint 26.0 — isolated auction mock simulator. Never writes to the live draft state.
 (() => {
-  const KEY = "warRoomMockStateV2";
+  const KEY = "warRoomMockStateV3";
   const PERSONALITIES = [
     {name:"Stars & Scrubs",aggression:1.16,rb:1.00,wr:1.00,qb:1.02,value:0.92},
     {name:"Balanced",aggression:1.00,rb:1.00,wr:1.00,qb:1.00,value:1.00},
@@ -90,20 +90,39 @@
     if(!preferred) preferred=Math.round(market*(conviction(p)>=4?1.06:conviction(p)<=2?.82:.98));
     return Math.max(0,Math.min(legalMax(team),preferred));
   }
+  function providerRank(p){return Number(p.provider_rank||p.search_rank||9999);}
+  function nominationRank(p){
+    const mine=personalRank(p);
+    return mine<9999?mine:providerRank(p);
+  }
+  function nominationTier(p){
+    const raw=String(evaluation(p)?.tier||p.provider_tier||p.tier||"").toUpperCase().replace(/^TIER\s*/,"").trim();
+    const weights={"1A":72,"1B":62,"1":58,"2":42,"3":25,"4":12,"5":4,"MARKET":38};
+    return weights[raw]??0;
+  }
+  function nominationProminence(p){
+    const rank=Math.max(1,nominationRank(p));
+    // Rank and tier determine how visible a player is to nominators. Consensus $ is deliberately absent.
+    return (250/Math.sqrt(rank))+nominationTier(p);
+  }
   function candidatePool(){
     return PLAYERS.filter(p=>["QB","RB","WR","TE","K","DEF"].includes(p.pos)&&!drafted(p.name))
-      .sort((a,b)=>personalRank(a)-personalRank(b)||playerMarket(b)-playerMarket(a)||(Number(a.provider_rank||a.search_rank||9999)-Number(b.provider_rank||b.search_rank||9999)));
+      .sort((a,b)=>nominationRank(a)-nominationRank(b)||providerRank(a)-providerRank(b)||a.name.localeCompare(b.name));
   }
   function pickNominee(teamIndex){
     const team=mock.teams[teamIndex],pool=candidatePool().slice(0,180);
     if(!pool.length)return null;
     const scored=pool.map(p=>{
-      const market=playerMarket(p),need=positionNeed(team,p.pos),pers=team.personality||PERSONALITIES[1];
-      let score=market*need;
-      if(pers.name==="Value Hunter")score=(120-market)*need;
-      if(pers.name==="Stars & Scrubs")score=market>25?market*1.35:market*.6;
-      if(pers.chaos)score*=.35+Math.random()*1.8;
-      score*=.8+Math.random()*.4;
+      const need=positionNeed(team,p.pos),pers=team.personality||PERSONALITIES[1],rank=nominationRank(p);
+      let score=nominationProminence(p)*need;
+      // Personalities change WHO gets nominated, but never use Consensus $ to set nomination priority.
+      if(pers.name==="Stars & Scrubs")score*=rank<=24?1.32:rank<=60?1.04:.78;
+      else if(pers.name==="RB Heavy")score*=p.pos==="RB"?1.22:.96;
+      else if(pers.name==="WR Collector")score*=p.pos==="WR"?1.22:.96;
+      else if(pers.name==="QB Homer")score*=p.pos==="QB"?1.38:.96;
+      else if(pers.name==="Value Hunter")score*=rank>18&&rank<110?1.14:.94;
+      if(pers.chaos)score*=.48+Math.random()*1.35;
+      score*=.82+Math.random()*.36;
       return {p,score};
     }).sort((a,b)=>b.score-a.score);
     return scored[0].p;

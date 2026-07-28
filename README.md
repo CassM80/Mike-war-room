@@ -1,13 +1,12 @@
-# Mike Cassidy Auction War Room — Sprint 26.1
+# Mike Cassidy Auction War Room — Sprint 26.2
 
-## Consensus-Anchored Auction AI
+## Nomination / Valuation Separation
 
-The mock simulator now treats the Player Pool's Consensus $ as the single source of truth for AI valuation.
+The mock simulator now treats nomination timing and bidding value as two separate systems.
 
-- User-edited Consensus $ values automatically become the mock's price anchor.
-- Rankings affect nomination order and player interest, never the base auction price.
-- AI private maximum bids use controlled adjustments for personality, roster need, budget pressure, room inflation, and a small player-specific opinion.
-- Ordinary computer teams are hard-capped near market; the Chaos Agent has a wider but controlled range.
-- Every live nomination displays Consensus $, Expected Sale range, and Your Safe Max.
-- Expected Sale is based on competitive bidder ceilings rather than the single wildest bidder.
-- Mock state uses a new isolated storage version so older overinflated simulations do not carry forward.
+- Consensus $ remains the sole price anchor for AI bid ceilings, expected sale ranges, and sale-price comparisons.
+- Consensus $ no longer affects whether a player is nominated early or late.
+- Nomination priority is driven by personal/provider rank, tier, roster need, drafter personality, and controlled randomness.
+- Lowering an elite player's Consensus $ creates a potential bargain; it does not make that player disappear from the nomination queue.
+- Raising a player's Consensus $ changes bidding behavior without artificially moving that player up the nomination order.
+- Mock state uses a new isolated storage version so Sprint 26.1 drafts do not carry into this test.
