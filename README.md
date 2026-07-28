@@ -7,3 +7,7 @@ Market Price Integrity: Auction Consensus is the default; ranking sync cannot ov
 - Auction Consensus is used only as the final fallback, not as the primary ordering.
 - Avoid players are excluded, and the compact panel now shows personal rank beside position/tier.
 
+
+
+## Sprint 25.3 — Mobile War Room
+Adds a true iPhone portrait workflow, touch-friendly controls, stacked dossier and recording panels, compact metrics, and collapsible secondary panels without changing desktop behavior.
