@@ -420,4 +420,4 @@ document.getElementById("marketSyncBtn")?.addEventListener("click",()=>syncMarke
 document.getElementById("rebuildConsensusBtn")?.addEventListener("click",rebuildConsensusRankings);
 const rebuiltAt=Number(localStorage.getItem("warRoomConsensusRebuiltAt")||0);
 if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`Consensus baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
-loadCompletePlayerUniverse().then(()=>hydrateMarketSyncCache());
+loadCompletePlayerUniverse().then(()=>{hydrateMarketSyncCache();renderMarketCoverageAudit();});
