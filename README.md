@@ -15,3 +15,7 @@ Adds a true iPhone portrait workflow, touch-friendly controls, stacked dossier a
 
 ## Sprint 25.3.1
 Clean phone layout for portrait and landscape, with auto-height dossier and non-overlapping record controls.
+
+
+## Sprint 26.0 — Auction Mock Simulator
+Adds an isolated, persistent auction practice mode with simulated room personalities, nominations, bidding, budgets, rosters, and a draft log. Mock data never changes the live War Room draft.
