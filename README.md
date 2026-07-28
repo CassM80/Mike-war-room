@@ -10,3 +10,12 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Lowering an elite player's Consensus $ creates a potential bargain; it does not make that player disappear from the nomination queue.
 - Raising a player's Consensus $ changes bidding behavior without artificially moving that player up the nomination order.
 - Mock state uses a new isolated storage version so Sprint 26.1 drafts do not carry into this test.
+
+
+## Sprint 26.2.1 — Elite Nomination Priority Hotfix
+
+- Mock nominations now use neutral provider/search ADP, including the normalized `adp` field.
+- Personal rankings and Consensus $ cannot bury elite players in the nomination order.
+- Early-draft nominations come from phase-based public-rank pools.
+- Public top-12 players are guaranteed to be nominated by pick 24.
+- Consensus $ remains the sole price anchor for AI bidding.
