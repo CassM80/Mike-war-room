@@ -11,3 +11,7 @@ Market Price Integrity: Auction Consensus is the default; ranking sync cannot ov
 
 ## Sprint 25.3 — Mobile War Room
 Adds a true iPhone portrait workflow, touch-friendly controls, stacked dossier and recording panels, compact metrics, and collapsible secondary panels without changing desktop behavior.
+
+
+## Sprint 25.3.1
+Clean phone layout for portrait and landscape, with auto-height dossier and non-overlapping record controls.

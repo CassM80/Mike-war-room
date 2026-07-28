@@ -1,5 +1,5 @@
 (function(){
-  const mq=window.matchMedia('(max-width: 700px) and (orientation: portrait)');
+  const mq=window.matchMedia('(max-width: 900px)');
   const items=[];
 
   function setup(){
