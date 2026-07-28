@@ -1,3 +1,9 @@
 # Mike Cassidy Auction War Room — Sprint 25.1
 
 Market Price Integrity: Auction Consensus is the default; ranking sync cannot overwrite auction dollars. User-edited prices are highlighted inline without adding another draft-day column.
+## Sprint 25.2 — Drafter-First Top Targets
+- War Room target panel now prioritizes the drafter’s personal ranking first.
+- My Guys conviction and personal tags break ties and fill unranked target slots.
+- Auction Consensus is used only as the final fallback, not as the primary ordering.
+- Avoid players are excluded, and the compact panel now shows personal rank beside position/tier.
+
