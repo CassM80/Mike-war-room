@@ -25,16 +25,33 @@ function allocateBlueprintBudget(openSlots,pool){
 
 function blueprintTargetForSlot(pos,pool,used,allocation){
   const available=pool.filter(ev=>!used.has(ev.name)&&!saleForPlayer(ev.name));
-  if(!available.length)return {primary:null,pivots:[]};
+  if(!available.length)return {primary:null,competitivePivot:null,budgetPivot:null};
   const fitLimit=Math.max(2,Math.round(allocation*1.15));
   const affordable=available.filter(ev=>blueprintPrice(ev)<=fitLimit);
   const primary=(affordable.length?affordable:available.slice().sort((a,b)=>blueprintPrice(a)-blueprintPrice(b)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction)))[0];
   if(primary)used.add(primary.name);
-  const pivotPool=available.filter(ev=>ev.name!==primary?.name).sort((a,b)=>{
-    const af=blueprintPrice(a)<=fitLimit?0:1,bf=blueprintPrice(b)<=fitLimit?0:1;
-    return af-bf||Math.abs(blueprintPrice(a)-allocation)-Math.abs(blueprintPrice(b)-allocation)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction);
-  });
-  return {primary,pivots:pivotPool.slice(0,2)};
+  if(!primary)return {primary:null,competitivePivot:null,budgetPivot:null};
+
+  const primaryPrice=blueprintPrice(primary);
+  const remaining=available.filter(ev=>ev.name!==primary.name);
+  const competitivePivot=remaining.slice().sort((a,b)=>{
+    const convictionGapA=Math.abs(normalizedConviction(a.conviction)-normalizedConviction(primary.conviction));
+    const convictionGapB=Math.abs(normalizedConviction(b.conviction)-normalizedConviction(primary.conviction));
+    const rankGapA=Math.abs((Number(a.rank)||9999)-(Number(primary.rank)||9999));
+    const rankGapB=Math.abs((Number(b.rank)||9999)-(Number(primary.rank)||9999));
+    return convictionGapA-convictionGapB||rankGapA-rankGapB||blueprintPrice(a)-blueprintPrice(b);
+  })[0]||null;
+
+  // A budget pivot must truly reduce cost. Prefer a player that fits the current
+  // allocation; otherwise choose the largest useful savings without fabricating
+  // a supposedly "cheaper" option.
+  const cheaper=remaining.filter(ev=>blueprintPrice(ev)<primaryPrice);
+  const budgetPivot=cheaper.slice().sort((a,b)=>{
+    const aFits=blueprintPrice(a)<=fitLimit?0:1,bFits=blueprintPrice(b)<=fitLimit?0:1;
+    return aFits-bFits||Math.abs(blueprintPrice(a)-allocation)-Math.abs(blueprintPrice(b)-allocation)||normalizedConviction(b.conviction)-normalizedConviction(a.conviction)||(Number(a.rank)||9999)-(Number(b.rank)||9999);
+  })[0]||null;
+
+  return {primary,competitivePivot,budgetPivot};
 }
 
 function renderBlueprint(){
@@ -71,9 +88,11 @@ function renderBlueprint(){
     const allocation=allocations.get(slot.key)||0,pool=blueprintCandidates(slot.pos),pick=blueprintTargetForSlot(slot.pos,pool,used,allocation),primary=pick.primary;
     checked++;
     if(!primary){rendered[slot.pos].push(`<div class="blueprint-slot"><div class="slot-label"><span>${slot.key}</span><span>OPEN</span></div><strong>Target not set</strong><small>Plan ${money(allocation)} • add another 4–5★ ${slot.pos}</small></div>`);return;}
-    const target=blueprintPrice(primary),fits=target<=Math.max(2,Math.round(allocation*1.15));if(fits)viable++;
-    const stop=Number(primary.hardStop||0),status=playerDraftStatus(primary.name);
-    rendered[slot.pos].push(`<div class="blueprint-slot ${fits?'':'budget-warning'}" data-blueprint-name="${esc(primary.name)}"><div class="slot-label"><span>${slot.key}</span><span>${fits?status.label:'BUDGET STRETCH'}</span></div><strong>${esc(primary.name)}</strong><small>${convictionStars(primary.conviction)} • Plan ${money(allocation)}${stop?` • Max ${money(stop)}`:''}</small><div class="blueprint-pivots">${fits?'Pivots':'Cheaper pivots'}: ${pick.pivots.length?pick.pivots.map(x=>`${esc(x.name)} (${money(blueprintPrice(x))})`).join(' → '):'None set'}</div></div>`);
+    const target=blueprintPrice(primary),fitLimit=Math.max(2,Math.round(allocation*1.15)),fits=target<=fitLimit;if(fits)viable++;
+    const stop=Number(primary.hardStop||0),status=playerDraftStatus(primary.name),shortfall=Math.max(0,target-allocation);
+    const competitive=pick.competitivePivot?`${esc(pick.competitivePivot.name)} (${money(blueprintPrice(pick.competitivePivot))})`:'None identified';
+    const budget=pick.budgetPivot?`${esc(pick.budgetPivot.name)} (${money(blueprintPrice(pick.budgetPivot))})`:'No budget pivot identified';
+    rendered[slot.pos].push(`<div class="blueprint-slot ${fits?'':'budget-warning'}" data-blueprint-name="${esc(primary.name)}"><div class="slot-label"><span>${slot.key}</span><span>${fits?status.label:'BUDGET STRETCH'}</span></div><strong>${esc(primary.name)}</strong><small>${convictionStars(primary.conviction)} • Plan ${money(allocation)}${stop?` • Max ${money(stop)}`:''}${shortfall?` • Over plan by ${money(shortfall)}`:''}</small><div class="blueprint-pivots"><span><b>Competitive:</b> ${competitive}</span><span><b>Budget:</b> ${budget}</span></div></div>`);
   });
 
   const plannedOpen=[...allocations.values()].reduce((a,b)=>a+b,0),plannedTotal=spentNow+plannedOpen+reserve;
