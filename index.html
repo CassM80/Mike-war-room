@@ -295,6 +295,17 @@
         <div class="card-head">LIVE NOMINATION</div>
         <div class="card-body">
           <div id="mockEmpty" class="mock-empty">Start a mock to generate the room and first nomination.</div>
+          <div id="mockUserNomination" class="mock-user-nomination hidden">
+            <div class="mock-nominator">YOUR TURN TO NOMINATE</div>
+            <h3>Choose any available player</h3>
+            <p>Your nomination starts at $1. The simulated room will immediately decide whether to bid.</p>
+            <div class="mock-nomination-picker">
+              <input id="mockNomineeInput" type="search" list="mockNomineeOptions" autocomplete="off" placeholder="Search player name…" aria-label="Player to nominate">
+              <datalist id="mockNomineeOptions"></datalist>
+              <button class="primary-btn" id="mockNominateBtn" type="button">NOMINATE PLAYER</button>
+            </div>
+            <div class="mock-nomination-error hidden" id="mockNominationError"></div>
+          </div>
           <div id="mockLive" class="hidden">
             <div class="mock-nominator" id="mockNominator">TEAM 2 NOMINATES</div>
             <div class="mock-player" id="mockPlayer">—</div>
