@@ -22,17 +22,36 @@ function renderRoster(){
 }
 
 function renderCore(){
-  const names=Object.values(personalEvaluations)
-    .filter(ev=>ev && (ev.flagPlant||ev.favorite||ev.sleeper))
-    .sort((a,b)=>(Number(a.rank)||9999)-(Number(b.rank)||9999)||(a.name||"").localeCompare(b.name||""))
-    .map(ev=>ev.name)
-    .filter(Boolean)
+  const targets=Object.values(personalEvaluations||{})
+    .filter(ev=>{
+      if(!ev||!ev.name||ev.avoid||normalizedConviction(ev.conviction)<=1)return false;
+      return Number(ev.rank)>0||normalizedConviction(ev.conviction)>=4||ev.flagPlant||ev.favorite||ev.sleeper||Number(ev.value)>0;
+    })
+    .map(ev=>({
+      ev,
+      player:effectivePlayer(byName[ev.name]||{name:ev.name,pos:"",tier:"UNRANKED"}),
+      personalRank:Number(ev.rank)||0,
+      conviction:normalizedConviction(ev.conviction),
+      consensus:consensusPriceFor(byName[ev.name]||{name:ev.name})||0
+    }))
+    .sort((a,b)=>{
+      const aRanked=a.personalRank>0,bRanked=b.personalRank>0;
+      if(aRanked!==bRanked)return aRanked?-1:1;
+      if(aRanked&&a.personalRank!==b.personalRank)return a.personalRank-b.personalRank;
+      if(a.conviction!==b.conviction)return b.conviction-a.conviction;
+      const aPriority=Number(!!a.ev.flagPlant)*3+Number(!!a.ev.favorite)*2+Number(!!a.ev.sleeper);
+      const bPriority=Number(!!b.ev.flagPlant)*3+Number(!!b.ev.favorite)*2+Number(!!b.ev.sleeper);
+      if(aPriority!==bPriority)return bPriority-aPriority;
+      if(a.consensus!==b.consensus)return b.consensus-a.consensus;
+      return (a.ev.name||"").localeCompare(b.ev.name||"");
+    })
     .slice(0,10);
-  if(!names.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Complete Draft DNA or add targets in Draft Prep.</div>'; return; }
-  $("coreTargets").innerHTML=names.map(name=>{
-    const sale=sold(name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
-    const p=effectivePlayer(byName[name]||{name,pos:"",tier:""});
-    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${name}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${p.pos}${p.tier!=="UNRANKED"?" T"+p.tier:""}</span></div>`;
+  if(!targets.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Rank players or set My Guys in Draft Prep.</div>'; return; }
+  $("coreTargets").innerHTML=targets.map(({ev,player:p,personalRank})=>{
+    const sale=sold(ev.name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
+    const rankLabel=personalRank?`#${personalRank}`:"MY GUY";
+    const posLabel=`${p.pos||""}${p.tier!=="UNRANKED"&&p.tier?" T"+p.tier:""}`;
+    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${esc(ev.name)}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${rankLabel}${posLabel?" • "+posLabel:""}</span></div>`;
   }).join("");
 }
 
