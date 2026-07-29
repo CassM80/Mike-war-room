@@ -35,3 +35,12 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Sleeper search rank is no longer silently presented as dedicated ADP; the board labels the field Market Rank and identifies fallbacks.
 - Player Data Health panel reports missing prices, missing ranks, duplicate identities, and suspicious price/rank conflicts.
 - Market sync and player-universe joins use canonical name aliases while preserving user-owned prices and evaluations.
+
+
+## Sprint 28.0 — Market Coverage Expansion
+- Player Data Health now audits the top 300 draft-relevant QB/RB/WR/TE players instead of flagging every fringe player and defense.
+- Rank-derived $1+ modeled baselines extend through transparent positional coverage limits.
+- Every market value now identifies its source: verified consensus, curated baseline, modeled baseline, user edit, or unpriced.
+- Market Coverage Audit separately grades price coverage, usable ranking coverage, and live-provider coverage.
+- K/DEF records no longer distort missing-rank or missing-price health counts.
+- Service-worker cache advanced to Sprint 28.0.

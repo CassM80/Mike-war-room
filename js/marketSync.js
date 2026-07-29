@@ -157,7 +157,7 @@ function hydrateMarketSyncCache(){
   const cached=readMarketSyncCache();
   if(!cached?.rows?.length){renderMarketSyncStatus("MARKET DATA: bundled baseline • personal evaluations protected");return false;}
   applyRankingSnapshot(cached.rows,{fromCache:true});
-  renderBulkBoard();renderPersonalBoard();renderCore();renderBlueprint();renderAll();renderMarketCoverageAudit();
+  renderBulkBoard();renderPersonalBoard();renderCore();renderBlueprint();renderAll();renderMarketCoverageAudit();renderPlayerIntegrity();
   renderMarketSyncStatus(`MARKET DATA: ${cached.provider||"cached provider"} • ${new Date(cached.savedAt).toLocaleString()} • ${cached.rows.length} rankings • personal evaluations protected`,"green");
   return true;
 }
@@ -199,7 +199,7 @@ async function syncMarketData({force=false}={}){
     }
     PLAYERS.sort((a,b)=>(Number(a.provider_rank)||99999)-(Number(b.provider_rank)||99999)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
     byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
-    renderBulkBoard();renderPersonalBoard();renderCore();renderBlueprint();renderAll();renderMarketCoverageAudit();
+    renderBulkBoard();renderPersonalBoard();renderCore();renderBlueprint();renderAll();renderMarketCoverageAudit();renderPlayerIntegrity();
     const now=Date.now();
     const source=rankingsOk?MARKET_PROVIDERS.rankings.label:"cached rankings";
     const summary=`MARKET SYNC: ${new Date(now).toLocaleString()} • ${stats.matched} ranked • ${stats.rankMoves} rank moves • ${stats.valueMoves} values moved $3+ • ${trendCount} trending • ${source} + Sleeper • PERSONAL DNA PRESERVED`;

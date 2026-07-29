@@ -25,11 +25,20 @@ function leagueMarketMultiplier(pos){
   return m;
 }
 
+function modeledCoverageDepth(pos){
+  const policy=(typeof MARKET_COVERAGE_POLICY!=="undefined"?MARKET_COVERAGE_POLICY:null);
+  const configured=Number(policy?.positionDepth?.[pos]||0);
+  if(configured>0)return configured;
+  return {QB:32,RB:88,WR:116,TE:48,K:12,DEF:12}[pos]||0;
+}
+
 function positionAwareMarketPrice(base){
   const curve=MARKET_CURVES[base?.pos]||[];
   const rank=positionRankFor(base);
   let value=rank<=curve.length?curve[rank-1]:0;
-  if(!value&&rank<=Math.max(24,Math.round((leagueConfig.teamCount||12)*2.2))) value=1;
+  // Sprint 28.0: extend honest $1 modeled coverage through the draft-relevant
+  // positional pool. This is a baseline, not a claim of provider consensus.
+  if(!value&&rank<=modeledCoverageDepth(base?.pos)) value=Number(MARKET_COVERAGE_POLICY?.minimumDraftableValue||1);
   value*=leagueMarketMultiplier(base.pos);
   // Prevent 1-QB values from being distorted into elite-RB/WR territory.
   if(base.pos==='QB'&&Number((leagueConfig.roster||{}).qb||1)===1)value=Math.min(value,Math.round(32*(Number(leagueConfig.budget||200)/200)));
@@ -64,8 +73,9 @@ function baselineMarketFor(base){
 function marketPriceSource(base){
   if(marketOverrideFor(base)) return {code:"EDITED",label:"Your edited market price"};
   if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}`};
-  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:"War Room stable baseline"};
-  return {code:"ESTIMATE",label:"Rank-derived estimate"};
+  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:"War Room curated baseline"};
+  if(positionAwareMarketPrice(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"} • rank-derived`};
+  return {code:"UNPRICED",label:"Outside modeled draft coverage"};
 }
 function consensusPriceFor(base){
   if(!base) return 0;

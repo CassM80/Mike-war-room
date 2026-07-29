@@ -1,4 +1,4 @@
-// Sprint 25.1 — verified auction-consensus snapshot.
+// Sprint 28.0 — verified auction-consensus snapshot plus transparent modeled coverage policy.
 // 12-team, full-PPR, $200 baseline. Values are intentionally separate from live ranking sync.
 const AUCTION_CONSENSUS_META = {
   label: "Auction Consensus",
@@ -7,7 +7,15 @@ const AUCTION_CONSENSUS_META = {
   scoring: "PPR",
   budget: 200,
   updated: "2026-07-28",
-  source: "Fantasy Football Helper consensus preview"
+  source: "Fantasy Football Helper consensus preview",
+  coveragePolicy: "Verified values first; rank-modeled $1+ baseline for the draft-relevant pool"
+};
+
+const MARKET_COVERAGE_POLICY = {
+  label: "War Room Modeled Baseline",
+  overallDepth: 300,
+  positionDepth: { QB: 32, RB: 88, WR: 116, TE: 48 },
+  minimumDraftableValue: 1
 };
 
 const AUCTION_CONSENSUS_VALUES = {
