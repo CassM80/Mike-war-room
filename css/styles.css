@@ -93,7 +93,15 @@ h1 { margin:0; font-size:42px; letter-spacing:.22em; text-align:center; line-hei
 .pivot-value { font-size:17px; font-weight:900; margin-top:6px; }
 .side { display:grid; grid-template-rows:minmax(0,1fr) 156px; gap:8px; min-height:0; }
 .core-list { padding:6px 12px; overflow:auto; }
-.core-row { display:grid; grid-template-columns:20px 1fr 58px; gap:8px; align-items:center; min-height:34px; border-bottom:1px solid #252a2f; }
+.core-row { display:grid; grid-template-columns:24px minmax(0,1fr) 78px; gap:8px; align-items:center; width:100%; min-height:47px; border:0; border-bottom:1px solid #252a2f; background:transparent; color:var(--text); padding:5px 0; text-align:left; cursor:pointer; }
+.core-row:hover,.core-row:focus-visible { background:rgba(132,204,22,.07); outline:none; }
+.target-rank { width:22px; height:22px; display:grid; place-items:center; border:1px solid #3b4650; border-radius:6px; color:var(--green); font-size:11px; font-weight:950; }
+.target-copy,.target-meta { min-width:0; display:flex; flex-direction:column; }
+.target-copy strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.target-copy small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:8px; margin-top:2px; }
+.target-meta { align-items:flex-end; text-align:right; }
+.target-meta strong { font-size:13px; }
+.target-meta small { font-size:8px; margin-top:2px; white-space:nowrap; }
 .status-dot { width:16px; height:16px; border:1px solid #6b7280; border-radius:4px; }
 .status-dot.mine { background:var(--green); border-color:var(--green); }
 .status-dot.other { background:var(--red); border-color:var(--red); }

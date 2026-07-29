@@ -22,39 +22,24 @@ function renderRoster(){
 }
 
 function renderCore(){
-  const targets=Object.values(personalEvaluations||{})
-    .filter(ev=>{
-      if(!ev||!ev.name||ev.avoid||normalizedConviction(ev.conviction)<=1)return false;
-      return Number(ev.rank)>0||normalizedConviction(ev.conviction)>=4||ev.flagPlant||ev.favorite||ev.sleeper||Number(ev.value)>0;
-    })
-    .map(ev=>({
-      ev,
-      player:effectivePlayer(byName[ev.name]||{name:ev.name,pos:"",tier:"UNRANKED"}),
-      personalRank:Number(ev.rank)||0,
-      conviction:normalizedConviction(ev.conviction),
-      consensus:consensusPriceFor(byName[ev.name]||{name:ev.name})||0
-    }))
-    .sort((a,b)=>{
-      const aRanked=a.personalRank>0,bRanked=b.personalRank>0;
-      if(aRanked!==bRanked)return aRanked?-1:1;
-      if(aRanked&&a.personalRank!==b.personalRank)return a.personalRank-b.personalRank;
-      if(a.conviction!==b.conviction)return b.conviction-a.conviction;
-      const aPriority=Number(!!a.ev.flagPlant)*3+Number(!!a.ev.favorite)*2+Number(!!a.ev.sleeper);
-      const bPriority=Number(!!b.ev.flagPlant)*3+Number(!!b.ev.favorite)*2+Number(!!b.ev.sleeper);
-      if(aPriority!==bPriority)return bPriority-aPriority;
-      if(a.consensus!==b.consensus)return b.consensus-a.consensus;
-      return (a.ev.name||"").localeCompare(b.ev.name||"");
-    })
-    .slice(0,10);
-  if(!targets.length){ $("coreTargets").innerHTML='<div style="color:var(--muted);padding:12px">No personal targets yet. Rank players or set My Guys in Draft Prep.</div>'; return; }
-  $("coreTargets").innerHTML=targets.map(({ev,player:p,personalRank})=>{
-    const sale=sold(ev.name); const cls=sale?(sale.winner==="me"?"mine":"other"):"";
-    const rankLabel=personalRank?`#${personalRank}`:"MY GUY";
-    const posLabel=`${p.pos||""}${p.tier!=="UNRANKED"&&p.tier?" T"+p.tier:""}`;
-    return `<div class="core-row"><span class="status-dot ${cls}"></span><span>${esc(ev.name)}</span><span style="text-align:right;color:${p.pos==="RB"?"var(--green)":p.pos==="TE"?"var(--orange)":"var(--blue)"}">${rankLabel}${posLabel?" • "+posLabel:""}</span></div>`;
+  const targets=dynamicTopTargets(10);
+  const box=$("coreTargets");
+  if(!targets.length){
+    box.innerHTML='<div style="color:var(--muted);padding:12px">No affordable roster-fit targets remain. Review your budget or open roster slots.</div>';
+    return;
+  }
+  box.innerHTML=targets.map(({player:p,reason,leagueValue},i)=>{
+    const ev=getPersonalEvaluation(p.name)||{};
+    const conviction=normalizedConviction(ev.conviction);
+    const personalTag=ev.flagPlant?'FLAG':ev.favorite?'FAVORITE':conviction>=4?'MY GUY':'';
+    const posColor=p.pos==='RB'?'var(--green)':p.pos==='TE'?'var(--orange)':p.pos==='QB'?'var(--yellow)':'var(--blue)';
+    return `<button class="core-row dynamic-target" type="button" data-target-player="${esc(p.name)}">
+      <span class="target-rank">${i+1}</span>
+      <span class="target-copy"><strong>${esc(p.name)}</strong><small>${esc(reason)}</small></span>
+      <span class="target-meta" style="color:${posColor}"><strong>${money(leagueValue)}</strong><small>${p.pos}${personalTag?' • '+personalTag:''}</small></span>
+    </button>`;
   }).join("");
 }
-
 function selectedBase(){ return state.selected?byName[state.selected]:null; }
 
 function renderMarketPulse(){

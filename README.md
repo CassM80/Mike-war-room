@@ -1,3 +1,13 @@
+# Mike Cassidy Auction War Room — Sprint 30.3
+
+## Dynamic Top Targets
+
+- Your Top Targets now recalculates after every recorded sale.
+- Sold and avoided players disappear automatically.
+- Ranking responds to open starters/FLEX, remaining budget, legal max bid, scarcity, positional market conditions, opponent demand, League Value, and the personal board.
+- Each target includes a live reason and League Value.
+- Clicking a target opens its War Room dossier.
+
 # Mike Cassidy Auction War Room — Sprint 30.2
 
 ## Full League Team Tracking

@@ -285,6 +285,106 @@ function zeroClickIntelligence(){
   return items.slice(0,3);
 }
 
+
+// Sprint 30.3 — Dynamic Top Targets.
+// Produces a live shortlist from current roster construction, legal buying power,
+// personal preferences, positional scarcity, room demand and market conditions.
+function dynamicTargetContext(){
+  const remaining=Math.max(0,Number(leagueConfig.budget||200)-spent());
+  const slots=availableSlots();
+  const maxLegal=Math.max(0,remaining-Math.max(0,slots.length-1));
+  return {remaining,slots,maxLegal,myTeamIndex:Number(leagueConfig.myTeamIndex||0)};
+}
+
+function dynamicTargetScore(base,live){
+  const ctx=live?.ctx||dynamicTargetContext();
+  const ev=getPersonalEvaluation(base.name)||{};
+  const rec=recommendationFor(base);
+  const conviction=normalizedConviction(ev.conviction);
+  const leagueValue=Math.max(1,marketValueFor(base));
+  const personalValue=Math.max(0,Number(ev.value||0));
+  const hardStop=Math.max(0,Number(ev.hardStop||0));
+  const need=positionNeed(base.pos);
+  const demand=live?.demandByPos?.[base.pos]||roomDemandFor(base.pos);
+  const affordableOpponents=demand.teams.filter(t=>t.index!==ctx.myTeamIndex&&t.budget>=leagueValue).length;
+  let score=Number(rec.score||0);
+
+  // Personal board is evidence, not a static ordering.
+  if(Number(ev.rank)>0)score+=Math.max(2,18-Math.min(16,Number(ev.rank)*.7));
+  score+=(conviction-3)*5;
+  if(ev.flagPlant)score+=12;
+  if(ev.favorite)score+=7;
+  if(ev.sleeper)score+=4;
+  if(ev.avoid||conviction===1)score-=100;
+  if(personalValue>leagueValue)score+=Math.min(12,(personalValue-leagueValue)*1.5);
+
+  // Current roster construction must be the strongest live signal.
+  if(need==='STARTER')score+=18;
+  else if(need==='FLEX'||need==='SUPERFLEX')score+=9;
+  else if(need==='BENCH')score-=7;
+  else score-=100;
+
+  // Keep the list executable with the money actually left.
+  if(leagueValue<=ctx.maxLegal)score+=7;
+  else score-=Math.min(35,(leagueValue-ctx.maxLegal)*3);
+  if(hardStop>0&&hardStop<=ctx.maxLegal)score+=4;
+  if(ctx.remaining>0&&leagueValue/ctx.remaining>.55)score-=8;
+  if(ctx.slots.length<=5&&leagueValue<=Math.max(3,ctx.remaining/Math.max(1,ctx.slots.length)))score+=5;
+
+  // A contested position is more urgent, but a hot room still demands discipline.
+  score+=Math.min(6,affordableOpponents);
+  const ps=positionMarketStats(base.pos);
+  if(ps.status==='CHEAP')score+=7;
+  if(ps.status==='HOT')score-=5;
+  const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
+  if(meaningful<=4&&need!=='BENCH')score+=8;
+  else if(meaningful<=7&&need!=='BENCH')score+=4;
+
+  return score;
+}
+
+function dynamicTargetReason(base,live){
+  const ev=getPersonalEvaluation(base.name)||{};
+  const ctx=live?.ctx||dynamicTargetContext();
+  const leagueValue=Math.max(1,marketValueFor(base));
+  const need=positionNeed(base.pos);
+  const ps=positionMarketStats(base.pos);
+  const demand=live?.demandByPos?.[base.pos]||roomDemandFor(base.pos);
+  const opponents=demand.teams.filter(t=>t.index!==ctx.myTeamIndex&&t.budget>=leagueValue).length;
+  const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
+  if(need==='STARTER')return `Open ${base.pos} starter • ${money(leagueValue)} League Value`;
+  if((need==='FLEX'||need==='SUPERFLEX')&&meaningful<=6)return `${base.pos} scarcity • ${meaningful} meaningful options remain`;
+  if(ps.status==='CHEAP')return `${base.pos} value window • room below expected`;
+  if(Number(ev.value||0)>leagueValue)return `Personal edge +${money(Number(ev.value)-leagueValue)} • fits ${need.toLowerCase()}`;
+  if(ev.flagPlant)return `Plant-the-flag target • ${money(leagueValue)} League Value`;
+  if(ev.favorite||normalizedConviction(ev.conviction)>=4)return `Strong personal target • ${need.toLowerCase()} fit`;
+  if(opponents>=5)return `${opponents} opponents active • demand remains high`;
+  if(leagueValue>ctx.maxLegal)return `Discount only • legal max ${money(ctx.maxLegal)}`;
+  return `${recommendationFor(base).fit} • ${money(leagueValue)} League Value`;
+}
+
+function dynamicTopTargets(limit=10){
+  const ctx=dynamicTargetContext();
+  const candidates=PLAYERS.filter(p=>
+    !sold(p.name)&&p.active!==false&&['QB','RB','WR','TE'].includes(p.pos)&&
+    CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase())&&marketValueFor(p)>0&&
+    positionNeed(p.pos)!=='FULL'
+  );
+  const demandByPos=Object.fromEntries(['QB','RB','WR','TE'].map(pos=>[pos,roomDemandFor(pos)]));
+  const meaningfulByPos={};
+  ['QB','RB','WR','TE'].forEach(pos=>{
+    const rows=candidates.filter(p=>p.pos===pos).sort((a,b)=>marketValueFor(b)-marketValueFor(a));
+    const top=marketValueFor(rows[0]||{});
+    meaningfulByPos[pos]=rows.filter(p=>marketValueFor(p)>=Math.max(2,top*.28)).length;
+  });
+  const live={ctx,demandByPos,meaningfulByPos};
+  return candidates
+    .map(p=>({player:effectivePlayer(p),score:dynamicTargetScore(p,live),reason:dynamicTargetReason(p,live),leagueValue:marketValueFor(p),ev:getPersonalEvaluation(p.name)||{}}))
+    .filter(x=>x.score>-20 && !(x.ev.avoid||normalizedConviction(x.ev.conviction)===1))
+    .sort((a,b)=>b.score-a.score||Number(a.leagueValue>ctx.maxLegal)-Number(b.leagueValue>ctx.maxLegal)||marketRankFor(a.player)-marketRankFor(b.player))
+    .slice(0,Math.max(1,Number(limit||10)));
+}
+
 function nominationSuggestion(){
   if(profileMode==="clean" && !Object.keys(personalEvaluations).length) return {player:"—",reason:"Build your personal board in Scouting to activate nomination strategy."};
   const available=PLAYERS.filter(p=>!sold(p.name)&&p.tier!=="UNRANKED"&&Number(p.fairLow)>0);

@@ -431,6 +431,12 @@ function previewLeagueValuationFromHeadquarters(){
 }
 valuationSettingIds.forEach(id=>$(id)?.addEventListener(id.includes("Budget")?"input":"change",previewLeagueValuationFromHeadquarters));
 
+// Sprint 30.3 — live Top Targets open the recommended player dossier with one tap.
+document.getElementById("coreTargets")?.addEventListener("click",e=>{
+  const row=e.target.closest("[data-target-player]");
+  if(row&&byName[row.dataset.targetPlayer])setSelected(byName[row.dataset.targetPlayer]);
+});
+
 // Sprint 30.0 — every zero-click recommendation opens its dossier with one tap.
 document.getElementById("zeroClickIntel")?.addEventListener("click",e=>{
   const row=e.target.closest("[data-zero-player]");
