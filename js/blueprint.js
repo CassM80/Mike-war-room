@@ -127,7 +127,7 @@ function dnaPhilosophyQuestions(pos){
  return common;
 }
 
-function leagueDNAFingerprint(){const r=leagueConfig.roster||defaultLeagueConfig.roster;return [leagueConfig.teamCount,leagueConfig.budget,leagueConfig.scoring,r.qb,r.rb,r.wr,r.te,r.flex,r.bench].join('|');}
+function leagueDNAFingerprint(){const r=leagueConfig.roster||defaultLeagueConfig.roster;return [leagueConfig.teamCount,leagueConfig.budget,leagueConfig.scoring,r.qb,r.rb,r.wr,r.te,r.flex,r.superflex||0,r.bench,leagueConfig.keepers||0,leagueConfig.keeperBudget||0].join('|');}
 
 function leagueDNAContext(){
  const r=leagueConfig.roster||defaultLeagueConfig.roster,teams=Number(leagueConfig.teamCount||12),budget=Number(leagueConfig.budget||200),flex=Number(r.flex||0);
@@ -135,7 +135,7 @@ function leagueDNAContext(){
  const baseline={QB:1,RB:2.9,WR:2.9,TE:1.2};
  const intensity={}; DNA_POSITIONS.forEach(pos=>intensity[pos]=Math.max(.55,Math.min(2.3,(demands[pos]/baseline[pos])*Math.pow(teams/12,.22))));
  const totalCore=Object.values(demands).reduce((a,b)=>a+b,0)||1;
- return {teams,budget,scoring:leagueConfig.scoring||'PPR',roster:r,rosterSize:rosterSize(),demands,intensity,totalCore,fingerprint:leagueDNAFingerprint(),twoQB:Number(r.qb||1)>=2};
+ return {teams,budget,scoring:leagueConfig.scoring||'PPR',roster:r,rosterSize:rosterSize(),demands,intensity,totalCore,fingerprint:leagueDNAFingerprint(),twoQB:Number(r.qb||1)>=2||Number(r.superflex||0)>0};
 }
 
 function dnaInvestmentFactor(profile){return profile.investment==='HIGH'?1.14:profile.investment==='LOW'?.86:1;}

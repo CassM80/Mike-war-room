@@ -168,7 +168,7 @@ function draftReport(){
 function renderTeamCountOptions(){
   $("teamCountInput").innerHTML=Array.from({length:13},(_,i)=>i+4).map(n=>`<option value="${n}">${n}</option>`).join("");
   const optionRange=(max,min=0)=>Array.from({length:max-min+1},(_,i)=>i+min).map(n=>`<option value="${n}">${n}</option>`).join("");
-  $("qbSlotsInput").innerHTML=optionRange(3); $("rbSlotsInput").innerHTML=optionRange(5); $("wrSlotsInput").innerHTML=optionRange(5); $("teSlotsInput").innerHTML=optionRange(3); $("flexSlotsInput").innerHTML=optionRange(5); $("kSlotsInput").innerHTML=optionRange(2); $("defSlotsInput").innerHTML=optionRange(2); $("benchSlotsInput").innerHTML=optionRange(15);
+  $("qbSlotsInput").innerHTML=optionRange(3); $("superflexSlotsInput").innerHTML=optionRange(2); $("rbSlotsInput").innerHTML=optionRange(5); $("wrSlotsInput").innerHTML=optionRange(5); $("teSlotsInput").innerHTML=optionRange(3); $("flexSlotsInput").innerHTML=optionRange(5); $("kSlotsInput").innerHTML=optionRange(2); $("defSlotsInput").innerHTML=optionRange(2); $("benchSlotsInput").innerHTML=optionRange(15); $("keeperCountInput").innerHTML=optionRange(10);
 }
 
 function renderMyTeamOptions(){
@@ -193,7 +193,7 @@ function renderLeagueSetup(){
   $("teamCountInput").value=String(leagueConfig.teamCount||12);
   $("leagueBudgetInput").value=String(leagueConfig.budget||200);
   $("scoringInput").value=leagueConfig.scoring||"PPR";
-  const r=leagueConfig.roster||defaultLeagueConfig.roster; $("qbSlotsInput").value=r.qb; $("rbSlotsInput").value=r.rb; $("wrSlotsInput").value=r.wr; $("teSlotsInput").value=r.te; $("flexSlotsInput").value=r.flex; $("kSlotsInput").value=r.k; $("defSlotsInput").value=r.def; $("benchSlotsInput").value=r.bench;
+  const r=leagueConfig.roster||defaultLeagueConfig.roster; $("qbSlotsInput").value=r.qb; $("superflexSlotsInput").value=r.superflex||0; $("rbSlotsInput").value=r.rb; $("wrSlotsInput").value=r.wr; $("teSlotsInput").value=r.te; $("flexSlotsInput").value=r.flex; $("kSlotsInput").value=r.k; $("defSlotsInput").value=r.def; $("benchSlotsInput").value=r.bench; $("keeperCountInput").value=String(leagueConfig.keepers||0); $("keeperBudgetInput").value=String(leagueConfig.keeperBudget||0);
   renderTeamsEditor();
   $("summaryTeams").textContent=leagueConfig.teamCount;
   $("summaryBudget").textContent=money(leagueConfig.budget);

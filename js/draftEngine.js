@@ -4,7 +4,7 @@ function playerKey(name){ return normalizePlayerName(name).toLowerCase(); }
 
 function numberedSlots(prefix,count){return Array.from({length:Math.max(0,Number(count||0))},(_,i)=>prefix+(Number(count)===1?'':i+1));}
 
-function rosterSlots(){const r=leagueConfig.roster||{};return [...numberedSlots('QB',r.qb??1),...numberedSlots('RB',r.rb??2),...numberedSlots('WR',r.wr??2),...numberedSlots('TE',r.te??1),...numberedSlots('FLEX',r.flex??2),...numberedSlots('K',r.k??1),...numberedSlots('DEF',r.def??1),...numberedSlots('BN',r.bench??7)];}
+function rosterSlots(){const r=leagueConfig.roster||{};return [...numberedSlots('QB',r.qb??1),...numberedSlots('RB',r.rb??2),...numberedSlots('WR',r.wr??2),...numberedSlots('TE',r.te??1),...numberedSlots('FLEX',r.flex??2),...numberedSlots('SF',r.superflex??0),...numberedSlots('K',r.k??1),...numberedSlots('DEF',r.def??1),...numberedSlots('BN',r.bench??7)];}
 
 function rosterSize(){return rosterSlots().length;}
 
@@ -52,6 +52,10 @@ function autoRosterSlot(playerName){
   if(["RB","WR","TE"].includes(player.pos)){
     const flexSlot=rosterSlots().filter(slot=>slot.startsWith("FLEX")).find(slot=>open.includes(slot));
     if(flexSlot) return flexSlot;
+  }
+  if(["QB","RB","WR","TE"].includes(player.pos)){
+    const sfSlot=rosterSlots().filter(slot=>slot.startsWith("SF")).find(slot=>open.includes(slot));
+    if(sfSlot) return sfSlot;
   }
   return open.find(slot=>slot.startsWith("BN"))||null;
 }

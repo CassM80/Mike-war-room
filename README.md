@@ -71,3 +71,24 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Recommendation scores now include a modest opportunity-cost penalty for meaningful QB spending in one-QB leagues.
 - Market source labels identify one-QB-calibrated prices.
 - Service-worker cache advanced to Sprint 28.3.
+
+## Sprint 29.0 — Dynamic League Valuation Engine
+
+War Room values now recalculate from Headquarters settings instead of assuming one fixed league.
+
+### Valuation pipeline
+1. Raw player quality (provider and ESPN positional rank)
+2. External auction market evidence
+3. League starter and flex demand
+4. Replacement-level scarcity
+5. Scoring adjustment
+6. Available auction-budget scaling
+7. User-edited market prices and personal preference
+
+### Headquarters inputs
+- Teams and auction budget
+- PPR, half-PPR, or standard scoring
+- QB, RB, WR, TE, FLEX, Superflex, K, DEF, and bench slots
+- Keepers per team and keeper dollars reserved
+
+Headquarters changes produce a live valuation preview. Saving the league persists the configuration. User-edited market prices remain authoritative and are not overwritten.

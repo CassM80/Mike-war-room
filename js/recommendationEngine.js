@@ -12,7 +12,7 @@ function espnAuctionBaselineFor(base){
   const curve=(typeof ESPN_AUCTION_CURVES!=="undefined"?ESPN_AUCTION_CURVES[base?.pos]:null)||[];
   if(!rank)return 0;
   const raw=rank<=curve.length?Number(curve[rank-1]||0):(rank<=modeledCoverageDepth(base?.pos)?1:0);
-  return Math.max(0,Math.round(raw*leagueMarketMultiplier(base?.pos)));
+  return Math.max(0,Math.round(raw));
 }
 function blendWithEspn(base,sourceValue,sourceCode){
   const espn=espnAuctionBaselineFor(base);
@@ -33,16 +33,9 @@ function isOneQuarterbackLeague(){
   return Number(roster.qb||1)===1&&Number(roster.superflex||0)===0;
 }
 function calibrateQuarterbackValue(base,value){
-  const raw=Math.max(0,Math.round(Number(value)||0));
-  if(base?.pos!=="QB"||!isOneQuarterbackLeague())return raw;
-  const rank=Math.min(positionRankFor(base)||999,espnPositionRankFor(base)||999);
-  let multiplier=1;
-  if(rank<=3)multiplier=.90;
-  else if(rank<=6)multiplier=.80;
-  else if(rank<=10)multiplier=.65;
-  else if(rank<=15)multiplier=.45;
-  else return raw>0?1:0;
-  return Math.max(rank<=10?1:2,Math.round(raw*multiplier));
+  // Sprint 29.0 compatibility wrapper: all positional calibration now belongs
+  // to the dynamic league engine rather than a Mike-specific QB rule.
+  return dynamicLeagueValue(base,value);
 }
 
 function providerRankFor(base){
@@ -65,18 +58,9 @@ function rebuildMarketRankCache(){
 function positionRankFor(base){const provider=Number(base?.provider_pos_rank||0);if(provider>0)return provider;if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
 
 function leagueMarketMultiplier(pos){
-  const r=leagueConfig.roster||defaultLeagueConfig.roster;
-  const teams=Number(leagueConfig.teamCount||12),budget=Number(leagueConfig.budget||200);
-  let m=(budget/200)*Math.pow(teams/12,.30)*Math.pow(Math.max(10,rosterSize())/17,.10);
-  const flexShare=Number(r.flex||0)/3;
-  if(pos==='QB') m*=Number(r.qb||1)>=2?1.85:Math.pow(Math.max(.75,Number(r.qb||1)),.35);
-  if(pos==='RB') m*=Math.pow((Number(r.rb||2)+flexShare)/2.67,.30);
-  if(pos==='WR') m*=Math.pow((Number(r.wr||2)+flexShare)/2.67,.30);
-  if(pos==='TE') m*=Math.pow(Math.max(.7,Number(r.te||1)+Number(r.flex||0)*.12),.28);
-  if(leagueConfig.scoring==='PPR'&&['WR','TE'].includes(pos))m*=1.04;
-  if(leagueConfig.scoring==='Standard'&&pos==='RB')m*=1.05;
-  if(leagueConfig.scoring==='Standard'&&['WR','TE'].includes(pos))m*=.94;
-  return m;
+  // Kept for older modules. New valuations use dynamicLeagueValue after blending.
+  const settings=leagueSettingsSnapshot();
+  return availableAuctionBudget(settings)/VALUATION_BASELINE.budget;
 }
 
 function modeledCoverageDepth(pos){
@@ -93,9 +77,6 @@ function positionAwareMarketPrice(base){
   // Sprint 28.0: extend honest $1 modeled coverage through the draft-relevant
   // positional pool. This is a baseline, not a claim of provider consensus.
   if(!value&&rank<=modeledCoverageDepth(base?.pos)) value=Number(MARKET_COVERAGE_POLICY?.minimumDraftableValue||1);
-  value*=leagueMarketMultiplier(base.pos);
-  // Prevent 1-QB values from being distorted into elite-RB/WR territory.
-  if(base.pos==='QB'&&Number((leagueConfig.roster||{}).qb||1)===1)value=Math.min(value,Math.round(32*(Number(leagueConfig.budget||200)/200)));
   return Math.max(0,Math.round(value));
 }
 
@@ -114,8 +95,7 @@ function saveMarketOverride(base,value){
 }
 function directConsensusFor(base){
   const raw=(typeof AUCTION_CONSENSUS_VALUES!=="undefined")?AUCTION_CONSENSUS_VALUES[normalizedConsensusKey(base?.name)]:0;
-  const multiplier=(Number(leagueConfig?.budget||200)/200)*Math.pow(Number(leagueConfig?.teamCount||12)/12,.30);
-  return raw?Math.max(1,Math.round(raw*multiplier)):0;
+  return raw?Math.max(1,Math.round(raw)):0;
 }
 function baselineMarketFor(base){
   const direct=directConsensusFor(base);
@@ -139,10 +119,10 @@ function marketPriceSource(base){
   if(marketOverrideFor(base)) return {code:"EDITED",label:"Your edited market price"};
   const espn=espnPositionRankFor(base);
   const espnLabel=espn?` • ESPN ${base.pos}${espn} blend`:"";
-  const qbLabel=base?.pos==="QB"&&isOneQuarterbackLeague()?" • one-QB calibrated":"";
-  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}${espnLabel}${qbLabel}`};
-  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:`War Room curated baseline${espnLabel}${qbLabel}`};
-  if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}${qbLabel}`};
+  const leagueLabel=` • ${leagueSettingsSnapshot().teams}-team dynamic league value`;
+  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}${espnLabel}${leagueLabel}`};
+  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:`War Room curated baseline${espnLabel}${leagueLabel}`};
+  if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}${leagueLabel}`};
   return {code:"UNPRICED",label:"Outside modeled draft coverage"};
 }
 function consensusPriceFor(base){
@@ -152,7 +132,7 @@ function consensusPriceFor(base){
 
 function warRoomRankSignature(){
   const r=leagueConfig?.roster||{};
-  return [PLAYERS.length,leagueConfig?.teamCount||12,leagueConfig?.budget||200,leagueConfig?.scoring||'PPR',r.qb||1,r.rb||2,r.wr||2,r.te||1,r.flex||2,JSON.stringify(marketOverrides)].join('|');
+  return [PLAYERS.length,leagueValuationFingerprint(),JSON.stringify(marketOverrides)].join('|');
 }
 function rebuildWarRoomMarketRankCache(){
   const ranks=new Map();

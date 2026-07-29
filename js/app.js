@@ -134,7 +134,7 @@ const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon
 const state = JSON.parse(localStorage.getItem("warRoomState") || "null") || {
   budget:200, sales:[], roster:{}, selected:null
 };
-const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", myTeamIndex:0, roster:{qb:1,rb:2,wr:2,te:1,flex:2,k:1,def:1,bench:7}, teams:[]};
+const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", keepers:0, keeperBudget:0, myTeamIndex:0, roster:{qb:1,rb:2,wr:2,te:1,flex:2,superflex:0,k:1,def:1,bench:7}, teams:[]};
 let leagueConfig = {...defaultLeagueConfig, ...(JSON.parse(localStorage.getItem("warRoomLeagueConfig") || "null") || {})}; leagueConfig.roster={...defaultLeagueConfig.roster,...(leagueConfig.roster||{})};
 const $ = id=>document.getElementById(id);
 const money=n=>"$"+Math.round(Number(n||0));
@@ -358,7 +358,8 @@ $("saveLeagueBtn").addEventListener("click",()=>{
   leagueConfig.teamCount=Number($("teamCountInput").value||12);
   leagueConfig.budget=Math.max(1,Number($("leagueBudgetInput").value||200));
   leagueConfig.scoring=$("scoringInput").value;
-  leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
+  leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),superflex:Number($("superflexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
+  leagueConfig.keepers=Number($("keeperCountInput").value||0); leagueConfig.keeperBudget=Math.max(0,Number($("keeperBudgetInput").value||0));
   leagueConfig.myTeamIndex=Number($("myTeamInput").value||0);
   ensureTeams(); saveLeagueConfig(); if(!state.sales.length)state.budget=leagueConfig.budget; const dnaUpdated=recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
   $("leagueSavedNote").textContent=dnaUpdated?`League saved • ${dnaUpdated} DNA player values recalculated.`:"League setup saved."; setTimeout(()=>$("leagueSavedNote").textContent="",1800);
@@ -400,3 +401,28 @@ document.getElementById("rebuildConsensusBtn")?.addEventListener("click",rebuild
 const rebuiltAt=Number(localStorage.getItem("warRoomConsensusRebuiltAt")||0);
 if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`Consensus baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
 loadCompletePlayerUniverse().then(()=>{hydrateMarketSyncCache();renderMarketCoverageAudit();renderPlayerIntegrity();});
+
+// Sprint 29.0 — Headquarters valuation preview.
+// Changes recalculate the board immediately; SAVE LEAGUE persists them.
+const valuationSettingIds=["teamCountInput","leagueBudgetInput","scoringInput","qbSlotsInput","rbSlotsInput","wrSlotsInput","teSlotsInput","flexSlotsInput","superflexSlotsInput","kSlotsInput","defSlotsInput","benchSlotsInput","keeperCountInput","keeperBudgetInput"];
+let valuationPreviewTimer=0;
+function previewLeagueValuationFromHeadquarters(){
+  leagueConfig.teamCount=Math.max(2,Number($("teamCountInput").value||12));
+  leagueConfig.budget=Math.max(1,Number($("leagueBudgetInput").value||200));
+  leagueConfig.scoring=$("scoringInput").value||"PPR";
+  leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),superflex:Number($("superflexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
+  leagueConfig.keepers=Number($("keeperCountInput").value||0);
+  leagueConfig.keeperBudget=Math.max(0,Number($("keeperBudgetInput").value||0));
+  warRoomMarketRankCache={signature:"",ranks:new Map()};
+  clearTimeout(valuationPreviewTimer);
+  valuationPreviewTimer=setTimeout(()=>{
+    $("summaryTeams").textContent=leagueConfig.teamCount;
+    $("summaryBudget").textContent=money(leagueConfig.budget);
+    $("summaryScoring").textContent=leagueConfig.scoring;
+    $("summaryRoster").textContent=rosterSize();
+    $("navLeagueStatus").textContent=(leagueConfig.leagueName||"Unnamed League")+" • "+leagueConfig.teamCount+" teams • "+money(leagueConfig.budget);
+    renderAll(); renderPersonalBoard(); renderBulkBoard(); renderCore();
+    $("leagueSavedNote").textContent="Live valuation preview — save to keep these settings.";
+  },100);
+}
+valuationSettingIds.forEach(id=>$(id)?.addEventListener(id.includes("Budget")?"input":"change",previewLeagueValuationFromHeadquarters));

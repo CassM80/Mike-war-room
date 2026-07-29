@@ -45,9 +45,12 @@
             <div class="form-field"><label>STARTING WR</label><select id="wrSlotsInput"></select></div>
             <div class="form-field"><label>STARTING TE</label><select id="teSlotsInput"></select></div>
             <div class="form-field"><label>FLEX</label><select id="flexSlotsInput"></select></div>
+            <div class="form-field"><label>SUPERFLEX</label><select id="superflexSlotsInput"></select></div>
             <div class="form-field"><label>KICKER</label><select id="kSlotsInput"></select></div>
             <div class="form-field"><label>DEFENSE</label><select id="defSlotsInput"></select></div>
             <div class="form-field"><label>BENCH</label><select id="benchSlotsInput"></select></div>
+            <div class="form-field"><label>KEEPERS PER TEAM</label><select id="keeperCountInput"></select></div>
+            <div class="form-field"><label>KEEPER $ RESERVED</label><input id="keeperBudgetInput" type="number" min="0" step="1" value="0"></div>
           </div>
           <div class="form-actions"><button class="primary-btn" id="saveLeagueBtn">SAVE LEAGUE</button></div>
           <div class="saved-note" id="leagueSavedNote"></div>
@@ -401,6 +404,7 @@
 <script src="./js/playerData.js"></script>
 <script src="./js/storage.js"></script>
 <script src="./js/draftEngine.js"></script>
+<script src="./js/leagueValuation.js"></script>
 <script src="./js/recommendationEngine.js"></script>
 <script src="./js/marketCoverage.js"></script>
 <script src="./js/marketSync.js"></script>
