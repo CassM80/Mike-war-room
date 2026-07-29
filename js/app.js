@@ -426,3 +426,9 @@ function previewLeagueValuationFromHeadquarters(){
   },100);
 }
 valuationSettingIds.forEach(id=>$(id)?.addEventListener(id.includes("Budget")?"input":"change",previewLeagueValuationFromHeadquarters));
+
+// Sprint 30.0 — every zero-click recommendation opens its dossier with one tap.
+document.getElementById("zeroClickIntel")?.addEventListener("click",e=>{
+  const row=e.target.closest("[data-zero-player]");
+  if(row&&byName[row.dataset.zeroPlayer])setSelected(byName[row.dataset.zeroPlayer]);
+});

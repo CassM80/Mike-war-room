@@ -208,6 +208,83 @@ function alerts(){
   return arr.slice(0,3);
 }
 
+
+// Sprint 30.0 — Zero-Click Intelligence.
+// These helpers derive actionable draft guidance entirely from saved league
+// settings, the personal board, recorded sales, remaining roster slots and
+// live market behavior. No current-bid entry is required.
+function zeroClickCandidatePool(){
+  return PLAYERS.filter(p=>
+    !sold(p.name)&&p.active!==false&&
+    ['QB','RB','WR','TE'].includes(p.pos)&&
+    CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase())&&
+    marketValueFor(p)>0&&positionNeed(p.pos)!=='FULL'
+  );
+}
+
+function zeroClickPriorityScore(base){
+  const rec=recommendationFor(base);
+  const ev=getPersonalEvaluation(base.name)||{};
+  const conviction=normalizedConviction(ev.conviction);
+  const need=positionNeed(base.pos);
+  let score=rec.score;
+  if(need==='STARTER')score+=12;
+  else if(need==='FLEX')score+=6;
+  if(ev.flagPlant)score+=10;
+  if(ev.favorite)score+=6;
+  if(ev.sleeper)score+=3;
+  if(ev.avoid||conviction===1)score-=40;
+  score+=Math.max(0,conviction-3)*4;
+  return score;
+}
+
+function automaticPivotsFor(base){
+  if(!base)return {primary:null,secondary:null,budget:null};
+  const selectedMarket=Math.max(1,marketValueFor(base));
+  const candidates=zeroClickCandidatePool().filter(p=>p.name!==base.name&&p.pos===base.pos);
+  const sorted=candidates.slice().sort((a,b)=>
+    zeroClickPriorityScore(b)-zeroClickPriorityScore(a)||
+    Math.abs(marketValueFor(a)-selectedMarket)-Math.abs(marketValueFor(b)-selectedMarket)||
+    marketRankFor(a)-marketRankFor(b)
+  );
+  const primary=sorted.find(p=>marketValueFor(p)<=Math.ceil(selectedMarket*1.15))||sorted[0]||null;
+  const secondary=sorted.find(p=>p!==primary&&marketValueFor(p)<=selectedMarket)||sorted.find(p=>p!==primary)||null;
+  const budget=sorted
+    .filter(p=>p!==primary&&p!==secondary&&marketValueFor(p)<=Math.max(1,Math.floor(selectedMarket*.70)))
+    .sort((a,b)=>zeroClickPriorityScore(b)-zeroClickPriorityScore(a)||marketValueFor(b)-marketValueFor(a))[0]||null;
+  return {primary,secondary,budget};
+}
+
+function zeroClickIntelligence(){
+  const pool=zeroClickCandidatePool();
+  if(!pool.length)return [];
+  const best=pool.slice().sort((a,b)=>zeroClickPriorityScore(b)-zeroClickPriorityScore(a)||marketRankFor(a)-marketRankFor(b))[0];
+  const open=availableSlots();
+  const directNeeds=['QB','RB','WR','TE'].filter(pos=>positionNeed(pos)==='STARTER');
+  let priorityPos=directNeeds[0]||(['RB','WR','TE'].find(pos=>positionNeed(pos)==='FLEX'))||best.pos;
+  if(directNeeds.length>1){
+    priorityPos=directNeeds.slice().sort((a,b)=>{
+      const av=pool.filter(p=>p.pos===a).sort((x,y)=>marketValueFor(y)-marketValueFor(x));
+      const bv=pool.filter(p=>p.pos===b).sort((x,y)=>marketValueFor(y)-marketValueFor(x));
+      const aDrop=(marketValueFor(av[0])-marketValueFor(av[5]||av.at(-1)||av[0]));
+      const bDrop=(marketValueFor(bv[0])-marketValueFor(bv[5]||bv.at(-1)||bv[0]));
+      return bDrop-aDrop;
+    })[0];
+  }
+  const priorityPlayer=pool.filter(p=>p.pos===priorityPos).sort((a,b)=>zeroClickPriorityScore(b)-zeroClickPriorityScore(a))[0]||best;
+  const scarcity=['QB','RB','WR','TE'].map(pos=>{
+    const top=pool.filter(p=>p.pos===pos).sort((a,b)=>marketValueFor(b)-marketValueFor(a));
+    const meaningful=top.filter(p=>marketValueFor(p)>=Math.max(2,Math.round((top[0]&&marketValueFor(top[0])||1)*.28))).length;
+    return {pos,meaningful,need:positionNeed(pos),player:top[0]};
+  }).filter(x=>x.player&&x.need!=='FULL').sort((a,b)=>a.meaningful-b.meaningful)[0];
+  const items=[
+    {label:'BEST FIT NOW',player:best.name,detail:`${best.pos} • ${money(marketValueFor(best))} League Value • ${recommendationFor(best).fit}`,tone:'green'},
+    {label:'ROSTER PRIORITY',player:priorityPlayer.name,detail:`${priorityPos} need • ${positionNeed(priorityPos)==='STARTER'?'starter still open':'best FLEX fit'}`,tone:'blue'}
+  ];
+  if(scarcity)items.push({label:'SCARCITY WATCH',player:scarcity.player.name,detail:`${scarcity.pos} • ${scarcity.meaningful} meaningful values remain`,tone:scarcity.meaningful<=4?'red':'yellow'});
+  return items.slice(0,3);
+}
+
 function nominationSuggestion(){
   if(profileMode==="clean" && !Object.keys(personalEvaluations).length) return {player:"—",reason:"Build your personal board in Scouting to activate nomination strategy."};
   const available=PLAYERS.filter(p=>!sold(p.name)&&p.tier!=="UNRANKED"&&Number(p.fairLow)>0);

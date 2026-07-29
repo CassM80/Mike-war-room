@@ -63,8 +63,14 @@ function renderMarketPulse(){
 
 function renderNominationSuggestion(){ const n=nominationSuggestion(); $("nominationPlayer").textContent=n.player; $("nominationReason").textContent=n.reason; }
 
+function renderZeroClickIntelligence(){
+  const box=$("zeroClickIntel"); if(!box)return;
+  const items=zeroClickIntelligence();
+  box.innerHTML=items.length?items.map(x=>`<button class="zero-intel-row ${x.tone}" type="button" data-zero-player="${esc(x.player)}"><span>${esc(x.label)}</span><strong>${esc(x.player)}</strong><small>${esc(x.detail)}</small></button>`).join(""):'<div class="zero-intel-empty">Record the first sale or complete your personal board to activate live intelligence.</div>';
+}
+
 function renderAlerts(){
-  renderMarketPulse(); renderNominationSuggestion();
+  renderMarketPulse(); renderNominationSuggestion(); renderZeroClickIntelligence();
   const a=alerts();
   $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
 }
@@ -101,8 +107,10 @@ function setSelected(p){
   $("buyRange").textContent=p.buyLow?`$${p.buyLow} – $${p.buyHigh}`:"—";
   $("fairRange").textContent=p.fairLow?`$${p.fairLow} – $${p.fairHigh}`:"—";
   $("stopRange").textContent=p.overpay?`$${p.overpay}+`:"PASS";
-  const ps=(p.pivots||"").split("→").map(x=>x.trim()).filter(Boolean);
-  $("primaryPivot").textContent=ps[0]||"—"; $("secondaryPivot").textContent=ps[1]||"—"; $("budgetPivot").textContent=p.budgetPivot||"—";
+  const autoPivots=automaticPivotsFor(byName[p.name]||p);
+  $("primaryPivot").textContent=autoPivots.primary?`${autoPivots.primary.name} • ${money(marketValueFor(autoPivots.primary))}`:"—";
+  $("secondaryPivot").textContent=autoPivots.secondary?`${autoPivots.secondary.name} • ${money(marketValueFor(autoPivots.secondary))}`:"—";
+  $("budgetPivot").textContent=autoPivots.budget?`${autoPivots.budget.name} • ${money(marketValueFor(autoPivots.budget))}`:"—";
   renderWarDossier(byName[p.name]||p);
   renderRecommendation(byName[p.name]||p);
   renderAlerts();

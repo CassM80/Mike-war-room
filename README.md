@@ -85,3 +85,13 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Draft Prep, the Bulk Player Board, Mock Draft, sorting labels, refresh status, and explanatory copy now use the league-specific terminology.
 - The underlying dynamic valuation logic is unchanged: external consensus remains an evidence source, while League Value is the final price tailored to Headquarters settings.
 - Service-worker cache advanced to Sprint 29.2.
+
+## Sprint 30.0 — Zero-Click Intelligence
+
+- Added an auto-updating Zero-Click Board to the live War Room.
+- Best Fit Now is calculated from personal conviction, open roster slots, League Value, scarcity and live room conditions.
+- Roster Priority identifies the position and player that best fit the remaining build.
+- Scarcity Watch identifies the thinnest meaningful position pool still relevant to the user's roster.
+- Selected-player pivots are now generated automatically from available players and current League Values instead of relying on static text.
+- Zero-click recommendations open the player dossier with one tap and require no current-bid entry.
+- Renamed the live dossier's MARKET label to LEAGUE VALUE for terminology consistency.
