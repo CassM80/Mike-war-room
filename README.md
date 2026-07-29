@@ -95,3 +95,13 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Selected-player pivots are now generated automatically from available players and current League Values instead of relying on static text.
 - Zero-click recommendations open the player dossier with one tap and require no current-bid entry.
 - Renamed the live dossier's MARKET label to LEAGUE VALUE for terminology consistency.
+
+## Sprint 30.1 — War Room Layout Polish
+
+- Rebalanced the desktop War Room so Live Draft Intelligence receives enough vertical space for the Zero-Click Board.
+- Prevented the Zero-Click Board from extending underneath the Record & Next area.
+- Made the Live Draft Intelligence panel independently scrollable when alerts and nomination strategy exceed the available height.
+- Kept the intelligence panel title visible while scrolling.
+- Reduced the Record & Next footprint and compacted its fields without changing the recording workflow.
+- Added a shorter landscape layout for lower-height laptop and tablet screens.
+- Service-worker cache advanced to Sprint 30.1.
