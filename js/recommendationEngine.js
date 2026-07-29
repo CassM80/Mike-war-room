@@ -1,13 +1,22 @@
 // Sprint 24.3 — market valuation, alerts, nomination, and recommendation logic.
 
+function providerRankFor(base){
+  const value=Number(base?.provider_rank||base?.adp||base?.sleeper_rank||base?.search_rank||0);
+  return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
+}
+function providerRankSource(base){
+  if(Number(base?.provider_rank)>0)return "Provider overall rank";
+  if(Number(base?.adp)>0)return "Dedicated ADP";
+  if(Number(base?.sleeper_rank||base?.search_rank)>0)return "Sleeper search-rank fallback";
+  return "Unavailable";
+}
 function rebuildMarketRankCache(){
   const ranks=new Map();
   for(const pos of ['QB','RB','WR','TE','K','DEF']){
-    PLAYERS.filter(p=>p.pos===pos).sort((a,b)=>(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name)).forEach((p,i)=>ranks.set(playerKey(p.name),i+1));
+    PLAYERS.filter(p=>p.pos===pos).sort((a,b)=>(providerRankFor(a)||99999)-(providerRankFor(b)||99999)||a.name.localeCompare(b.name)).forEach((p,i)=>ranks.set(playerKey(p.name),i+1));
   }
   marketRankCache={count:PLAYERS.length,ranks};
 }
-
 function positionRankFor(base){const provider=Number(base?.provider_pos_rank||0);if(provider>0)return provider;if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
 
 function leagueMarketMultiplier(pos){
@@ -56,6 +65,7 @@ function saveMarketOverride(base,value){
   const key=playerKey(base.name), amount=Math.max(0,Math.round(Number(value)||0));
   if(amount) marketOverrides[key]=amount; else delete marketOverrides[key];
   localStorage.setItem(MARKET_OVERRIDE_KEY,JSON.stringify(marketOverrides));
+  warRoomMarketRankCache={signature:"",ranks:new Map()};
 }
 function directConsensusFor(base){
   const raw=(typeof AUCTION_CONSENSUS_VALUES!=="undefined")?AUCTION_CONSENSUS_VALUES[normalizedConsensusKey(base?.name)]:0;
@@ -82,16 +92,32 @@ function consensusPriceFor(base){
   return marketOverrideFor(base)||baselineMarketFor(base);
 }
 
-function adpFor(base){
-  // Sprint 27.0: this is a neutral market-rank accessor, not a claim of true ADP.
-  const value=Number(base?.provider_rank||base?.adp||base?.sleeper_rank||base?.search_rank||0);
-  return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
+function warRoomRankSignature(){
+  const r=leagueConfig?.roster||{};
+  return [PLAYERS.length,leagueConfig?.teamCount||12,leagueConfig?.budget||200,leagueConfig?.scoring||'PPR',r.qb||1,r.rb||2,r.wr||2,r.te||1,r.flex||2,JSON.stringify(marketOverrides)].join('|');
 }
+function rebuildWarRoomMarketRankCache(){
+  const ranks=new Map();
+  const positionOrder={RB:1,WR:2,TE:3,QB:4};
+  const rows=PLAYERS.filter(p=>['QB','RB','WR','TE'].includes(p.pos)&&p.active!==false&&CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase()))
+    .sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)
+      ||(marketPriceSource(a).code==='CONSENSUS'?0:1)-(marketPriceSource(b).code==='CONSENSUS'?0:1)
+      ||(providerRankFor(a)||99999)-(providerRankFor(b)||99999)
+      ||(positionOrder[a.pos]||9)-(positionOrder[b.pos]||9)
+      ||a.name.localeCompare(b.name));
+  rows.forEach((p,i)=>ranks.set(playerKey(p.name),i+1));
+  warRoomMarketRankCache={signature:warRoomRankSignature(),ranks};
+}
+function marketRankFor(base){
+  if(!base)return 0;
+  const sig=warRoomRankSignature();
+  if(warRoomMarketRankCache.signature!==sig)rebuildWarRoomMarketRankCache();
+  return warRoomMarketRankCache.ranks.get(playerKey(base.name))||0;
+}
+function adpFor(base){ return providerRankFor(base); }
 function marketRankSource(base){
-  if(Number(base?.provider_rank)>0)return "Provider overall rank";
-  if(Number(base?.adp)>0)return "Dedicated ADP";
-  if(Number(base?.sleeper_rank||base?.search_rank)>0)return "Sleeper search rank fallback";
-  return "Unavailable";
+  const provider=providerRankFor(base);
+  return provider?`War Room auction-value rank • provider reference ${provider}`:'War Room auction-value rank';
 }
 
 function marketValueFor(base){

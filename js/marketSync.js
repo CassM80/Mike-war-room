@@ -110,6 +110,7 @@ function applyRankingSnapshot(rows,{fromCache=false}={}){
     if(old.tier&&row.tier&&old.tier!==row.tier) tierMoves++;
   }
   marketRankCache={count:-1,ranks:new Map()};
+  warRoomMarketRankCache={signature:"",ranks:new Map()};
   byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
   return {matched,rankMoves,valueMoves,tierMoves};
 }
@@ -197,7 +198,7 @@ async function syncMarketData({force=false}={}){
       personalEvaluations=JSON.parse(beforePersonal||"{}");
       savePersonalEvaluations(true);
     }
-    PLAYERS.sort((a,b)=>(Number(a.provider_rank)||99999)-(Number(b.provider_rank)||99999)||(adpFor(a)||99999)-(adpFor(b)||99999)||a.name.localeCompare(b.name));
+    PLAYERS.sort((a,b)=>(marketRankFor(a)||99999)-(marketRankFor(b)||99999)||(providerRankFor(a)||99999)-(providerRankFor(b)||99999)||a.name.localeCompare(b.name));
     byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
     renderBulkBoard();renderPersonalBoard();renderCore();renderBlueprint();renderAll();renderMarketCoverageAudit();renderPlayerIntegrity();
     const now=Date.now();

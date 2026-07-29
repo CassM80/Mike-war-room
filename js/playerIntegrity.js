@@ -1,4 +1,4 @@
-// Sprint 28.0 — canonical player identity plus draft-relevant market-health diagnostics.
+// Sprint 28.1 — canonical player identity plus draft-relevant market-health diagnostics.
 function buildCanonicalPlayerRegistry(){
   const registry=new Map(), aliases=new Map();
   for(const p of PLAYERS){
@@ -14,7 +14,7 @@ function integrityDraftUniverse(){
   const relevant=new Set(['QB','RB','WR','TE']);
   const maxDepth=Math.max(Number(MARKET_COVERAGE_POLICY?.overallDepth||300),Number(coverageRosterDepth?.().skill||0));
   return PLAYERS.filter(p=>relevant.has(p.pos)&&p.active!==false&&CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase()))
-    .sort((a,b)=>(adpFor(a)||99999)-(adpFor(b)||99999)||(positionRankFor(a)||999)-(positionRankFor(b)||999)||a.name.localeCompare(b.name))
+    .sort((a,b)=>(marketRankFor(a)||99999)-(marketRankFor(b)||99999)||(positionRankFor(a)||999)-(positionRankFor(b)||999)||a.name.localeCompare(b.name))
     .slice(0,maxDepth);
 }
 function playerDataIntegrityReport(){
@@ -30,7 +30,7 @@ function playerDataIntegrityReport(){
   const draftUniverse=integrityDraftUniverse();
   const sources={CONSENSUS:0,BASELINE:0,MODELED:0,EDITED:0,UNPRICED:0};
   for(const p of draftUniverse){
-    const price=consensusPriceFor(p),rank=adpFor(p),source=marketPriceSource(p).code;
+    const price=consensusPriceFor(p),rank=marketRankFor(p),source=marketPriceSource(p).code;
     sources[source]=(sources[source]||0)+1;
     if(!price)missingPrice.push(p.name);
     if(!rank)missingRank.push(p.name);
@@ -54,7 +54,7 @@ function renderPlayerIntegrity(){
   summary.textContent=`Top ${r.draftUniverseSize}: ${r.coveragePct}% priced • ${r.rankPct}% ranked • ${r.sources.CONSENSUS||0} verified consensus • ${(r.sources.BASELINE||0)+(r.sources.MODELED||0)} War Room baselines`;
   const groups=[
     ['DRAFT-RELEVANT PLAYERS WITHOUT A MARKET VALUE',r.missingPrice],
-    ['DRAFT-RELEVANT PLAYERS WITHOUT A MARKET RANK',r.missingRank],
+    ['DRAFT-RELEVANT PLAYERS WITHOUT A WAR ROOM RANK',r.missingRank],
     ['DUPLICATE IDS',r.duplicateIds],
     ['DUPLICATE NAMES / ALIASES',r.duplicateNames],
     ['SUSPICIOUS PRICE-RANK CONFLICTS',r.suspicious]

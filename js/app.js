@@ -111,6 +111,7 @@ const MARKET_CURVES={
   DEF:[2,2,2,1,1,1,1,1,1,1,1,1]
 };
 let marketRankCache={count:-1,ranks:new Map()};
+let warRoomMarketRankCache={signature:"",ranks:new Map()};
 
 
 

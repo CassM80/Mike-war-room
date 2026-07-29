@@ -44,3 +44,10 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Market Coverage Audit separately grades price coverage, usable ranking coverage, and live-provider coverage.
 - K/DEF records no longer distort missing-rank or missing-price health counts.
 - Service-worker cache advanced to Sprint 28.0.
+
+
+## Sprint 28.1 — Ranking Integrity
+- Added a War Room Market Rank derived primarily from auction-market values.
+- Raw provider rank is retained only as a secondary reference and tiebreaker.
+- Bulk Board, Blueprint, integrity diagnostics, coverage ordering, and Mock Draft nomination prominence now use War Room rank.
+- Service-worker cache advanced to Sprint 28.1.

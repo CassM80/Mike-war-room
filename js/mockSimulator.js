@@ -90,14 +90,11 @@
     if(!preferred) preferred=Math.round(market*(conviction(p)>=4?1.06:conviction(p)<=2?.82:.98));
     return Math.max(0,Math.min(legalMax(team),preferred));
   }
-  function providerRank(p){
-    // Live-provider/search ADP is the neutral room rank. Personal preferences must never bury an NFL star.
-    const rank=Number(p.provider_rank||p.search_rank||p.adp||0);
-    return Number.isFinite(rank)&&rank>0?rank:9999;
-  }
+  function providerRank(p){ return providerRankFor(p)||9999; }
   function nominationRank(p){
-    // AI nomination order represents the public draft room, not Mike's personal board or Consensus $.
-    return providerRank(p);
+    // Sprint 28.1: nomination prominence follows War Room auction-market rank.
+    // Raw provider rank remains a secondary tiebreaker only.
+    return marketRankFor(p)||9999;
   }
   function nominationTier(p){
     const raw=String(evaluation(p)?.tier||p.provider_tier||p.tier||"").toUpperCase().replace(/^TIER\s*/,"").trim();

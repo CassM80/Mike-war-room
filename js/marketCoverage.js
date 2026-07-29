@@ -1,4 +1,4 @@
-// Sprint 28.0 — Market Coverage Expansion.
+// Sprint 28.1 — Market Coverage Expansion.
 // Audits live ranks and all market-value sources across the actual draftable pool.
 
 function coverageRosterDepth(){
@@ -9,11 +9,11 @@ function coverageRosterDepth(){
   const statusOnly=teams*(Math.max(0,Number(r.k||0))+Math.max(0,Number(r.def||0)));
   return {teams,perTeam,total,skill:Math.max(1,total-statusOnly),statusOnly};
 }
-function coverageRankFor(p){return Number(p.provider_rank||p.adp||p.search_rank||p.sleeper_rank||0)||99999;}
+function coverageRankFor(p){return marketRankFor(p)||99999;}
 function coverageClassFor(p){
   if(Number(p.provider_rank||0)>0)return 'LIVE';
   const active=p.active!==false&&CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase());
-  const fallback=Number(adpFor(p)||0)>0;
+  const fallback=Number(providerRankFor(p)||0)>0;
   return active&&fallback?'FALLBACK':'STALE';
 }
 function marketCoverageUniverse(){
@@ -49,7 +49,7 @@ function renderMarketCoverageAudit(){
   const color={green:'var(--green)',yellow:'#ffcc4d',red:'var(--red)'}[a.tone];
   const positionRows=['QB','RB','WR','TE'].map(pos=>`<tr><th>${pos}</th><td>${a.byPos[pos].LIVE}</td><td>${a.byPos[pos].FALLBACK}</td><td>${a.byPos[pos].STALE}</td></tr>`).join('');
   const depthCard=(label,x)=>`<div><strong>${x.pricedPct}%</strong><span>${label} PRICED</span><small>${x.rankedPct}% ranked • ${x.livePct}% live</small></div>`;
-  const review=a.review.length?a.review.map(x=>`<li><b>#${x.rank} ${esc(x.p.name)}</b><span>${x.p.pos} • ${x.rankKind} rank • ${x.priceKind} price</span></li>`).join(''):'<li><b>No draft-relevant gaps found.</b><span>Every audited player has a market value and usable rank.</span></li>';
+  const review=a.review.length?a.review.map(x=>`<li><b>#${x.rank} ${esc(x.p.name)}</b><span>${x.p.pos} • War Room #${marketRankFor(x.p)||"—"} • ${x.rankKind} provider coverage • ${x.priceKind} price</span></li>`).join(''):'<li><b>No draft-relevant gaps found.</b><span>Every audited player has a market value and a War Room rank.</span></li>';
   const modeled=(a.priceSources.BASELINE||0)+(a.priceSources.MODELED||0);
   host.innerHTML=`<details class="market-coverage" open><summary><span>MARKET COVERAGE AUDIT</span><strong style="color:${color}">${a.top300.pricedPct}% PRICED — ${a.verdict}</strong></summary><div class="market-coverage-body"><p>${a.depth.teams} teams × ${a.depth.perTeam} roster spots = ${a.depth.total} selections. The audit checks the top ${a.target} QB/RB/WR/TE players; ${a.depth.statusOnly} K/DEF slots are excluded.</p><p><strong>Price sources:</strong> ${a.priceSources.CONSENSUS||0} verified consensus • ${modeled} War Room baseline • ${a.priceSources.EDITED||0} edited • ${a.priceSources.UNPRICED||0} unpriced. Modeled values are labeled and never presented as outside-provider consensus.</p><div class="coverage-depth">${depthCard('TOP 100',a.top100)}${depthCard('TOP 150',a.top150)}${depthCard(`DRAFT DEPTH ${a.depth.skill}`,a.expected)}${depthCard('TOP 300',a.top300)}</div><div class="coverage-columns"><table><thead><tr><th>POS</th><th>LIVE</th><th>FALLBACK</th><th>STALE</th></tr></thead><tbody>${positionRows}</tbody></table><div><h4>PLAYERS TO REVIEW</h4><ul class="coverage-review">${review}</ul></div></div></div></details>`;
   return a;
