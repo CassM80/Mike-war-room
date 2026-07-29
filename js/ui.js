@@ -70,7 +70,7 @@ function renderRecommendation(base){
   $("recommendationReasons").innerHTML=(r.reasons.length?r.reasons:["Select a player to generate personalized guidance"]).map((x,i)=>`<div class="recommendation-reason ${/avoid|exceeds|large share|No legal|hot/i.test(x)?"warning":""}">${x}</div>`).join("");
 }
 
-function setSelected(p){
+function setSelected(p,deferAlerts=false){
   p=effectivePlayer(p);
   const existingSale=p?sold(p.name):null;
   state.selected=p? p.name:null; save();
@@ -80,7 +80,7 @@ function setSelected(p){
   $("recordPlayer").value=p?p.name:"";
   if(!p){
     $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
-    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); renderAlerts(); return;
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); if(!deferAlerts)renderAlerts(); return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
   const ev=p.personalEvaluation;
@@ -98,14 +98,14 @@ function setSelected(p){
   $("budgetPivot").textContent=autoPivots.budget?`${autoPivots.budget.name} • ${money(marketValueFor(autoPivots.budget))}`:"—";
   renderWarDossier(byName[p.name]||p);
   renderRecommendation(byName[p.name]||p);
-  renderAlerts();
+  if(!deferAlerts)renderAlerts();
 }
 
 function fillSelects(){
   $("recordPlayerList").innerHTML=PLAYERS.map(p=>`<option value="${p.name}">${p.pos} • ${p.team||"FA"}</option>`).join("");
 }
 
-function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); renderMyGuysGallery(); renderBlueprint(); }
+function renderAll(){ renderCommand(); renderRoster(); renderCore(); renderAlerts(); }
 
 function showScoutingPanel(panel){const board=panel==='BOARD',my=panel==='MY',blue=panel==='BLUE';$("scoutingMainLayout").classList.toggle('hidden',!board);$("myGuysGallery").classList.toggle('hidden',!my);$("blueprintGallery").classList.toggle('hidden',!blue);$("scoutingBoardTab").classList.toggle('active',board);$("myGuysTab").classList.toggle('active',my);$("blueprintTab").classList.toggle('active',blue);if(my)renderMyGuysGallery();if(blue)renderBlueprint();}
 

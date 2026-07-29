@@ -110,7 +110,7 @@ function applyRankingSnapshot(rows,{fromCache=false}={}){
     if(old.tier&&row.tier&&old.tier!==row.tier) tierMoves++;
   }
   marketRankCache={count:-1,ranks:new Map()};
-  warRoomMarketRankCache={signature:"",ranks:new Map()};
+  invalidateLeagueValueCache();
   byName=Object.fromEntries(PLAYERS.map(p=>[p.name,p]));
   return {matched,rankMoves,valueMoves,tierMoves};
 }

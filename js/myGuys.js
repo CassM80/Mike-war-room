@@ -10,6 +10,7 @@ function activatePersonalization(){
 }
 
 function savePersonalEvaluations(force=false){
+  if(typeof invalidateDraftPerformanceCaches==='function')invalidateDraftPerformanceCaches();
   if(window.__warRoomResetting&&!force)return false;
   if(Object.keys(personalEvaluations||{}).length){
       profileMode="owner";

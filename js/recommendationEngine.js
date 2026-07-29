@@ -1,12 +1,17 @@
 // Sprint 24.3 — market valuation, alerts, nomination, and recommendation logic.
 
 
-function espnPositionRankFor(base){
-  const list=(typeof ESPN_POSITIONAL_RANKINGS!=="undefined"?ESPN_POSITIONAL_RANKINGS[base?.pos]:null)||[];
-  const key=playerMatchKey(base?.name);
-  const index=list.findIndex(name=>playerMatchKey(name)===key);
-  return index>=0?index+1:0;
+let espnPositionRankMaps=null;
+function ensureEspnPositionRankMaps(){
+  if(espnPositionRankMaps)return espnPositionRankMaps;
+  espnPositionRankMaps={};
+  for(const pos of ['QB','RB','WR','TE','K','DEF']){
+    const list=(typeof ESPN_POSITIONAL_RANKINGS!=='undefined'?ESPN_POSITIONAL_RANKINGS[pos]:null)||[];
+    espnPositionRankMaps[pos]=new Map(list.map((name,i)=>[playerMatchKey(name),i+1]));
+  }
+  return espnPositionRankMaps;
 }
+function espnPositionRankFor(base){return ensureEspnPositionRankMaps()[base?.pos]?.get(playerMatchKey(base?.name))||0;}
 function espnAuctionBaselineFor(base){
   const rank=espnPositionRankFor(base);
   const curve=(typeof ESPN_AUCTION_CURVES!=="undefined"?ESPN_AUCTION_CURVES[base?.pos]:null)||[];
@@ -112,7 +117,7 @@ function saveMarketOverride(base,value){
   const key=playerKey(base.name), amount=Math.max(0,Math.round(Number(value)||0));
   if(amount) marketOverrides[key]=amount; else delete marketOverrides[key];
   localStorage.setItem(MARKET_OVERRIDE_KEY,JSON.stringify(marketOverrides));
-  warRoomMarketRankCache={signature:"",ranks:new Map()};
+  invalidateLeagueValueCache();
 }
 function directConsensusFor(base){
   const raw=(typeof AUCTION_CONSENSUS_VALUES!=="undefined")?AUCTION_CONSENSUS_VALUES[normalizedConsensusKey(base?.name)]:0;
@@ -146,15 +151,20 @@ function marketPriceSource(base){
   if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}${leagueLabel}`};
   return {code:"UNPRICED",label:"Outside modeled draft coverage"};
 }
+let leagueValueCache=new Map();
+function invalidateLeagueValueCache(){leagueValueCache=new Map();warRoomRankVersion++;warRoomMarketRankCache={signature:'',ranks:new Map()};}
 function consensusPriceFor(base){
-  if(!base) return 0;
-  return marketOverrideFor(base)||baselineMarketFor(base);
+  if(!base)return 0;
+  const key=playerKey(base.name);
+  if(leagueValueCache.has(key))return leagueValueCache.get(key);
+  const value=marketOverrideFor(base)||baselineMarketFor(base);
+  leagueValueCache.set(key,value);
+  return value;
 }
 
-function warRoomRankSignature(){
-  const r=leagueConfig?.roster||{};
-  return [PLAYERS.length,leagueValuationFingerprint(),JSON.stringify(marketOverrides)].join('|');
-}
+let warRoomRankVersion=1;
+function warRoomRankSignature(){return `${PLAYERS.length}|${warRoomRankVersion}`;}
+
 function rebuildWarRoomMarketRankCache(){
   const ranks=new Map();
   const positionOrder={RB:1,WR:2,TE:3,QB:4};
@@ -255,7 +265,9 @@ function automaticPivotsFor(base){
   return {primary,secondary,budget};
 }
 
+let zeroClickCache={revision:0,items:[]};
 function zeroClickIntelligence(){
+  if(zeroClickCache.revision===draftPerformanceRevision)return zeroClickCache.items;
   const pool=zeroClickCandidatePool();
   if(!pool.length)return [];
   const best=pool.slice().sort((a,b)=>zeroClickPriorityScore(b)-zeroClickPriorityScore(a)||marketRankFor(a)-marketRankFor(b))[0];
@@ -282,7 +294,8 @@ function zeroClickIntelligence(){
     {label:'ROSTER PRIORITY',player:priorityPlayer.name,detail:`${priorityPos} need • ${positionNeed(priorityPos)==='STARTER'?'starter still open':'best FLEX fit'}`,tone:'blue'}
   ];
   if(scarcity)items.push({label:'SCARCITY WATCH',player:scarcity.player.name,detail:`${scarcity.pos} • ${scarcity.meaningful} meaningful values remain`,tone:scarcity.meaningful<=4?'red':'yellow'});
-  return items.slice(0,3);
+  zeroClickCache={revision:draftPerformanceRevision,items:items.slice(0,3)};
+  return zeroClickCache.items;
 }
 
 
@@ -322,10 +335,10 @@ function benchUpsideScore(base,ev){
   return score;
 }
 
-function tierDropFor(base,candidates){
+function tierDropFor(base,candidates,live){
+  if(live?.dropByName)return live.dropByName.get(base.name)||0;
   const same=candidates.filter(p=>p.pos===base.pos&&p.name!==base.name).sort((a,b)=>marketValueFor(b)-marketValueFor(a));
-  const current=marketValueFor(base);
-  const next=same.find(p=>marketValueFor(p)<current-0.5)||same[0];
+  const current=marketValueFor(base),next=same.find(p=>marketValueFor(p)<current-.5)||same[0];
   return next?Math.max(0,current-marketValueFor(next)):0;
 }
 
@@ -341,7 +354,7 @@ function dynamicTargetScore(base,live){
   const demand=live?.demandByPos?.[base.pos]||roomDemandFor(base.pos);
   const affordableOpponents=demand.teams.filter(t=>t.index!==ctx.myTeamIndex&&t.budget>=leagueValue).length;
   const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
-  const drop=tierDropFor(base,live?.candidates||[]);
+  const drop=tierDropFor(base,live?.candidates||[],live);
   const upside=benchUpsideScore(base,ev);
   let score=Number(rec.score||0)*.55;
 
@@ -397,7 +410,7 @@ function dynamicTargetReason(base,live){
   const need=positionNeed(base.pos);
   const ps=positionMarketStats(base.pos);
   const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
-  const drop=tierDropFor(base,live?.candidates||[]);
+  const drop=tierDropFor(base,live?.candidates||[],live);
   const edge=Number(ev.value||0)-leagueValue;
   if(need==='BENCH'&&benchUpsideScore(base,ev)>=10)return `Bench upside • ${money(leagueValue)} League Value`;
   if(edge>0)return `Personal edge +${money(edge)} • ${need.toLowerCase()} fit`;
@@ -411,26 +424,35 @@ function dynamicTargetReason(base,live){
   return `Best remaining value • ${money(leagueValue)} League Value`;
 }
 
+let dynamicTargetCache={revision:0,limit:0,rows:[]};
 function dynamicTopTargets(limit=10){
-  const ctx=dynamicTargetContext();
+  limit=Math.max(1,Number(limit||10));
+  if(dynamicTargetCache.revision===draftPerformanceRevision&&dynamicTargetCache.limit>=limit)return dynamicTargetCache.rows.slice(0,limit);
+  const ctx=dynamicTargetContext(),soldMap=draftSnapshot().soldMap;
   const candidates=PLAYERS.filter(p=>
-    !sold(p.name)&&p.active!==false&&['QB','RB','WR','TE'].includes(p.pos)&&
-    CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase())&&marketValueFor(p)>0&&
-    positionNeed(p.pos)!=='FULL'
+    !soldMap.has(p.name)&&p.active!==false&&['QB','RB','WR','TE'].includes(p.pos)&&
+    CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase())&&marketValueFor(p)>0&&positionNeed(p.pos)!=='FULL'
   );
+  const byPos=Object.fromEntries(['QB','RB','WR','TE'].map(pos=>[pos,[]]));
+  candidates.forEach(p=>byPos[p.pos].push(p));
+  Object.values(byPos).forEach(rows=>rows.sort((a,b)=>marketValueFor(b)-marketValueFor(a)));
   const demandByPos=Object.fromEntries(['QB','RB','WR','TE'].map(pos=>[pos,roomDemandFor(pos)]));
-  const meaningfulByPos={};
-  ['QB','RB','WR','TE'].forEach(pos=>{
-    const rows=candidates.filter(p=>p.pos===pos).sort((a,b)=>marketValueFor(b)-marketValueFor(a));
-    const top=marketValueFor(rows[0]||{});
+  const meaningfulByPos={},dropByName=new Map();
+  for(const pos of ['QB','RB','WR','TE']){
+    const rows=byPos[pos],top=marketValueFor(rows[0]||{});
     meaningfulByPos[pos]=rows.filter(p=>marketValueFor(p)>=Math.max(2,top*.28)).length;
-  });
-  const live={ctx,demandByPos,meaningfulByPos,candidates};
-  return candidates
-    .map(p=>({player:effectivePlayer(p),score:dynamicTargetScore(p,live),reason:dynamicTargetReason(p,live),leagueValue:marketValueFor(p),ev:getPersonalEvaluation(p.name)||{},phase:ctx.phase}))
+    for(let i=0;i<rows.length;i++){
+      const current=marketValueFor(rows[i]); let next=0;
+      for(let j=i+1;j<rows.length;j++){const v=marketValueFor(rows[j]);if(v<current-.5){next=v;break;}}
+      dropByName.set(rows[i].name,next?Math.max(0,current-next):0);
+    }
+  }
+  const live={ctx,demandByPos,meaningfulByPos,candidates,dropByName};
+  const rows=candidates.map(p=>({player:effectivePlayer(p),score:dynamicTargetScore(p,live),reason:dynamicTargetReason(p,live),leagueValue:marketValueFor(p),ev:getPersonalEvaluation(p.name)||{},phase:ctx.phase}))
     .filter(x=>x.score>-20&&!(x.ev.avoid||normalizedConviction(x.ev.conviction)===1))
-    .sort((a,b)=>b.score-a.score||Number(a.leagueValue>ctx.maxLegal)-Number(b.leagueValue>ctx.maxLegal)||marketRankFor(a.player)-marketRankFor(b.player))
-    .slice(0,Math.max(1,Number(limit||10)));
+    .sort((a,b)=>b.score-a.score||Number(a.leagueValue>ctx.maxLegal)-Number(b.leagueValue>ctx.maxLegal)||marketRankFor(a.player)-marketRankFor(b.player));
+  dynamicTargetCache={revision:draftPerformanceRevision,limit:Math.max(limit,10),rows:rows.slice(0,Math.max(limit,10))};
+  return dynamicTargetCache.rows.slice(0,limit);
 }
 
 function nominationSuggestion(){

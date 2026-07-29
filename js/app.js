@@ -187,8 +187,9 @@ $("readyBtn").addEventListener("click",()=>{
   const team=leagueConfig.teams?.[winnerTeamIndex]||{};
   state.sales.push({player,winner:isMine?"me":"other",winnerTeamIndex,winnerName:team.teamName||`Team ${winnerTeamIndex+1}`,price,slot});
   if(isMine) state.roster[slot]={player,price};
+  invalidateDraftPerformanceCaches();
   $("finalPrice").value=0; $("winner").value="";
-  setSelected(null); save(); renderAll(); updateResetSummary();
+  setSelected(null,true); save(); renderAll(); updateResetSummary();
   const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
   setTimeout(()=>{ btn.innerHTML="RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small>"; $("playerSearch").focus(); },700);
 });
@@ -365,11 +366,11 @@ $("saveLeagueBtn").addEventListener("click",()=>{
   leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),superflex:Number($("superflexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
   leagueConfig.keepers=Number($("keeperCountInput").value||0); leagueConfig.keeperBudget=Math.max(0,Number($("keeperBudgetInput").value||0));
   leagueConfig.myTeamIndex=Number($("myTeamInput").value||0);
-  ensureTeams(); saveLeagueConfig(); renderWinnerOptions(); if(!state.sales.length)state.budget=leagueConfig.budget; const dnaUpdated=recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
+  ensureTeams(); invalidateLeagueValueCache(); invalidateDraftPerformanceCaches(); saveLeagueConfig(); renderWinnerOptions(); if(!state.sales.length)state.budget=leagueConfig.budget; const dnaUpdated=recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
   $("leagueSavedNote").textContent=dnaUpdated?`League saved • ${dnaUpdated} DNA player values recalculated.`:"League setup saved."; setTimeout(()=>$("leagueSavedNote").textContent="",1800);
 });
 $("saveTeamsBtn").addEventListener("click",()=>{
-  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); saveLeagueConfig(); renderLeagueSetup(); renderWinnerOptions();
+  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); invalidateDraftPerformanceCaches(); saveLeagueConfig(); renderLeagueSetup(); renderWinnerOptions();
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
 $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
@@ -391,7 +392,7 @@ $("shareSafeResetBtn").addEventListener("click",()=>{
 });
 renderTeamCountOptions(); renderLeagueSetup(); renderWinnerOptions(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
-setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
+let lastClockMinute='';setInterval(()=>{const now=new Date(),key=`${now.getHours()}:${now.getMinutes()}`;if(key!==lastClockMinute){lastClockMinute=key;$("clock").textContent=now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}},1000);
 fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]);
 document.getElementById("refreshPlayerPoolBtn")?.addEventListener("click",async()=>{
   const btn=document.getElementById("refreshPlayerPoolBtn");
@@ -417,7 +418,8 @@ function previewLeagueValuationFromHeadquarters(){
   leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),superflex:Number($("superflexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
   leagueConfig.keepers=Number($("keeperCountInput").value||0);
   leagueConfig.keeperBudget=Math.max(0,Number($("keeperBudgetInput").value||0));
-  warRoomMarketRankCache={signature:"",ranks:new Map()};
+  invalidateLeagueValueCache();
+  invalidateDraftPerformanceCaches();
   clearTimeout(valuationPreviewTimer);
   valuationPreviewTimer=setTimeout(()=>{
     $("summaryTeams").textContent=leagueConfig.teamCount;

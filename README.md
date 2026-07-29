@@ -1,3 +1,7 @@
+# Sprint 31.1 — Performance Engine
+
+Cached draft snapshots, League Values and live recommendation results; removed off-screen gallery rebuilds from the live sale path; reduced duplicate renders and repeated team/player scans.
+
 # Mike Cassidy Auction War Room — Sprint 31.0
 
 ## Recommendation Intelligence Engine
