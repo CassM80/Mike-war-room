@@ -51,7 +51,7 @@ function renderPlayerIntegrity(){
   const r=playerDataIntegrityReport();
   scoreEl.textContent=`${r.score}% • ${r.registrySize}/${r.total} canonical records`;
   scoreEl.className=r.score>=95?'integrity-good':r.score>=85?'integrity-warn':'integrity-bad';
-  summary.textContent=`Top ${r.draftUniverseSize}: ${r.coveragePct}% priced • ${r.rankPct}% ranked • ${r.sources.CONSENSUS||0} verified consensus • ${(r.sources.BASELINE||0)+(r.sources.MODELED||0)} War Room baselines`;
+  summary.textContent=`Top ${r.draftUniverseSize}: ${r.coveragePct}% priced • ${r.rankPct}% ranked • ESPN blend active • ${r.sources.CONSENSUS||0} verified consensus • ${(r.sources.BASELINE||0)+(r.sources.MODELED||0)} War Room baselines`;
   const groups=[
     ['DRAFT-RELEVANT PLAYERS WITHOUT A MARKET VALUE',r.missingPrice],
     ['DRAFT-RELEVANT PLAYERS WITHOUT A WAR ROOM RANK',r.missingRank],

@@ -51,3 +51,13 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Raw provider rank is retained only as a secondary reference and tiebreaker.
 - Bulk Board, Blueprint, integrity diagnostics, coverage ordering, and Mock Draft nomination prominence now use War Room rank.
 - Service-worker cache advanced to Sprint 28.1.
+
+## Sprint 28.2 — ESPN Ranking Blend
+- Added a bundled ESPN Mike Clay 2026 PPR positional-ranking snapshot for QB/RB/WR/TE.
+- War Room auction baselines now blend verified/curated values with ESPN positional context.
+- Added conservative ESPN auction curves for a 12-team, one-QB, $200 PPR room.
+- Curated or consensus values are capped when they sit far above the ESPN positional tier, reducing stale inflation.
+- War Room Rank remains auction-value driven, with ESPN rank used before the raw provider rank as a tiebreaker.
+- Bulk Player Board now shows ESPN positional reference (`EWR17`, `ERB15`, etc.) alongside provider reference (`P12`).
+- User-edited prices remain authoritative and are never overwritten by the blend.
+- Service-worker cache advanced to Sprint 28.2.

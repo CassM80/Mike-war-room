@@ -1,5 +1,30 @@
 // Sprint 24.3 — market valuation, alerts, nomination, and recommendation logic.
 
+
+function espnPositionRankFor(base){
+  const list=(typeof ESPN_POSITIONAL_RANKINGS!=="undefined"?ESPN_POSITIONAL_RANKINGS[base?.pos]:null)||[];
+  const key=playerMatchKey(base?.name);
+  const index=list.findIndex(name=>playerMatchKey(name)===key);
+  return index>=0?index+1:0;
+}
+function espnAuctionBaselineFor(base){
+  const rank=espnPositionRankFor(base);
+  const curve=(typeof ESPN_AUCTION_CURVES!=="undefined"?ESPN_AUCTION_CURVES[base?.pos]:null)||[];
+  if(!rank)return 0;
+  const raw=rank<=curve.length?Number(curve[rank-1]||0):(rank<=modeledCoverageDepth(base?.pos)?1:0);
+  return Math.max(0,Math.round(raw*leagueMarketMultiplier(base?.pos)));
+}
+function blendWithEspn(base,sourceValue,sourceCode){
+  const espn=espnAuctionBaselineFor(base);
+  if(!espn)return Math.max(0,Math.round(sourceValue||0));
+  const source=Math.max(0,Number(sourceValue||0));
+  const weights={CONSENSUS:.50,BASELINE:.30,MODELED:.20};
+  const w=weights[sourceCode]??.35;
+  const blended=Math.round(source*w+espn*(1-w));
+  const cap=espn+(base?.pos==='QB'?4:6);
+  return Math.max(1,Math.min(blended,cap));
+}
+
 function providerRankFor(base){
   const value=Number(base?.provider_rank||base?.adp||base?.sleeper_rank||base?.search_rank||0);
   return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
@@ -74,17 +99,24 @@ function directConsensusFor(base){
 }
 function baselineMarketFor(base){
   const direct=directConsensusFor(base);
-  if(direct) return direct;
-  // Curated fair ranges are a stable fallback; ranking-derived prices are always labeled estimates.
+  if(direct) return blendWithEspn(base,direct,"CONSENSUS");
+  // Curated values remain useful, but ESPN positional context prevents stale personal
+  // baselines from inflating a player far above the current public ranking tier.
   const low=Number(base?.fairLow||0), high=Number(base?.fairHigh||0);
-  if(low||high) return Math.max(1,Math.round(((low||high)+(high||low))/2));
-  return positionAwareMarketPrice(base);
+  if(low||high){
+    const curated=Math.max(1,Math.round(((low||high)+(high||low))/2));
+    return blendWithEspn(base,curated,"BASELINE");
+  }
+  const modeled=positionAwareMarketPrice(base);
+  return modeled?blendWithEspn(base,modeled,"MODELED"):espnAuctionBaselineFor(base);
 }
 function marketPriceSource(base){
   if(marketOverrideFor(base)) return {code:"EDITED",label:"Your edited market price"};
-  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}`};
-  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:"War Room curated baseline"};
-  if(positionAwareMarketPrice(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"} • rank-derived`};
+  const espn=espnPositionRankFor(base);
+  const espnLabel=espn?` • ESPN ${base.pos}${espn} blend`:"";
+  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}${espnLabel}`};
+  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:`War Room curated baseline${espnLabel}`};
+  if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}`};
   return {code:"UNPRICED",label:"Outside modeled draft coverage"};
 }
 function consensusPriceFor(base){
@@ -102,6 +134,7 @@ function rebuildWarRoomMarketRankCache(){
   const rows=PLAYERS.filter(p=>['QB','RB','WR','TE'].includes(p.pos)&&p.active!==false&&CURRENT_NFL_TEAMS.has(String(p.team||'').toUpperCase()))
     .sort((a,b)=>consensusPriceFor(b)-consensusPriceFor(a)
       ||(marketPriceSource(a).code==='CONSENSUS'?0:1)-(marketPriceSource(b).code==='CONSENSUS'?0:1)
+      ||(espnPositionRankFor(a)||99999)-(espnPositionRankFor(b)||99999)
       ||(providerRankFor(a)||99999)-(providerRankFor(b)||99999)
       ||(positionOrder[a.pos]||9)-(positionOrder[b.pos]||9)
       ||a.name.localeCompare(b.name));
@@ -116,8 +149,9 @@ function marketRankFor(base){
 }
 function adpFor(base){ return providerRankFor(base); }
 function marketRankSource(base){
-  const provider=providerRankFor(base);
-  return provider?`War Room auction-value rank • provider reference ${provider}`:'War Room auction-value rank';
+  const provider=providerRankFor(base),espn=espnPositionRankFor(base);
+  const refs=[espn?`ESPN ${base.pos}${espn}`:'',provider?`provider ${provider}`:''].filter(Boolean).join(' • ');
+  return refs?`War Room blended auction rank • ${refs}`:'War Room blended auction rank';
 }
 
 function marketValueFor(base){
