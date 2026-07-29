@@ -1,3 +1,11 @@
+# Mike Cassidy Auction War Room — Sprint 30.3.1
+
+## Recommended Now
+
+- Renamed the live War Room recommendation panel from **Your Top Targets** to **Recommended Now**.
+- The underlying Sprint 30.3 dynamic recommendation logic is unchanged.
+- The panel still recalculates automatically after every recorded sale.
+
 # Mike Cassidy Auction War Room — Sprint 30.3
 
 ## Dynamic Top Targets

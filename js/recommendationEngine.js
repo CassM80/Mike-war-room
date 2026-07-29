@@ -286,7 +286,7 @@ function zeroClickIntelligence(){
 }
 
 
-// Sprint 30.3 — Dynamic Top Targets.
+// Sprint 30.3 — Recommended Now.
 // Produces a live shortlist from current roster construction, legal buying power,
 // personal preferences, positional scarcity, room demand and market conditions.
 function dynamicTargetContext(){
