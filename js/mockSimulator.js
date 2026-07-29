@@ -12,6 +12,15 @@
   ];
   const q=id=>document.getElementById(id);
   let mock = loadMock();
+  const AUCTION_CLOCK_MS = 3000;
+  const AI_BID_DELAY_MIN = 650;
+  const AI_BID_DELAY_MAX = 1250;
+  let auctionClockTimer = null;
+  let auctionBidTimer = null;
+  let auctionDeadline = 0;
+  let auctionRemaining = AUCTION_CLOCK_MS;
+  let auctionPaused = false;
+  let auctionToken = 0;
 
   function loadMock(){ try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;} }
   function saveMock(){ localStorage.setItem(KEY,JSON.stringify(mock)); }
@@ -163,6 +172,7 @@
     });
   }
   function startMock(){
+    clearAuctionRuntime();
     mock={active:true,complete:false,myTeamIndex:Number(leagueConfig.myTeamIndex||0),teams:initTeams(),sales:[],log:[],turn:Math.floor(Math.random()*Number(leagueConfig.teamCount||12)),nomination:null,passed:[],roomStyle:"REALISTIC"};
     saveMock(); nextNomination();
   }
@@ -170,19 +180,109 @@
     const n=mock.teams.length;
     for(let step=0;step<n;step++){
       mock.turn=(mock.turn+1)%n;
-      if((mock.teams[mock.turn].roster||[]).length<totalSpots())return mock.turn;
+      if((mock.teams[mock.turn].roster||[]).length<totalSpots()&&legalMax(mock.teams[mock.turn])>=1)return mock.turn;
     }
     return myIndex();
   }
+  function clearAuctionRuntime(){
+    if(auctionClockTimer){clearInterval(auctionClockTimer);auctionClockTimer=null;}
+    if(auctionBidTimer){clearTimeout(auctionBidTimer);auctionBidTimer=null;}
+    auctionDeadline=0;
+    auctionRemaining=AUCTION_CLOCK_MS;
+    auctionPaused=false;
+    auctionToken++;
+    updateAuctionClockDisplay(AUCTION_CLOCK_MS);
+  }
+  function updateAuctionClockDisplay(ms=auctionRemaining){
+    const el=q("mockClock"),card=q("mockClockCard"),bar=q("mockClockProgress");
+    const safe=Math.max(0,Number(ms)||0),seconds=(safe/1000).toFixed(1);
+    if(el)el.textContent=`${seconds}s`;
+    if(card){
+      card.classList.toggle("urgent",safe>0&&safe<=1000);
+      card.classList.toggle("paused",auctionPaused);
+    }
+    if(bar)bar.style.width=`${Math.max(0,Math.min(100,(safe/AUCTION_CLOCK_MS)*100))}%`;
+  }
+  function eligibleAIChallengers(){
+    const n=mock?.nomination;
+    if(!n)return [];
+    return mock.teams.map((t,i)=>({i,limit:Number(n.limits?.[i]||0)}))
+      .filter(x=>x.i!==myIndex()&&x.i!==n.highBidder&&x.limit>Number(n.currentBid||0)&&legalMax(mock.teams[x.i])>Number(n.currentBid||0))
+      .sort((a,b)=>b.limit-a.limit);
+  }
+  function scheduleAIBid(token=auctionToken){
+    if(auctionPaused||!mock?.nomination)return;
+    if(auctionBidTimer){clearTimeout(auctionBidTimer);auctionBidTimer=null;}
+    const challengers=eligibleAIChallengers();
+    if(!challengers.length)return;
+    const delay=Math.round(AI_BID_DELAY_MIN+Math.random()*(AI_BID_DELAY_MAX-AI_BID_DELAY_MIN));
+    auctionBidTimer=setTimeout(()=>{
+      auctionBidTimer=null;
+      if(token!==auctionToken||auctionPaused||!mock?.nomination)return;
+      const n=mock.nomination,available=eligibleAIChallengers();
+      if(!available.length)return;
+      const pool=available.slice(0,Math.min(3,available.length));
+      const bidder=pool[Math.floor(Math.random()*pool.length)];
+      const gap=Math.max(1,bidder.limit-Number(n.currentBid||0));
+      const step=gap>=8&&Math.random()<.18?3:gap>=4&&Math.random()<.28?2:1;
+      n.currentBid=Math.min(bidder.limit,Number(n.currentBid||0)+step);
+      n.highBidder=bidder.i;
+      saveMock();
+      renderMock();
+      startAuctionClock({fresh:true});
+    },delay);
+  }
+  function finishAuctionClock(){
+    const n=mock?.nomination;
+    if(!n)return;
+    const winner=Number(n.highBidder);
+    const price=Number(n.currentBid||1);
+    awardSale(winner,price);
+  }
+  function tickAuctionClock(){
+    if(auctionPaused||!mock?.nomination)return;
+    auctionRemaining=Math.max(0,auctionDeadline-performance.now());
+    updateAuctionClockDisplay(auctionRemaining);
+    if(auctionRemaining<=0)finishAuctionClock();
+  }
+  function startAuctionClock({fresh=false}={}){
+    if(!mock?.nomination)return;
+    if(auctionClockTimer){clearInterval(auctionClockTimer);auctionClockTimer=null;}
+    if(auctionBidTimer){clearTimeout(auctionBidTimer);auctionBidTimer=null;}
+    auctionToken++;
+    auctionPaused=false;
+    auctionRemaining=fresh?AUCTION_CLOCK_MS:Math.max(250,auctionRemaining||AUCTION_CLOCK_MS);
+    auctionDeadline=performance.now()+auctionRemaining;
+    updateAuctionClockDisplay(auctionRemaining);
+    const token=auctionToken;
+    auctionClockTimer=setInterval(tickAuctionClock,80);
+    scheduleAIBid(token);
+  }
+  function pauseAuctionClock(){
+    if(!mock?.nomination||auctionPaused)return;
+    auctionRemaining=Math.max(0,auctionDeadline-performance.now());
+    auctionPaused=true;
+    if(auctionClockTimer){clearInterval(auctionClockTimer);auctionClockTimer=null;}
+    if(auctionBidTimer){clearTimeout(auctionBidTimer);auctionBidTimer=null;}
+    updateAuctionClockDisplay(auctionRemaining);
+  }
+  function resumeAuctionClock(){
+    if(!mock?.nomination||!auctionPaused)return;
+    auctionPaused=false;
+    startAuctionClock({fresh:false});
+  }
   function beginNomination(nominator,p,{userChoice=false}={}){
     if(!p)return;
-    // A user nomination is a real $1 opening bid. AI nominations retain a small market-scaled opener.
-    const opening=userChoice?1:Math.max(1,Math.min(5,Math.round(playerMarket(p)*(.04+Math.random()*.06))));
+    clearAuctionRuntime();
+    // Every nomination is the nominating team's automatic $1 opening bid.
+    const opening=1;
     mock.awaitingUserNomination=false;
+    mock.lastResult=null;
     mock.nomination={player:p.name,nominator,currentBid:opening,highBidder:nominator,userPassed:false,limits:{}};
-    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=teamLimit(t,p));
+    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=Math.max(i===nominator?1:0,teamLimit(t,p)));
     mock.nomination.expected=expectedSaleRange(p,mock.nomination.limits);
-    primeAIBidding();saveMock();renderMock();
+    saveMock();renderMock();
+    setTimeout(()=>startAuctionClock({fresh:true}),0);
   }
   function nextNomination(){
     if(!mock?.active)return;
@@ -212,44 +312,30 @@
     if(input)input.value="";
     beginNomination(myIndex(),p,{userChoice:true});
   }
-  function primeAIBidding(){
-    const n=mock.nomination,p=byName[n.player],user=myIndex();
-    const bidders=mock.teams.map((t,i)=>({i,limit:Number(n.limits[i]||0)})).filter(x=>x.i!==user&&x.limit>=n.currentBid).sort((a,b)=>b.limit-a.limit);
-    if(!bidders.length)return;
-    const leader=bidders[0],market=playerMarket(p),pause=Math.min(leader.limit,Math.max(n.currentBid,Math.round(market*(.72+Math.random()*.12))));
-    n.currentBid=Math.max(n.currentBid,pause);n.highBidder=leader.i;
-  }
-  function aiRespondToUser(){
-    const n=mock.nomination,user=myIndex();
-    const challengers=mock.teams.map((t,i)=>({i,limit:Number(n.limits[i]||0)})).filter(x=>x.i!==user&&x.limit>n.currentBid).sort((a,b)=>b.limit-a.limit);
-    if(!challengers.length){awardSale(user,n.currentBid);return;}
-    const c=challengers[0];
-    n.currentBid=Math.min(c.limit,n.currentBid+Math.max(1,Math.min(4,Math.ceil((c.limit-n.currentBid)*.35))));
-    n.highBidder=c.i;saveMock();renderMock();
-  }
   function bid(amount){
     const n=mock?.nomination;if(!n||n.userPassed)return;
     const p=byName[n.player],team=mock.teams[myIndex()],max=userSafeMax(p),target=Math.max(n.currentBid+1,Math.round(amount));
     if(target>legalMax(team)){alert(`Your legal maximum bid is $${legalMax(team)}.`);return;}
     if(target>max&&!confirm(`This is $${target-max} above your Safe Max of $${max}. Bid anyway?`))return;
-    n.currentBid=target;n.highBidder=myIndex();saveMock();renderMock();setTimeout(aiRespondToUser,260);
+    n.currentBid=target;n.highBidder=myIndex();n.userPassed=false;saveMock();renderMock();startAuctionClock({fresh:true});
   }
   function pass(){
-    const n=mock?.nomination;if(!n)return;n.userPassed=true;
-    const contenders=mock.teams.map((t,i)=>({i,limit:Number(n.limits[i]||0)})).filter(x=>x.i!==myIndex()&&x.limit>=n.currentBid).sort((a,b)=>b.limit-a.limit);
-    if(!contenders.length){awardSale(n.highBidder,n.currentBid);return;}
-    const winner=contenders[0],second=contenders[1]?.limit||n.currentBid;
-    awardSale(winner.i,Math.max(n.currentBid,Math.min(winner.limit,second+1)));
+    const n=mock?.nomination;if(!n)return;
+    n.userPassed=true;
+    saveMock();renderMock();
+    startAuctionClock({fresh:true});
   }
   function awardSale(teamIndex,price){
-    const n=mock.nomination,p=byName[n.player],team=mock.teams[teamIndex];
+    const n=mock?.nomination;if(!n)return;
+    clearAuctionRuntime();
+    const p=byName[n.player],team=mock.teams[teamIndex];
     price=Math.max(1,Math.min(Number(price),legalMax(team)));
     team.budget-=price;team.roster.push({name:p.name,pos:p.pos,price});
     const sale={player:p.name,pos:p.pos,teamIndex,team:team.name,price,market:playerMarket(p)};
     mock.sales.push(sale);mock.log.unshift(sale);mock.lastResult=sale;mock.nomination=null;saveMock();renderMock();
   }
-  function completeMock(){mock.complete=true;mock.active=false;mock.awaitingUserNomination=false;mock.nomination=null;saveMock();renderMock();}
-  function resetMock(){if(!mock||confirm("Clear this mock draft? Your live War Room will not be affected.")){localStorage.removeItem(KEY);mock=null;renderMock();}}
+  function completeMock(){clearAuctionRuntime();mock.complete=true;mock.active=false;mock.awaitingUserNomination=false;mock.nomination=null;saveMock();renderMock();}
+  function resetMock(){clearAuctionRuntime();if(!mock||confirm("Clear this mock draft? Your live War Room will not be affected.")){localStorage.removeItem(KEY);mock=null;renderMock();}}
   function gradeSummary(){
     const mine=mock?.sales?.filter(s=>s.teamIndex===myIndex())||[];
     const edge=mine.reduce((a,s)=>a+(s.market-s.price),0),myGuys=mine.filter(s=>conviction(byName[s.player])>=4).length;
@@ -292,10 +378,11 @@
     const me=mock.teams[myIndex()],safe=userSafeMax(p),market=playerMarket(p),bid=Number(n.currentBid||0),edge=safe-bid,need=positionNeed(me,p.pos),posStats=mockPositionStats(p.pos),comps=mockComparableCount(p),youLead=n.highBidder===myIndex();
     let call,tone,copy;
     if(n.userPassed){call="GOOD DISCIPLINE";tone="pass";copy="You passed. Let the room finish the bidding.";}
+    else if(youLead){call="HOLD";tone="";copy=`You lead at $${bid}. Let the auction clock run.`;}
     else if(bid>safe){call="PASS";tone="pass";copy="Room is bidding aggressively. Let this one go. Better values remain.";}
-    else if(edge<=1){call=youLead?"HOLD":"CAUTION";tone="caution";copy=`Price is at your limit. Stop at $${safe}.`;}
+    else if(edge<=1){call="CAUTION";tone="caution";copy=`Price is at your limit. Stop at $${safe}.`;}
     else if(bid<=Math.max(1,market-2)){call="BID";tone="";copy=`Good value. One more bid is reasonable. Stop at $${safe}.`;}
-    else {call=youLead?"HOLD":"BID";tone="";copy=`Still inside your Safe Max. ${edge} dollar${edge===1?"":"s"} of room remain${edge===1?"s":""}.`;}
+    else {call="BID";tone="";copy=`Still inside your Safe Max. ${edge} dollar${edge===1?"":"s"} of room remain${edge===1?"s":""}.`;}
     const reasons=[];
     reasons.push(mockStarterNeedLabel(me,p));
     if(safe>market)reasons.push(`Your personal ceiling is $${safe-market} above League Value`);
@@ -380,13 +467,15 @@
       q("mockPlayer").textContent=p.name;q("mockPlayerMeta").textContent=`${p.pos} • ${p.team||"FA"} • ${conviction(p)}★ ${convictionLabel(conviction(p))}`;
       const expected=n.expected||expectedSaleRange(p,n.limits);
       q("mockCurrentBid").textContent=`$${n.currentBid}`;q("mockHighBidder").textContent=teamName(n.highBidder);q("mockMarket").textContent=`$${market}`;q("mockExpected").textContent=`$${expected.low}–$${expected.high}`;q("mockSafeMax").textContent=`$${safe}`;
+      updateAuctionClockDisplay(auctionRemaining);
       const coach=mockCoachFor(p,n);
       q("mockAdvice").textContent=coach.copy;
       q("mockCoachCall").textContent=coach.call;q("mockCoachCall").className=`mock-coach-call ${coach.tone||""}`;
       q("mockCoachCopy").textContent=coach.copy;
       q("mockCoachReasons").innerHTML=coach.reasons.map(x=>`<div>${esc(x)}</div>`).join("");
-      q("mockBidOneBtn").disabled=!!n.userPassed;q("mockBidMaxBtn").disabled=!!n.userPassed||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed;
+      q("mockBidOneBtn").disabled=!!n.userPassed||youLead;q("mockBidMaxBtn").disabled=!!n.userPassed||youLead||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed||youLead;
     }else{
+      updateAuctionClockDisplay(0);
       q("mockCoachCall").textContent=mock?.complete?"MOCK COMPLETE":"WAITING";q("mockCoachCall").className="mock-coach-call";
       q("mockCoachCopy").textContent=mock?.complete?"Review the room, roster, and draft log before your next run.":"Start or advance the mock to activate live coaching.";
       q("mockCoachReasons").innerHTML="";
@@ -411,8 +500,10 @@
     q("mockPassBtn")?.addEventListener("click",pass);
     q("mockNominateBtn")?.addEventListener("click",submitUserNomination);
     q("mockNomineeInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submitUserNomination();}});
-    q("mockNextBtn")?.addEventListener("click",()=>{mock.lastResult=null;nextNomination();});
+    q("mockNextBtn")?.addEventListener("click",()=>{clearAuctionRuntime();mock.lastResult=null;nextNomination();});
+    document.addEventListener("visibilitychange",()=>{if(document.hidden)pauseAuctionClock();else resumeAuctionClock();});
     renderMock();
+    if(mock?.nomination)setTimeout(()=>startAuctionClock({fresh:true}),0);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();

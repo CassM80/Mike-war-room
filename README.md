@@ -1,3 +1,13 @@
+# Sprint 32.1 — Automatic Auction Clock
+
+- Every nomination now opens with an automatic $1 bid by the nominating team.
+- A visible three-second auction clock starts immediately and resets after every user or AI bid.
+- AI teams bid automatically according to their limits and personalities.
+- When the clock expires, the current high bidder wins without another confirmation click.
+- An uncontested user nomination is automatically added to the user's roster for $1.
+- Pass removes the user from future bidding while the AI room finishes the auction automatically.
+- The clock pauses when the browser tab is hidden and resumes when the user returns.
+
 # Sprint 31.1 — Performance Engine
 
 Cached draft snapshots, League Values and live recommendation results; removed off-screen gallery rebuilds from the live sale path; reduced duplicate renders and repeated team/player scans.
