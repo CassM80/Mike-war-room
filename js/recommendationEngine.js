@@ -286,14 +286,47 @@ function zeroClickIntelligence(){
 }
 
 
-// Sprint 30.3 — Recommended Now.
-// Produces a live shortlist from current roster construction, legal buying power,
-// personal preferences, positional scarcity, room demand and market conditions.
+// Sprint 31.0 — Recommendation Intelligence Engine.
+// Recommended Now balances starter completion with FLEX/bench value, tier-drop risk,
+// upside, personal edge, scarcity, budget fit and the current phase of the auction.
 function dynamicTargetContext(){
   const remaining=Math.max(0,Number(leagueConfig.budget||200)-spent());
   const slots=availableSlots();
   const maxLegal=Math.max(0,remaining-Math.max(0,slots.length-1));
-  return {remaining,slots,maxLegal,myTeamIndex:Number(leagueConfig.myTeamIndex||0)};
+  const starterSlots=slots.filter(s=>/^(QB|RB|WR|TE)/.test(s));
+  const flexSlots=slots.filter(s=>/^(FLEX|SF)/.test(s));
+  const benchSlots=slots.filter(s=>s.startsWith('BN'));
+  const requiredOpen=starterSlots.length+flexSlots.length;
+  const phase=requiredOpen===0?'ENDGAME':requiredOpen<=2?'VALUE':state.sales.length<10?'BUILD':'BALANCE';
+  return {remaining,slots,maxLegal,starterSlots,flexSlots,benchSlots,requiredOpen,phase,myTeamIndex:Number(leagueConfig.myTeamIndex||0)};
+}
+
+function recommendationTierNumber(base){
+  const t=String(base?.tier||'').toUpperCase();
+  if(t==='1A')return 1;
+  if(t==='1B')return 1.5;
+  const n=parseFloat(t);
+  return Number.isFinite(n)?n:6;
+}
+
+function benchUpsideScore(base,ev){
+  const text=`${base?.notes||''} ${base?.action||''} ${base?.audit||''}`.toLowerCase();
+  let score=0;
+  if(ev.sleeper)score+=8;
+  if(ev.favorite)score+=5;
+  if(ev.flagPlant)score+=7;
+  if(normalizedConviction(ev.conviction)>=4)score+=5;
+  if(/upside|ascending|breakout|rookie|young|ceiling|handcuff|lottery|stash/.test(text))score+=5;
+  if(/reliable|safe|floor|steady/.test(text))score+=2;
+  score+=Math.max(0,6-recommendationTierNumber(base));
+  return score;
+}
+
+function tierDropFor(base,candidates){
+  const same=candidates.filter(p=>p.pos===base.pos&&p.name!==base.name).sort((a,b)=>marketValueFor(b)-marketValueFor(a));
+  const current=marketValueFor(base);
+  const next=same.find(p=>marketValueFor(p)<current-0.5)||same[0];
+  return next?Math.max(0,current-marketValueFor(next)):0;
 }
 
 function dynamicTargetScore(base,live){
@@ -307,39 +340,53 @@ function dynamicTargetScore(base,live){
   const need=positionNeed(base.pos);
   const demand=live?.demandByPos?.[base.pos]||roomDemandFor(base.pos);
   const affordableOpponents=demand.teams.filter(t=>t.index!==ctx.myTeamIndex&&t.budget>=leagueValue).length;
-  let score=Number(rec.score||0);
+  const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
+  const drop=tierDropFor(base,live?.candidates||[]);
+  const upside=benchUpsideScore(base,ev);
+  let score=Number(rec.score||0)*.55;
 
-  // Personal board is evidence, not a static ordering.
-  if(Number(ev.rank)>0)score+=Math.max(2,18-Math.min(16,Number(ev.rank)*.7));
-  score+=(conviction-3)*5;
-  if(ev.flagPlant)score+=12;
-  if(ev.favorite)score+=7;
+  // Raw player quality and personal evidence.
+  score+=Math.max(0,14-recommendationTierNumber(base)*2.2);
+  if(Number(ev.rank)>0)score+=Math.max(1,13-Math.min(12,Number(ev.rank)*.5));
+  score+=(conviction-3)*4;
+  if(ev.flagPlant)score+=9;
+  if(ev.favorite)score+=5;
   if(ev.sleeper)score+=4;
-  if(ev.avoid||conviction===1)score-=100;
-  if(personalValue>leagueValue)score+=Math.min(12,(personalValue-leagueValue)*1.5);
+  if(ev.avoid||conviction===1)score-=120;
+  if(personalValue>leagueValue)score+=Math.min(14,(personalValue-leagueValue)*1.7);
 
-  // Current roster construction must be the strongest live signal.
-  if(need==='STARTER')score+=18;
-  else if(need==='FLEX'||need==='SUPERFLEX')score+=9;
-  else if(need==='BENCH')score-=7;
-  else score-=100;
+  // Roster construction changes by draft phase instead of blindly filling blanks.
+  const phaseWeights={
+    BUILD:{STARTER:16,FLEX:10,SUPERFLEX:11,BENCH:2,FULL:-100},
+    BALANCE:{STARTER:12,FLEX:10,SUPERFLEX:11,BENCH:5,FULL:-100},
+    VALUE:{STARTER:9,FLEX:10,SUPERFLEX:10,BENCH:8,FULL:-100},
+    ENDGAME:{STARTER:7,FLEX:8,SUPERFLEX:8,BENCH:12,FULL:-100}
+  };
+  score+=(phaseWeights[ctx.phase]?.[need]??0);
+  if(need==='BENCH')score+=upside;
+  else score+=upside*.35;
 
-  // Keep the list executable with the money actually left.
+  // Budget execution: preserve one dollar per open slot and reward useful price points.
   if(leagueValue<=ctx.maxLegal)score+=7;
-  else score-=Math.min(35,(leagueValue-ctx.maxLegal)*3);
-  if(hardStop>0&&hardStop<=ctx.maxLegal)score+=4;
-  if(ctx.remaining>0&&leagueValue/ctx.remaining>.55)score-=8;
-  if(ctx.slots.length<=5&&leagueValue<=Math.max(3,ctx.remaining/Math.max(1,ctx.slots.length)))score+=5;
+  else score-=Math.min(45,(leagueValue-ctx.maxLegal)*4);
+  const avgPerSlot=ctx.slots.length?ctx.remaining/ctx.slots.length:ctx.remaining;
+  if(leagueValue<=Math.max(2,avgPerSlot*1.35))score+=5;
+  if(ctx.phase==='ENDGAME'&&leagueValue<=Math.max(3,avgPerSlot*1.7))score+=6;
+  if(hardStop>0&&hardStop<=ctx.maxLegal)score+=3;
+  if(ctx.remaining>0&&leagueValue/ctx.remaining>.60&&ctx.requiredOpen>1)score-=10;
 
-  // A contested position is more urgent, but a hot room still demands discipline.
-  score+=Math.min(6,affordableOpponents);
+  // Scarcity and tier-drop risk are useful, but cannot force a mediocre starter over better value.
+  score+=Math.min(7,drop*.7);
+  if(meaningful<=4)score+=6;
+  else if(meaningful<=7)score+=3;
+  score+=Math.min(5,affordableOpponents*.7);
   const ps=positionMarketStats(base.pos);
   if(ps.status==='CHEAP')score+=7;
-  if(ps.status==='HOT')score-=5;
-  const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
-  if(meaningful<=4&&need!=='BENCH')score+=8;
-  else if(meaningful<=7&&need!=='BENCH')score+=4;
+  if(ps.status==='HOT')score-=4;
 
+  // Late in the draft, prefer RB/WR upside and depth over replacement-level QB/TE hoarding.
+  if(need==='BENCH'&&['RB','WR'].includes(base.pos))score+=4;
+  if(need==='BENCH'&&['QB','TE'].includes(base.pos)&&recommendationTierNumber(base)>=4)score-=6;
   return score;
 }
 
@@ -349,18 +396,19 @@ function dynamicTargetReason(base,live){
   const leagueValue=Math.max(1,marketValueFor(base));
   const need=positionNeed(base.pos);
   const ps=positionMarketStats(base.pos);
-  const demand=live?.demandByPos?.[base.pos]||roomDemandFor(base.pos);
-  const opponents=demand.teams.filter(t=>t.index!==ctx.myTeamIndex&&t.budget>=leagueValue).length;
   const meaningful=Number(live?.meaningfulByPos?.[base.pos]||0);
-  if(need==='STARTER')return `Open ${base.pos} starter • ${money(leagueValue)} League Value`;
-  if((need==='FLEX'||need==='SUPERFLEX')&&meaningful<=6)return `${base.pos} scarcity • ${meaningful} meaningful options remain`;
+  const drop=tierDropFor(base,live?.candidates||[]);
+  const edge=Number(ev.value||0)-leagueValue;
+  if(need==='BENCH'&&benchUpsideScore(base,ev)>=10)return `Bench upside • ${money(leagueValue)} League Value`;
+  if(edge>0)return `Personal edge +${money(edge)} • ${need.toLowerCase()} fit`;
+  if(drop>=5)return `Tier drop ahead • next ${base.pos} value falls ${money(drop)}`;
+  if(need==='STARTER'&&ctx.phase==='BUILD')return `Open ${base.pos} starter • ${money(leagueValue)} League Value`;
+  if(need==='STARTER')return `Starter need + value • ${money(leagueValue)} League Value`;
+  if(need==='FLEX'||need==='SUPERFLEX')return `Best ${need.toLowerCase()} value • ${money(leagueValue)} League Value`;
   if(ps.status==='CHEAP')return `${base.pos} value window • room below expected`;
-  if(Number(ev.value||0)>leagueValue)return `Personal edge +${money(Number(ev.value)-leagueValue)} • fits ${need.toLowerCase()}`;
-  if(ev.flagPlant)return `Plant-the-flag target • ${money(leagueValue)} League Value`;
-  if(ev.favorite||normalizedConviction(ev.conviction)>=4)return `Strong personal target • ${need.toLowerCase()} fit`;
-  if(opponents>=5)return `${opponents} opponents active • demand remains high`;
-  if(leagueValue>ctx.maxLegal)return `Discount only • legal max ${money(ctx.maxLegal)}`;
-  return `${recommendationFor(base).fit} • ${money(leagueValue)} League Value`;
+  if(meaningful<=6)return `${base.pos} scarcity • ${meaningful} meaningful options remain`;
+  if(ev.flagPlant||ev.favorite||normalizedConviction(ev.conviction)>=4)return `Strong personal target • ${money(leagueValue)} League Value`;
+  return `Best remaining value • ${money(leagueValue)} League Value`;
 }
 
 function dynamicTopTargets(limit=10){
@@ -377,10 +425,10 @@ function dynamicTopTargets(limit=10){
     const top=marketValueFor(rows[0]||{});
     meaningfulByPos[pos]=rows.filter(p=>marketValueFor(p)>=Math.max(2,top*.28)).length;
   });
-  const live={ctx,demandByPos,meaningfulByPos};
+  const live={ctx,demandByPos,meaningfulByPos,candidates};
   return candidates
-    .map(p=>({player:effectivePlayer(p),score:dynamicTargetScore(p,live),reason:dynamicTargetReason(p,live),leagueValue:marketValueFor(p),ev:getPersonalEvaluation(p.name)||{}}))
-    .filter(x=>x.score>-20 && !(x.ev.avoid||normalizedConviction(x.ev.conviction)===1))
+    .map(p=>({player:effectivePlayer(p),score:dynamicTargetScore(p,live),reason:dynamicTargetReason(p,live),leagueValue:marketValueFor(p),ev:getPersonalEvaluation(p.name)||{},phase:ctx.phase}))
+    .filter(x=>x.score>-20&&!(x.ev.avoid||normalizedConviction(x.ev.conviction)===1))
     .sort((a,b)=>b.score-a.score||Number(a.leagueValue>ctx.maxLegal)-Number(b.leagueValue>ctx.maxLegal)||marketRankFor(a.player)-marketRankFor(b.player))
     .slice(0,Math.max(1,Number(limit||10)));
 }

@@ -1,3 +1,14 @@
+# Mike Cassidy Auction War Room — Sprint 31.0
+
+## Recommendation Intelligence Engine
+
+- Recommended Now no longer ranks players primarily by the next empty starting slot.
+- The engine shifts automatically through BUILD, BALANCE, VALUE, and ENDGAME recommendation phases.
+- Starter need, FLEX value, bench upside, tier-drop risk, League Value, personal edge, scarcity, market heat, opponent demand, legal max bid, and remaining dollars are scored together.
+- Bench recommendations favor RB/WR upside, sleepers, strong personal targets, young/breakout profiles, and useful price points.
+- Replacement-level backup QB/TE options are suppressed when stronger FLEX or bench values remain.
+- Recommendation reasons now explain starter value, FLEX value, bench upside, personal edge, or an approaching tier drop.
+
 # Mike Cassidy Auction War Room — Sprint 30.3.1
 
 ## Recommended Now
