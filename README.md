@@ -1,4 +1,4 @@
-# Mike Cassidy Auction War Room — Sprint 26.2
+# Mike Cassidy Auction War Room — Sprint 28.3
 
 ## Nomination / Valuation Separation
 
@@ -61,3 +61,13 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Bulk Player Board now shows ESPN positional reference (`EWR17`, `ERB15`, etc.) alongside provider reference (`P12`).
 - User-edited prices remain authoritative and are never overwritten by the blend.
 - Service-worker cache advanced to Sprint 28.2.
+
+
+## Sprint 28.3 — QB Market Calibration
+- Added a one-QB replacement-value calibration after the ESPN auction blend.
+- QB1–QB3 retain 90% of blended value; QB4–QB6 retain 80%; QB7–QB10 retain 65%; QB11–QB15 retain 45%; QB16+ settle at $1.
+- Calibration is skipped for two-QB or Superflex configurations.
+- User-edited market prices remain authoritative and bypass calibration.
+- Recommendation scores now include a modest opportunity-cost penalty for meaningful QB spending in one-QB leagues.
+- Market source labels identify one-QB-calibrated prices.
+- Service-worker cache advanced to Sprint 28.3.

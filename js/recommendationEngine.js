@@ -25,6 +25,26 @@ function blendWithEspn(base,sourceValue,sourceCode){
   return Math.max(1,Math.min(blended,cap));
 }
 
+// Sprint 28.3 — QB Market Calibration.
+// In one-QB leagues, replacement value compresses the position sharply after
+// the elite tier. User-edited prices bypass this layer and remain authoritative.
+function isOneQuarterbackLeague(){
+  const roster=leagueConfig?.roster||defaultLeagueConfig.roster||{};
+  return Number(roster.qb||1)===1&&Number(roster.superflex||0)===0;
+}
+function calibrateQuarterbackValue(base,value){
+  const raw=Math.max(0,Math.round(Number(value)||0));
+  if(base?.pos!=="QB"||!isOneQuarterbackLeague())return raw;
+  const rank=Math.min(positionRankFor(base)||999,espnPositionRankFor(base)||999);
+  let multiplier=1;
+  if(rank<=3)multiplier=.90;
+  else if(rank<=6)multiplier=.80;
+  else if(rank<=10)multiplier=.65;
+  else if(rank<=15)multiplier=.45;
+  else return raw>0?1:0;
+  return Math.max(rank<=10?1:2,Math.round(raw*multiplier));
+}
+
 function providerRankFor(base){
   const value=Number(base?.provider_rank||base?.adp||base?.sleeper_rank||base?.search_rank||0);
   return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
@@ -99,24 +119,30 @@ function directConsensusFor(base){
 }
 function baselineMarketFor(base){
   const direct=directConsensusFor(base);
-  if(direct) return blendWithEspn(base,direct,"CONSENSUS");
-  // Curated values remain useful, but ESPN positional context prevents stale personal
-  // baselines from inflating a player far above the current public ranking tier.
-  const low=Number(base?.fairLow||0), high=Number(base?.fairHigh||0);
-  if(low||high){
-    const curated=Math.max(1,Math.round(((low||high)+(high||low))/2));
-    return blendWithEspn(base,curated,"BASELINE");
+  let value=0;
+  if(direct) value=blendWithEspn(base,direct,"CONSENSUS");
+  else {
+    // Curated values remain useful, but ESPN positional context prevents stale personal
+    // baselines from inflating a player far above the current public ranking tier.
+    const low=Number(base?.fairLow||0), high=Number(base?.fairHigh||0);
+    if(low||high){
+      const curated=Math.max(1,Math.round(((low||high)+(high||low))/2));
+      value=blendWithEspn(base,curated,"BASELINE");
+    }else{
+      const modeled=positionAwareMarketPrice(base);
+      value=modeled?blendWithEspn(base,modeled,"MODELED"):espnAuctionBaselineFor(base);
+    }
   }
-  const modeled=positionAwareMarketPrice(base);
-  return modeled?blendWithEspn(base,modeled,"MODELED"):espnAuctionBaselineFor(base);
+  return calibrateQuarterbackValue(base,value);
 }
 function marketPriceSource(base){
   if(marketOverrideFor(base)) return {code:"EDITED",label:"Your edited market price"};
   const espn=espnPositionRankFor(base);
   const espnLabel=espn?` • ESPN ${base.pos}${espn} blend`:"";
-  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}${espnLabel}`};
-  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:`War Room curated baseline${espnLabel}`};
-  if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}`};
+  const qbLabel=base?.pos==="QB"&&isOneQuarterbackLeague()?" • one-QB calibrated":"";
+  if(directConsensusFor(base)) return {code:"CONSENSUS",label:`${AUCTION_CONSENSUS_META.label} • ${AUCTION_CONSENSUS_META.updated}${espnLabel}${qbLabel}`};
+  if(Number(base?.fairLow||0)||Number(base?.fairHigh||0)) return {code:"BASELINE",label:`War Room curated baseline${espnLabel}${qbLabel}`};
+  if(positionAwareMarketPrice(base)>0||espnAuctionBaselineFor(base)>0) return {code:"MODELED",label:`${MARKET_COVERAGE_POLICY?.label||"War Room modeled baseline"}${espnLabel}${qbLabel}`};
   return {code:"UNPRICED",label:"Outside modeled draft coverage"};
 }
 function consensusPriceFor(base){
@@ -237,6 +263,11 @@ function recommendationFor(base){
   if(hard && hard<=maxLegal){score+=6; reasons.push(`Hard stop ${money(hard)} fits your legal max bid`);}
   if(hard && hard>maxLegal){score-=20; reasons.push(`Hard stop exceeds your legal max bid of ${money(maxLegal)}`);}
   if(value && remaining>0 && value/remaining>.45){score-=5; reasons.push("Would consume a large share of remaining budget");}
+  if(p.pos==="QB"&&isOneQuarterbackLeague()&&need!=="FULL"){
+    const qbMarket=marketValueFor(p);
+    const qbPenalty=qbMarket>=13?6:qbMarket>=7?4:qbMarket>=3?2:0;
+    if(qbPenalty){score-=qbPenalty; reasons.push("One-QB replacement value favors preserving RB/WR budget");}
+  }
   const ms=marketStats(), ps=positionMarketStats(p.pos), scarce=tierRemaining(p.pos,["1A","1B","2"]);
   if(ps.status==="HOT"){score-=5; reasons.push(`${p.pos} market is ${Math.round(ps.infl*100)}% above expected`);}
   if(ps.status==="CHEAP"){score+=7; reasons.push(`${p.pos} buying window is ${Math.abs(Math.round(ps.infl*100))}% below expected`);}
