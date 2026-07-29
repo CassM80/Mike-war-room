@@ -8,7 +8,38 @@ function rosterSlots(){const r=leagueConfig.roster||{};return [...numberedSlots(
 
 function rosterSize(){return rosterSlots().length;}
 
-function spent(){ return state.sales.filter(s=>s.winner==="me").reduce((a,s)=>a+Number(s.price||0),0); }
+function saleTeamIndex(sale){
+  if(sale?.winnerTeamIndex!==undefined && Number.isFinite(Number(sale.winnerTeamIndex)))return Number(sale.winnerTeamIndex);
+  if(sale?.winner==="me")return Number(leagueConfig.myTeamIndex||0);
+  return -1;
+}
+
+function teamSales(teamIndex){return (state.sales||[]).filter(s=>saleTeamIndex(s)===Number(teamIndex));}
+function teamSpent(teamIndex){return teamSales(teamIndex).reduce((a,s)=>a+Number(s.price||0),0);}
+function teamRemainingBudget(teamIndex){return Math.max(0,Number(leagueConfig.budget||200)-teamSpent(teamIndex));}
+function teamPositionCounts(teamIndex){
+  const counts={QB:0,RB:0,WR:0,TE:0,K:0,DEF:0};
+  teamSales(teamIndex).forEach(s=>{const pos=byName[s.player]?.pos;if(counts[pos]!==undefined)counts[pos]++;});
+  return counts;
+}
+function teamRosterCount(teamIndex){return teamSales(teamIndex).length;}
+function teamPositionNeed(teamIndex,pos){
+  const r=leagueConfig.roster||defaultLeagueConfig.roster, c=teamPositionCounts(teamIndex);
+  const direct={QB:Number(r.qb||0),RB:Number(r.rb||0),WR:Number(r.wr||0),TE:Number(r.te||0),K:Number(r.k||0),DEF:Number(r.def||0)}[pos]||0;
+  if((c[pos]||0)<direct)return "STARTER";
+  const flexUsed=Math.max(0,(c.RB-r.rb)+(c.WR-r.wr)+(c.TE-r.te));
+  if(["RB","WR","TE"].includes(pos)&&flexUsed<Number(r.flex||0))return "FLEX";
+  const sfUsed=Math.max(0,(c.QB-r.qb))+Math.max(0,flexUsed-Number(r.flex||0));
+  if(["QB","RB","WR","TE"].includes(pos)&&sfUsed<Number(r.superflex||0))return "SUPERFLEX";
+  return teamRosterCount(teamIndex)<rosterSize()?"BENCH":"FULL";
+}
+function roomDemandFor(pos){
+  ensureTeams();
+  const teams=(leagueConfig.teams||[]).map((t,i)=>({index:i,name:t.teamName||`Team ${i+1}`,need:teamPositionNeed(i,pos),budget:teamRemainingBudget(i)}));
+  const active=teams.filter(t=>["STARTER","FLEX","SUPERFLEX"].includes(t.need));
+  return {count:active.length,teams:active,starterCount:active.filter(t=>t.need==="STARTER").length};
+}
+function spent(){ return teamSpent(Number(leagueConfig.myTeamIndex||0)); }
 
 function sold(name){ return state.sales.find(s=>s.player===name); }
 
@@ -60,7 +91,7 @@ function autoRosterSlot(playerName){
   return open.find(slot=>slot.startsWith("BN"))||null;
 }
 
-function playerDraftStatus(name){const sale=saleForPlayer(name);if(!sale)return {label:"AVAILABLE",cls:"available"};return sale.winner==="me"?{label:"YOURS",cls:"yours"}:{label:"DRAFTED",cls:"drafted"};}
+function playerDraftStatus(name){const sale=saleForPlayer(name);if(!sale)return {label:"AVAILABLE",cls:"available"};return saleTeamIndex(sale)===Number(leagueConfig.myTeamIndex||0)?{label:"YOURS",cls:"yours"}:{label:"DRAFTED",cls:"drafted"};}
 
 function freshDraftState(){ return {budget:Number(leagueConfig.budget||200),sales:[],roster:{},selected:null}; }
 

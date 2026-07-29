@@ -179,6 +179,20 @@ function renderTeamCountOptions(){
   $("qbSlotsInput").innerHTML=optionRange(3); $("superflexSlotsInput").innerHTML=optionRange(2); $("rbSlotsInput").innerHTML=optionRange(5); $("wrSlotsInput").innerHTML=optionRange(5); $("teSlotsInput").innerHTML=optionRange(3); $("flexSlotsInput").innerHTML=optionRange(5); $("kSlotsInput").innerHTML=optionRange(2); $("defSlotsInput").innerHTML=optionRange(2); $("benchSlotsInput").innerHTML=optionRange(15); $("keeperCountInput").innerHTML=optionRange(10);
 }
 
+function renderWinnerOptions(selectedValue=""){
+  const winner=$("winner");
+  if(!winner)return;
+  ensureTeams();
+  const myIdx=Number(leagueConfig.myTeamIndex||0);
+  winner.innerHTML=`<option value="">SELECT TEAM</option>`+leagueConfig.teams.map((t,i)=>{
+    const team=t.teamName||`Team ${i+1}`;
+    const owner=t.ownerName?` — ${t.ownerName}`:"";
+    const mine=i===myIdx?" (YOUR TEAM)":"";
+    return `<option value="team:${i}">${esc(team+owner+mine)}</option>`;
+  }).join("");
+  if(selectedValue && [...winner.options].some(o=>o.value===selectedValue))winner.value=selectedValue;
+}
+
 function renderMyTeamOptions(){
   $("myTeamInput").innerHTML=leagueConfig.teams.map((t,i)=>`<option value="${i}">${t.teamName||("Team "+(i+1))}</option>`).join("");
   $("myTeamInput").value=String(leagueConfig.myTeamIndex||0);
@@ -193,6 +207,7 @@ function renderTeamsEditor(){
     <div class="my-team-pill">${i===Number(leagueConfig.myTeamIndex)?"YOUR TEAM":""}</div>
   </div>`).join("");
   renderMyTeamOptions();
+  renderWinnerOptions($("winner")?.value||"");
 }
 
 function renderLeagueSetup(){

@@ -1,3 +1,13 @@
+# Mike Cassidy Auction War Room — Sprint 30.2
+
+## Full League Team Tracking
+
+- Winner selection now lists every Headquarters team.
+- Every sale stores its winning team, price, and player.
+- War Room derives team budgets, position counts, roster demand, and affordability from recorded sales.
+- Nomination and player recommendations now account for opponent positional demand and remaining budgets.
+- Legacy ME/OTHER sales remain compatible.
+
 # Mike Cassidy Auction War Room — Sprint 29.2
 
 ## Nomination / Valuation Separation

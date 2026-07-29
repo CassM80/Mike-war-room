@@ -289,21 +289,28 @@ function nominationSuggestion(){
   if(profileMode==="clean" && !Object.keys(personalEvaluations).length) return {player:"—",reason:"Build your personal board in Scouting to activate nomination strategy."};
   const available=PLAYERS.filter(p=>!sold(p.name)&&p.tier!=="UNRANKED"&&Number(p.fairLow)>0);
   if(!available.length) return {player:"—",reason:"No ranked players remain."};
-  const hot=["QB","RB","WR","TE"].map(pos=>({pos,...positionMarketStats(pos)})).sort((a,b)=>b.infl-a.infl)[0];
-  let pool=available.filter(p=>p.pos===hot.pos);
-  if(!pool.length) pool=available;
+  const myIdx=Number(leagueConfig.myTeamIndex||0);
+  const demandByPos=["QB","RB","WR","TE"].map(pos=>({pos,...roomDemandFor(pos),market:positionMarketStats(pos)}));
+  const drain=demandByPos.sort((a,b)=>b.count-a.count||b.starterCount-a.starterCount||b.market.infl-a.market.infl)[0];
+  let pool=available.filter(p=>p.pos===drain.pos);
+  if(!pool.length)pool=available;
   pool.sort((a,b)=>{
-    const ae=getPersonalEvaluation(a.name)||{}, be=getPersonalEvaluation(b.name)||{};
-    const aKeep=Number(!!ae.flagPlant)*3+Number(!!ae.favorite)*2+Number(!!ae.sleeper);
-    const bKeep=Number(!!be.flagPlant)*3+Number(!!be.favorite)*2+Number(!!be.sleeper);
-    if(aKeep!==bKeep) return aKeep-bKeep;
+    const ae=getPersonalEvaluation(a.name)||{},be=getPersonalEvaluation(b.name)||{};
+    const aProtect=Number(!!ae.flagPlant)*5+Number(!!ae.favorite)*3+Number(!!ae.sleeper)*2+Number(ae.conviction>=4)*2;
+    const bProtect=Number(!!be.flagPlant)*5+Number(!!be.favorite)*3+Number(!!be.sleeper)*2+Number(be.conviction>=4)*2;
+    if(aProtect!==bProtect)return aProtect-bProtect;
+    const affordableA=drain.teams.filter(t=>t.index!==myIdx&&t.budget>=marketValueFor(a)).length;
+    const affordableB=drain.teams.filter(t=>t.index!==myIdx&&t.budget>=marketValueFor(b)).length;
+    if(affordableA!==affordableB)return affordableB-affordableA;
     return Number(b.pressure||0)-Number(a.pressure||0);
   });
-  const p=pool[0], ps=positionMarketStats(p.pos);
-  if(state.sales.length<2) return {player:p.name,reason:`Early nomination: test the room on a Tier ${p.tier} ${p.pos}.`};
-  if(ps.status==="HOT") return {player:p.name,reason:`${p.pos}s are running hot. Put another premium ${p.pos} into the room and drain budgets.`};
-  if(ps.status==="CHEAP") return {player:p.name,reason:`${p.pos}s are cheap. Nominate one you are willing to buy if the discount holds.`};
-  return {player:p.name,reason:`High-pressure Tier ${p.tier} player who can reveal the room's current appetite.`};
+  const p=pool[0],d=roomDemandFor(p.pos),opponents=d.teams.filter(t=>t.index!==myIdx&&t.budget>=marketValueFor(p));
+  if(opponents.length>=4)return {player:p.name,reason:`${opponents.length} opponents still need ${p.pos} and can afford his ${money(marketValueFor(p))} League Value. Use the nomination to drain budgets.`};
+  if(d.starterCount>=2)return {player:p.name,reason:`${d.starterCount} teams still have an open starting ${p.pos} spot. Test that demand without exposing a protected target.`};
+  const ps=positionMarketStats(p.pos);
+  if(ps.status==="HOT")return {player:p.name,reason:`${p.pos}s are running hot. Put another ${p.pos} into the room and make competitors spend.`};
+  if(ps.status==="CHEAP")return {player:p.name,reason:`${p.pos}s are cheap. Nominate one you are willing to buy if the discount holds.`};
+  return {player:p.name,reason:`Low-protection nomination that tests the remaining ${p.pos} market.`};
 }
 
 function positionNeed(pos){
@@ -317,7 +324,7 @@ function positionNeed(pos){
 function recommendationFor(base){
   if(!base) return {score:0,fit:"—",confidence:"—",reasons:[]};
   const sale=sold(base.name);
-  if(sale) return {score:0,fit:"SOLD",confidence:"FINAL",reasons:[`${sale.winner==="me"?"Your team":"Another team"} acquired him for ${money(sale.price)}`],sold:true};
+  if(sale) return {score:0,fit:"SOLD",confidence:"FINAL",reasons:[`${teamLabelForSale(sale)} acquired him for ${money(sale.price)}`],sold:true};
   const p=effectivePlayer(base), ev=p.personalEvaluation, reasons=[];
   let score=45, confidence=40;
   if(p.tier!=="UNRANKED"){ score+=Math.max(0,14-Number(p.pressure||5)); confidence+=18; reasons.push(`Curated Tier ${p.tier} player`); }
@@ -331,6 +338,10 @@ function recommendationFor(base){
     if(ev.sleeper){score+=8; reasons.push("Sleeper designation adds upside appeal");}
     const edge=playerEdge(base,ev); if(edge>=5){score+=8;reasons.push(`+${edge} personal market edge`);} else if(edge<=-5){score-=8;reasons.push(`${edge} personal market edge`);}
   }
+  const demand=roomDemandFor(p.pos);
+  const opponents=demand.teams.filter(t=>t.index!==Number(leagueConfig.myTeamIndex||0)&&t.budget>=Math.max(1,marketValueFor(p))).length;
+  if(opponents>=6){score+=4;reasons.push(`${opponents} opponents still need ${p.pos} and can afford this tier`);}
+  else if(opponents>=3){score+=2;reasons.push(`${opponents} opponents remain in the ${p.pos} market`);}
   const need=positionNeed(p.pos);
   if(need==="STARTER"){score+=16; reasons.push(`Fills an open ${p.pos} starting spot`);}
   else if(need==="FLEX"){score+=9; reasons.push("Fits an open FLEX spot");}

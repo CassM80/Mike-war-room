@@ -175,15 +175,19 @@ $("recordPlayer").addEventListener("input",e=>{ const p=byName[e.target.value]; 
 $("recordPlayer").addEventListener("change",e=>{ const p=byName[e.target.value]; if(p) setSelected(p); });
 
 $("readyBtn").addEventListener("click",()=>{
-  const player=$("recordPlayer").value, winner=$("winner").value, price=Number($("finalPrice").value);
+  const player=$("recordPlayer").value, winnerValue=$("winner").value, price=Number($("finalPrice").value);
   if(!player) return alert("Select the completed nomination.");
+  if(!winnerValue.startsWith("team:")) return alert("Select the team that won the player.");
   if(price<1) return alert("Enter the final price.");
   if(sold(player)) return alert("That player is already recorded.");
-  const slot=winner==="me"?autoRosterSlot(player):"";
-  if(winner==="me" && !slot) return alert("No eligible roster spot remains for this player.");
-  state.sales.push({player,winner,price,slot});
-  if(winner==="me") state.roster[slot]={player,price};
-  $("finalPrice").value=0; $("winner").value="other";
+  const winnerTeamIndex=Number(winnerValue.split(":")[1]);
+  const myIdx=Number(leagueConfig.myTeamIndex||0), isMine=winnerTeamIndex===myIdx;
+  const slot=isMine?autoRosterSlot(player):"";
+  if(isMine && !slot) return alert("No eligible roster spot remains for this player.");
+  const team=leagueConfig.teams?.[winnerTeamIndex]||{};
+  state.sales.push({player,winner:isMine?"me":"other",winnerTeamIndex,winnerName:team.teamName||`Team ${winnerTeamIndex+1}`,price,slot});
+  if(isMine) state.roster[slot]={player,price};
+  $("finalPrice").value=0; $("winner").value="";
   setSelected(null); save(); renderAll(); updateResetSummary();
   const btn=$("readyBtn"); btn.innerHTML="✓ READY<small>NEXT NOMINATION</small>";
   setTimeout(()=>{ btn.innerHTML="RECORD & NEXT<small>SAVE SALE • CLEAR SCREEN</small>"; $("playerSearch").focus(); },700);
@@ -361,11 +365,11 @@ $("saveLeagueBtn").addEventListener("click",()=>{
   leagueConfig.roster={qb:Number($("qbSlotsInput").value),rb:Number($("rbSlotsInput").value),wr:Number($("wrSlotsInput").value),te:Number($("teSlotsInput").value),flex:Number($("flexSlotsInput").value),superflex:Number($("superflexSlotsInput").value),k:Number($("kSlotsInput").value),def:Number($("defSlotsInput").value),bench:Number($("benchSlotsInput").value)};
   leagueConfig.keepers=Number($("keeperCountInput").value||0); leagueConfig.keeperBudget=Math.max(0,Number($("keeperBudgetInput").value||0));
   leagueConfig.myTeamIndex=Number($("myTeamInput").value||0);
-  ensureTeams(); saveLeagueConfig(); if(!state.sales.length)state.budget=leagueConfig.budget; const dnaUpdated=recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
+  ensureTeams(); saveLeagueConfig(); renderWinnerOptions(); if(!state.sales.length)state.budget=leagueConfig.budget; const dnaUpdated=recalculateDnaBoardForLeague(); renderLeagueSetup(); renderAll();
   $("leagueSavedNote").textContent=dnaUpdated?`League saved • ${dnaUpdated} DNA player values recalculated.`:"League setup saved."; setTimeout(()=>$("leagueSavedNote").textContent="",1800);
 });
 $("saveTeamsBtn").addEventListener("click",()=>{
-  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); saveLeagueConfig(); renderLeagueSetup();
+  collectTeamsFromEditor(); leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); saveLeagueConfig(); renderLeagueSetup(); renderWinnerOptions();
   $("teamsSavedNote").textContent="Teams saved."; setTimeout(()=>$("teamsSavedNote").textContent="",1800);
 });
 $("myTeamInput").addEventListener("change",()=>{ leagueConfig.myTeamIndex=Number($("myTeamInput").value||0); renderTeamsEditor(); });
@@ -385,7 +389,7 @@ $("shareSafeResetBtn").addEventListener("click",()=>{
   if(!confirm("This will erase the league, draft, personal board and Draft DNA from this browser. Continue?")) return;
   fullCleanReset();
 });
-renderTeamCountOptions(); renderLeagueSetup(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
+renderTeamCountOptions(); renderLeagueSetup(); renderWinnerOptions(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
 setInterval(()=>{ $("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}); },1000);
 fillSelects(); renderAll(); renderRecommendation(null); if(state.selected && byName[state.selected]) setSelected(byName[state.selected]);
