@@ -1,31 +1,31 @@
-# Mike Cassidy Auction War Room — Sprint 28.3
+# Mike Cassidy Auction War Room — Sprint 29.2
 
 ## Nomination / Valuation Separation
 
 The mock simulator now treats nomination timing and bidding value as two separate systems.
 
-- Consensus $ remains the sole price anchor for AI bid ceilings, expected sale ranges, and sale-price comparisons.
-- Consensus $ no longer affects whether a player is nominated early or late.
+- League Value remains the sole price anchor for AI bid ceilings, expected sale ranges, and sale-price comparisons.
+- League Value no longer affects whether a player is nominated early or late.
 - Nomination priority is driven by personal/provider rank, tier, roster need, drafter personality, and controlled randomness.
-- Lowering an elite player's Consensus $ creates a potential bargain; it does not make that player disappear from the nomination queue.
-- Raising a player's Consensus $ changes bidding behavior without artificially moving that player up the nomination order.
+- Lowering an elite player's League Value creates a potential bargain; it does not make that player disappear from the nomination queue.
+- Raising a player's League Value changes bidding behavior without artificially moving that player up the nomination order.
 - Mock state uses a new isolated storage version so Sprint 26.1 drafts do not carry into this test.
 
 
 ## Sprint 26.2.1 — Elite Nomination Priority Hotfix
 
 - Mock nominations now use neutral provider/search ADP, including the normalized `adp` field.
-- Personal rankings and Consensus $ cannot bury elite players in the nomination order.
+- Personal rankings and League Value cannot bury elite players in the nomination order.
 - Early-draft nominations come from phase-based public-rank pools.
 - Public top-12 players are guaranteed to be nominated by pick 24.
-- Consensus $ remains the sole price anchor for AI bidding.
+- League Value remains the sole price anchor for AI bidding.
 
 
 ## Sprint 26.3 — User Nominations + Pointer Feedback
 
 - The mock draft now pauses when the nomination rotation reaches your team.
 - Search and select any undrafted player, then nominate that player at $1.
-- AI bidding begins immediately using the same Consensus-anchored limits.
+- AI bidding begins immediately using the same League Value-anchored limits.
 - Bid +$1, Bid to Safe Max, Pass, and Nominate Player now show a hand pointer on hover.
 - Mock storage and service-worker cache were advanced for a clean deployment.
 
@@ -78,3 +78,10 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Provider positional rank may blend with ESPN, but provider overall/search rank can no longer manufacture an elite positional rank.
 - Players omitted from a trusted ESPN positional pool are placed behind that pool before auction curves are applied.
 - Fixes Fernando Mendoza being treated as QB3 and priced above established top quarterbacks.
+
+
+## Sprint 29.2 — League Value Terminology
+- Renamed the user-facing `Consensus $` column to `League Value`.
+- Draft Prep, the Bulk Player Board, Mock Draft, sorting labels, refresh status, and explanatory copy now use the league-specific terminology.
+- The underlying dynamic valuation logic is unchanged: external consensus remains an evidence source, while League Value is the final price tailored to Headquarters settings.
+- Service-worker cache advanced to Sprint 29.2.

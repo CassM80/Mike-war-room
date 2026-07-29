@@ -84,7 +84,7 @@
         <div style="min-width:260px;flex:1">
           <div id="playerDataStatus" style="font-size:13px;color:var(--muted)">Loading player database…</div>
           <div id="playerPoolAudit" style="font-size:12px;color:var(--muted);margin-top:5px"></div>
-          <div id="consensusStatus" style="font-size:12px;color:var(--muted);margin-top:5px">Consensus baseline ready.</div>
+          <div id="consensusStatus" style="font-size:12px;color:var(--muted);margin-top:5px">League Value baseline ready.</div>
           <div id="marketSyncStatus" class="market-sync-status" aria-live="polite">MARKET DATA: bundled baseline • personal evaluations protected</div>
           <section class="integrity-card" id="playerIntegrityCard">
             <div class="integrity-head"><strong>PLAYER DATA HEALTH</strong><span id="playerIntegrityScore">Checking…</span></div>
@@ -97,7 +97,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button id="marketSyncBtn" class="primary-btn market-sync-btn" type="button">SYNC MARKET DATA</button>
           <button id="refreshPlayerPoolBtn" class="secondary-btn" type="button">REFRESH PLAYER POOL</button>
-          <button id="rebuildConsensusBtn" class="secondary-btn" type="button">REBUILD CONSENSUS</button>
+          <button id="rebuildConsensusBtn" class="secondary-btn" type="button">REBUILD LEAGUE VALUES</button>
         </div>
       </div>
     </section>
@@ -170,7 +170,7 @@
         <input id="bulkSearch" placeholder="Filter players by name…">
         <select id="bulkPosition"><option value="ALL">All positions</option><option>QB</option><option>RB</option><option>WR</option><option>TE</option><option>K</option><option>DEF</option></select>
         <select id="bulkBoardFilter"><option value="ALL">All players</option><option value="PERSONALIZED">Personalized only</option><option value="UNRANKED">Not personalized</option><option value="TARGETS">Targets / flags</option><option value="HIGH_CONVICTION">4–5★ My Guys</option><option value="LOW_CONVICTION">1–2★ My Guys</option></select>
-        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: Market Price</option><option value="MARKET_RANK">Sort: War Room Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option><option value="CONVICTION">Sort: My Guys</option></select>
+        <select id="bulkSort"><option value="CONSENSUS_PRICE">Sort: League Value</option><option value="MARKET_RANK">Sort: War Room Market Rank</option><option value="NAME">Sort: Name</option><option value="RANK">Sort: Personal Rank</option><option value="POSITION">Sort: Position</option><option value="VALUE">Sort: Your Value</option><option value="CONVICTION">Sort: My Guys</option></select>
       </div>
       <div class="bulk-actions">
         <div class="form-field"><label>START RANK</label><input id="bulkStartRank" type="number" min="1" placeholder="1"></div>
@@ -181,8 +181,8 @@
         <button class="primary-btn" id="applyBulkBtn">APPLY TO SELECTED</button>
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
-      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Auction Consensus is the default price. Any price you edit is highlighted; market sync never overwrites auction dollars. War Room Market Rank is derived from auction values; the small P-number is the raw provider reference.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>WAR ROOM RANK</th><th>YOUR RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>League Value is War Room’s league-adjusted auction value. Any value you edit is highlighted; market sync never overwrites auction dollars. War Room Market Rank is derived from League Value; the small P-number is the raw provider reference.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>LEAGUE VALUE</th><th>WAR ROOM RANK</th><th>YOUR RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -322,7 +322,7 @@
             <div class="mock-price-band">
               <div><span>CURRENT BID</span><strong id="mockCurrentBid">$1</strong></div>
               <div><span>HIGH BIDDER</span><strong id="mockHighBidder">—</strong></div>
-              <div><span>CONSENSUS $</span><strong id="mockMarket">—</strong></div>
+              <div><span>LEAGUE VALUE</span><strong id="mockMarket">—</strong></div>
               <div><span>EXPECTED SALE</span><strong id="mockExpected">—</strong></div>
               <div><span>YOUR SAFE MAX</span><strong id="mockSafeMax">—</strong></div>
             </div>

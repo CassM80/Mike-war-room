@@ -51,7 +51,7 @@ async function rebuildConsensusRankings(){
   try{
     await syncMarketData(true);
     renderBulkBoard();renderPersonalBoard();renderCore();
-    if(status){status.textContent="Rankings refreshed • Auction Consensus and your edited prices preserved";status.style.color="var(--green)";}
+    if(status){status.textContent="League Values refreshed • external market evidence and your edited values preserved";status.style.color="var(--green)";}
   }catch(error){
     console.error("Ranking refresh failed",error);
     if(status){status.textContent=`Ranking refresh failed: ${error?.message||"Unknown error"}`;status.style.color="var(--red)";}
@@ -399,7 +399,7 @@ document.getElementById("refreshPlayerPoolBtn")?.addEventListener("click",async(
 document.getElementById("marketSyncBtn")?.addEventListener("click",()=>syncMarketData({force:true}));
 document.getElementById("rebuildConsensusBtn")?.addEventListener("click",rebuildConsensusRankings);
 const rebuiltAt=Number(localStorage.getItem("warRoomConsensusRebuiltAt")||0);
-if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`Consensus baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
+if(rebuiltAt&&document.getElementById("consensusStatus")) document.getElementById("consensusStatus").textContent=`League Value baseline last rebuilt ${new Date(rebuiltAt).toLocaleString()}`;
 loadCompletePlayerUniverse().then(()=>{hydrateMarketSyncCache();renderMarketCoverageAudit();renderPlayerIntegrity();});
 
 // Sprint 29.0 — Headquarters valuation preview.

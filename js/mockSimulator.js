@@ -68,7 +68,7 @@
   }
   function teamLimit(team,p){
     const pers=team.personality||PERSONALITIES[1],market=playerMarket(p);
-    // Sprint 26.1 rule: Consensus $ is always the price anchor. Rank never creates price.
+    // Sprint 26.1 rule: League Value is always the price anchor. Rank never creates price.
     let pct=personalityAdjustment(pers,p)+needAdjustment(team,p.pos)+budgetAdjustment(team,p)+roomInflation();
     pct+=-.025+Math.random()*.05; // small player-specific opinion
     if(p.pos==="K"||p.pos==="DEF")pct=Math.min(pct,.05);
@@ -103,7 +103,7 @@
   }
   function nominationProminence(p){
     const rank=Math.max(1,nominationRank(p));
-    // Rank and tier determine how visible a player is to nominators. Consensus $ is deliberately absent.
+    // Rank and tier determine how visible a player is to nominators. League Value is deliberately absent.
     return (250/Math.sqrt(rank))+nominationTier(p);
   }
   function candidatePool(){
@@ -143,7 +143,7 @@
     const scored=pool.map(p=>{
       const need=positionNeed(team,p.pos),pers=team.personality||PERSONALITIES[1],rank=nominationRank(p);
       let score=nominationProminence(p)*need;
-      // Personalities shape choices only inside the rank-based phase pool. Consensus $ is never consulted.
+      // Personalities shape choices only inside the rank-based phase pool. League Value is never consulted.
       if(pers.name==="Stars & Scrubs")score*=rank<=24?1.25:1.00;
       else if(pers.name==="RB Heavy")score*=p.pos==="RB"?1.18:.98;
       else if(pers.name==="WR Collector")score*=p.pos==="WR"?1.18:.98;
@@ -268,7 +268,7 @@
     q("mockLive").classList.toggle("hidden",!mock?.nomination);
     if(awaitingNomination){
       const options=q("mockNomineeOptions");
-      if(options)options.innerHTML=candidatePool().map(p=>`<option value="${esc(p.name)}">${esc(p.pos)} • ${esc(p.team||"FA")} • Consensus $${playerMarket(p)}</option>`).join("");
+      if(options)options.innerHTML=candidatePool().map(p=>`<option value="${esc(p.name)}">${esc(p.pos)} • ${esc(p.team||"FA")} • League Value $${playerMarket(p)}</option>`).join("");
       q("mockNominationError")?.classList.add("hidden");
     }
     q("mockResult").classList.toggle("hidden",!mock?.lastResult&& !mock?.complete);
