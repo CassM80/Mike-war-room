@@ -672,3 +672,30 @@ body { overflow:auto; }
     font-size:24px;
   }
 }
+
+/* Sprint 32.0 — Intelligent Mock Draft */
+.mock-stat small{display:block;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.07em;margin-top:4px}
+.mock-stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+.intelligent-mock-grid{grid-template-columns:minmax(0,1.55fr) minmax(300px,.65fr)}
+.mock-intelligence-stack{display:grid;gap:14px;align-content:start}
+.mock-live-tag{color:var(--green);font-size:9px;margin-left:5px;letter-spacing:.08em}
+.mock-coach-card{border-color:rgba(126,217,0,.42)}
+.mock-coach-call{font-size:28px;font-weight:950;color:var(--green);line-height:1.05}
+.mock-coach-call.caution{color:var(--gold)}.mock-coach-call.pass{color:#ff5252}
+.mock-coach-copy{font-size:15px;font-weight:800;line-height:1.35;margin-top:8px}
+.mock-coach-reasons{display:grid;gap:6px;margin-top:12px}
+.mock-coach-reasons>div{font-size:11px;color:var(--muted);padding-left:15px;position:relative}
+.mock-coach-reasons>div:before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:950}
+.mock-position-market{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.mock-position-market>div{border:1px solid var(--line);padding:8px 5px;text-align:center;border-radius:5px}
+.mock-position-market span{display:block;font-size:9px;color:var(--muted);font-weight:900}.mock-position-market strong{display:block;font-size:15px;margin-top:3px}
+.mock-position-market strong.hot{color:#ff5252}.mock-position-market strong.cool{color:#62b8ff}.mock-position-market strong.stable{color:var(--green)}
+.mock-room-signal{margin-top:10px;padding:10px;border-left:3px solid var(--green);background:rgba(126,217,0,.06);font-size:12px;font-weight:850;line-height:1.35}
+.mock-recommended{display:grid;gap:7px;max-height:280px;overflow:auto}
+.mock-rec-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:5px;cursor:pointer;background:rgba(255,255,255,.018)}
+.mock-rec-row:hover{border-color:var(--green)}.mock-rec-rank{display:grid;place-items:center;width:22px;height:22px;border:1px solid rgba(126,217,0,.45);border-radius:5px;color:var(--green);font-size:11px;font-weight:950}
+.mock-rec-name{font-weight:900;font-size:13px}.mock-rec-name small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.mock-rec-price{font-weight:950;color:var(--gold)}
+.mock-reflection{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text)}
+.mock-result.good .mock-reflection{color:var(--green)}.mock-result.bad .mock-reflection{color:#ff7d7d}
+@media(max-width:1100px){.mock-stats{grid-template-columns:repeat(3,1fr)}.intelligent-mock-grid{grid-template-columns:minmax(0,1fr) minmax(280px,.55fr)}}
+@media(max-width:800px){.mock-stats{grid-template-columns:1fr 1fr}.intelligent-mock-grid{display:block}.mock-intelligence-stack{margin-bottom:12px}.mock-position-market{grid-template-columns:1fr 1fr}}

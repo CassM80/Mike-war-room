@@ -148,3 +148,11 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Reduced the Record & Next footprint and compacted its fields without changing the recording workflow.
 - Added a shorter landscape layout for lower-height laptop and tablet screens.
 - Service-worker cache advanced to Sprint 30.1.
+
+## Sprint 32.0 — Intelligent Mock Draft
+- Added six War Room-style command cards to Mock Draft: remaining budget, legal max bid, players left, average dollars per player, market temperature, and draft phase.
+- Added a live Auction Coach with BID / CAUTION / PASS guidance and concise reasons.
+- Added position-level room inflation, opponent demand, and a plain-language room signal.
+- Added dynamic Recommended Now targets for the current mock roster and budget.
+- Added post-pick reflection after every sale to reinforce disciplined auction decisions.
+- Mock state remains isolated from the live War Room.

@@ -255,12 +255,110 @@
     const edge=mine.reduce((a,s)=>a+(s.market-s.price),0),myGuys=mine.filter(s=>conviction(byName[s.player])>=4).length;
     return `Mock complete • ${mine.length} players • ${edge>=0?"+":""}$${edge} vs market • ${myGuys} My Guys landed`;
   }
+
+  function mockPositionStats(pos){
+    const sales=(mock?.sales||[]).filter(s=>s.pos===pos&&Number(s.market)>0);
+    if(!sales.length)return {count:0,infl:0,label:"EARLY"};
+    const infl=sales.reduce((sum,s)=>sum+((Number(s.price)-Number(s.market))/Math.max(1,Number(s.market))),0)/sales.length;
+    return {count:sales.length,infl,label:infl>.12?"HOT":infl<-.08?"COOL":"STABLE"};
+  }
+  function mockOverallStats(){
+    const sales=(mock?.sales||[]).filter(s=>Number(s.market)>0);
+    if(sales.length<3)return {infl:0,label:"EARLY",sub:"STABLE"};
+    const infl=sales.reduce((sum,s)=>sum+((Number(s.price)-Number(s.market))/Math.max(1,Number(s.market))),0)/sales.length;
+    return {infl,label:infl>.14?"HOT":infl<-.08?"COOL":"STEADY",sub:infl>.14?"HEATING":infl<-.08?"VALUE ROOM":"BALANCED"};
+  }
+  function mockDraftPhase(){
+    const sales=mock?.sales?.length||0,total=Math.max(1,(mock?.teams?.length||Number(leagueConfig.teamCount||12))*totalSpots());
+    const pct=sales/total;
+    if(pct<.12)return "OPENING";
+    if(pct<.30)return "BUILD";
+    if(pct<.52)return "MIDGAME";
+    if(pct<.76)return "VALUE";
+    return "ENDGAME";
+  }
+  function mockStarterNeedLabel(team,p){
+    const need=positionNeed(team,p.pos);
+    if(need>=1.15)return `Open ${p.pos} starter`;
+    if(need>=1.05)return `${p.pos} can fill FLEX`;
+    return `${p.pos} depth / upside`;
+  }
+  function mockComparableCount(p){
+    const market=playerMarket(p);
+    return candidatePool().filter(x=>x.pos===p.pos&&x.name!==p.name&&Math.abs(playerMarket(x)-market)<=Math.max(2,market*.35)).length;
+  }
+  function mockCoachFor(p,n){
+    if(!p||!n)return {call:"WAITING",tone:"",copy:"Start the next nomination to activate coaching.",reasons:[]};
+    const me=mock.teams[myIndex()],safe=userSafeMax(p),market=playerMarket(p),bid=Number(n.currentBid||0),edge=safe-bid,need=positionNeed(me,p.pos),posStats=mockPositionStats(p.pos),comps=mockComparableCount(p),youLead=n.highBidder===myIndex();
+    let call,tone,copy;
+    if(n.userPassed){call="GOOD DISCIPLINE";tone="pass";copy="You passed. Let the room finish the bidding.";}
+    else if(bid>safe){call="PASS";tone="pass";copy="Room is bidding aggressively. Let this one go. Better values remain.";}
+    else if(edge<=1){call=youLead?"HOLD":"CAUTION";tone="caution";copy=`Price is at your limit. Stop at $${safe}.`;}
+    else if(bid<=Math.max(1,market-2)){call="BID";tone="";copy=`Good value. One more bid is reasonable. Stop at $${safe}.`;}
+    else {call=youLead?"HOLD":"BID";tone="";copy=`Still inside your Safe Max. ${edge} dollar${edge===1?"":"s"} of room remain${edge===1?"s":""}.`;}
+    const reasons=[];
+    reasons.push(mockStarterNeedLabel(me,p));
+    if(safe>market)reasons.push(`Your personal ceiling is $${safe-market} above League Value`);
+    if(posStats.count>=2)reasons.push(`${p.pos} market is ${posStats.label.toLowerCase()} (${posStats.infl>=0?"+":""}${Math.round(posStats.infl*100)}%)`);
+    reasons.push(`${comps} comparable ${p.pos}s remain`);
+    return {call,tone,copy,reasons:reasons.slice(0,3)};
+  }
+  function mockRecommendationScore(p){
+    const me=mock.teams[myIndex()],market=playerMarket(p),safe=userSafeMax(p),need=positionNeed(me,p.pos),rank=Math.max(1,nominationRank(p)),ev=evaluation(p),spots=Math.max(1,totalSpots()-(me.roster||[]).length),budget=Number(me.budget||0),max=legalMax(me);
+    if(max<1)return -9999;
+    let score=120/Math.sqrt(rank)+market*.45;
+    score+=(need-1)*85;
+    score+=Math.max(-12,Math.min(18,(safe-market)*2.2));
+    score+=(conviction(p)-3)*5;
+    if(ev?.sleeper)score+=5;if(ev?.favorite||ev?.flag)score+=6;if(ev?.avoid)score-=80;
+    if(market>max)score-=28+Math.min(30,(market-max)*2);
+    if(market<=Math.max(5,budget/spots*1.25))score+=5;
+    const ps=mockPositionStats(p.pos);if(ps.infl>.18)score-=5;if(ps.infl<-.05)score+=4;
+    if(["RB","WR"].includes(p.pos)&&need<1.15)score+=3;
+    if(["K","DEF"].includes(p.pos)&&spots>3)score-=35;
+    return score;
+  }
+  function mockRecommendedPlayers(){
+    if(!mock?.active&&!mock?.complete)return [];
+    return candidatePool().slice(0,240).map(p=>({p,score:mockRecommendationScore(p)})).filter(x=>x.score>-100).sort((a,b)=>b.score-a.score||nominationRank(a.p)-nominationRank(b.p)).slice(0,5);
+  }
+  function mockDemandCount(pos){
+    return (mock?.teams||[]).filter((t,i)=>i!==myIndex()&&positionNeed(t,pos)>=1.05&&legalMax(t)>0).length;
+  }
+  function mockRoomSignal(){
+    if(!mock?.sales?.length)return "No sales yet. Establishing the room.";
+    const stats=mockOverallStats(),positions=["QB","RB","WR","TE"].map(pos=>({pos,...mockPositionStats(pos)})).sort((a,b)=>b.infl-a.infl);
+    const hot=positions[0],cool=positions[positions.length-1];
+    if(stats.infl>.14)return `Room is ${Math.round(stats.infl*100)}% over League Value. Stay disciplined and attack isolated bargains.`;
+    if(hot.count>=2&&hot.infl>.12)return `${hot.pos} is the hottest market at +${Math.round(hot.infl*100)}%. ${cool.pos} offers the better buying environment.`;
+    if(stats.infl<-.08)return `Room is discounting players by ${Math.abs(Math.round(stats.infl*100))}%. Be willing to buy value early.`;
+    return "Room is near League Value. Let roster fit and tier drops break ties.";
+  }
+  function mockReflection(s){
+    if(!s)return {text:"",tone:""};
+    const delta=Number(s.price)-Number(s.market),mine=s.teamIndex===myIndex();
+    if(mine){
+      if(delta<=-3)return {tone:"good",text:`Strong buy — you landed him $${Math.abs(delta)} below League Value.`};
+      if(delta<=2)return {tone:"good",text:"Disciplined win — the price stayed within a fair range."};
+      return {tone:"bad",text:`Aggressive win — you paid $${delta} above League Value. Protect the remaining budget.`};
+    }
+    if(delta>=8)return {tone:"good",text:`Good pass — the room paid $${delta} above League Value.`};
+    if(delta<=-4)return {tone:"bad",text:`Missed value — he sold $${Math.abs(delta)} below League Value.`};
+    return {tone:"",text:"Fair result — the sale landed close to League Value."};
+  }
   function renderMock(){
     if(!q("mockDraftView"))return;
     const active=!!mock,me=active?mock.teams[myIndex()]:null;
-    q("mockBudget").textContent=`$${me?.budget??leagueConfig.budget??200}`;
-    q("mockSpots").textContent=active?`${Math.max(0,totalSpots()-(me.roster||[]).length)}`:`${totalSpots()}`;
-    q("mockSalesCount").textContent=String(mock?.sales?.length||0);
+    const spotsLeft=active?Math.max(0,totalSpots()-(me.roster||[]).length):totalSpots();
+    const budget=Number(me?.budget??leagueConfig.budget??200),overall=mockOverallStats();
+    q("mockBudget").textContent=`$${budget}`;
+    q("mockMaxBid").textContent=`$${active?legalMax(me):Math.max(0,budget-totalSpots()+1)}`;
+    q("mockSpots").textContent=`${spotsLeft}`;
+    q("mockAvg").textContent=`$${spotsLeft?(budget/spotsLeft).toFixed(2):"0.00"}`;
+    q("mockTemp").textContent=overall.label;
+    q("mockTempSub").textContent=overall.sub;
+    q("mockPhase").textContent=mockDraftPhase();
+    q("mockSalesCount").textContent=`${mock?.sales?.length||0} SALES`;
     q("mockStartBtn").textContent=active&&!mock.complete?"RESTART MOCK":"START MOCK";
     const awaitingNomination=!!mock?.awaitingUserNomination;
     q("mockEmpty").classList.toggle("hidden",(active&&!!mock.nomination)||awaitingNomination);
@@ -272,18 +370,33 @@
       q("mockNominationError")?.classList.add("hidden");
     }
     q("mockResult").classList.toggle("hidden",!mock?.lastResult&& !mock?.complete);
+    if(!mock?.lastResult)q("mockResult").className=`mock-result ${mock?.complete?"":"hidden"}`;
     q("mockNextBtn").classList.toggle("hidden",!mock?.lastResult||mock?.complete);
     if(mock?.complete){q("mockResult").innerHTML=`<strong>MOCK COMPLETE</strong><span>${esc(gradeSummary())}</span>`;q("mockEmpty").textContent="Mock complete. Review your roster and draft log, or start another room.";}
-    else if(mock?.lastResult){const s=mock.lastResult;q("mockResult").innerHTML=`<strong>${esc(s.player)} SOLD</strong><span>${esc(s.team)} for $${s.price} • Market $${s.market}</span>`;}
+    else if(mock?.lastResult){const s=mock.lastResult,reflection=mockReflection(s);q("mockResult").className=`mock-result ${reflection.tone||""}`;q("mockResult").innerHTML=`<strong>${esc(s.player)} SOLD</strong><span>${esc(s.team)} for $${s.price} • League Value $${s.market}<em class="mock-reflection">${esc(reflection.text)}</em></span>`;}
     if(mock?.nomination){
       const n=mock.nomination,p=byName[n.player],safe=userSafeMax(p),market=playerMarket(p),youLead=n.highBidder===myIndex();
       q("mockNominator").textContent=`${teamName(n.nominator)} NOMINATES`;
       q("mockPlayer").textContent=p.name;q("mockPlayerMeta").textContent=`${p.pos} • ${p.team||"FA"} • ${conviction(p)}★ ${convictionLabel(conviction(p))}`;
       const expected=n.expected||expectedSaleRange(p,n.limits);
       q("mockCurrentBid").textContent=`$${n.currentBid}`;q("mockHighBidder").textContent=teamName(n.highBidder);q("mockMarket").textContent=`$${market}`;q("mockExpected").textContent=`$${expected.low}–$${expected.high}`;q("mockSafeMax").textContent=`$${safe}`;
-      q("mockAdvice").textContent=n.userPassed?"You passed. Finishing the computer bidding…":youLead?"You have the high bid. The room is deciding whether to continue.":n.currentBid<safe?`Still inside your Safe Max. ${safe-n.currentBid} dollars of room remains.`:`At or above your Safe Max. Passing protects the rest of your roster.`;
+      const coach=mockCoachFor(p,n);
+      q("mockAdvice").textContent=coach.copy;
+      q("mockCoachCall").textContent=coach.call;q("mockCoachCall").className=`mock-coach-call ${coach.tone||""}`;
+      q("mockCoachCopy").textContent=coach.copy;
+      q("mockCoachReasons").innerHTML=coach.reasons.map(x=>`<div>${esc(x)}</div>`).join("");
       q("mockBidOneBtn").disabled=!!n.userPassed;q("mockBidMaxBtn").disabled=!!n.userPassed||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed;
+    }else{
+      q("mockCoachCall").textContent=mock?.complete?"MOCK COMPLETE":"WAITING";q("mockCoachCall").className="mock-coach-call";
+      q("mockCoachCopy").textContent=mock?.complete?"Review the room, roster, and draft log before your next run.":"Start or advance the mock to activate live coaching.";
+      q("mockCoachReasons").innerHTML="";
     }
+    const positionMarket=q("mockPositionMarket");
+    if(positionMarket)positionMarket.innerHTML=["QB","RB","WR","TE"].map(pos=>{const st=mockPositionStats(pos),pct=Math.round(st.infl*100),cls=st.label==="HOT"?"hot":st.label==="COOL"?"cool":"stable";return `<div><span>${pos} • ${mockDemandCount(pos)} NEED</span><strong class="${cls}">${st.count?`${pct>=0?"+":""}${pct}%`:"EARLY"}</strong></div>`;}).join("");
+    q("mockRoomSignal").textContent=mockRoomSignal();
+    const rec=q("mockRecommended"),recommended=mockRecommendedPlayers();
+    rec.innerHTML=recommended.length?recommended.map((x,i)=>`<div class="mock-rec-row" data-player="${esc(x.p.name)}"><span class="mock-rec-rank">${i+1}</span><span class="mock-rec-name">${esc(x.p.name)}<small>${esc(mockStarterNeedLabel(me,x.p))}</small></span><span class="mock-rec-price">$${playerMarket(x.p)}</span></div>`).join(""):'<div class="mock-muted">Start the room to generate live recommendations.</div>';
+    rec.querySelectorAll(".mock-rec-row").forEach(row=>row.addEventListener("click",()=>{const input=q("mockNomineeInput");if(input){input.value=row.dataset.player;} }));
     const roster=q("mockRoster");
     roster.innerHTML=me?.roster?.length?me.roster.map(x=>`<div><span>${esc(x.name)} <small>${x.pos}</small></span><strong>$${x.price}</strong></div>`).join(""):'<div class="mock-muted">Your roster is empty.</div>';
     const teams=q("mockTeams");

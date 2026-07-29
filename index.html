@@ -296,12 +296,14 @@
       <div class="mock-title-actions"><button class="secondary-btn" id="mockResetBtn" type="button">RESET MOCK</button><button class="primary-btn" id="mockStartBtn" type="button">START MOCK</button></div>
     </div>
     <div class="mock-stats">
-      <div class="mock-stat"><span>YOUR BUDGET</span><strong id="mockBudget">$200</strong></div>
-      <div class="mock-stat"><span>ROSTER SPOTS</span><strong id="mockSpots">17</strong></div>
-      <div class="mock-stat"><span>ROOM</span><strong id="mockRoomStyle">REALISTIC</strong></div>
-      <div class="mock-stat"><span>SALES</span><strong id="mockSalesCount">0</strong></div>
+      <div class="mock-stat"><span>REMAINING BUDGET</span><strong id="mockBudget">$200</strong><small>YOUR TEAM</small></div>
+      <div class="mock-stat"><span>MAX BID (LEGAL)</span><strong id="mockMaxBid">$184</strong><small>RESERVES $1 / SPOT</small></div>
+      <div class="mock-stat"><span>PLAYERS LEFT</span><strong id="mockSpots">17</strong><small>ROSTER SPOTS</small></div>
+      <div class="mock-stat"><span>AVG $ / PLAYER</span><strong id="mockAvg">$11.76</strong><small>REMAINING AVERAGE</small></div>
+      <div class="mock-stat"><span>MARKET TEMPERATURE</span><strong id="mockTemp">EARLY</strong><small id="mockTempSub">STABLE</small></div>
+      <div class="mock-stat"><span>DRAFT PHASE</span><strong id="mockPhase">OPENING</strong><small id="mockSalesCount">0 SALES</small></div>
     </div>
-    <div class="mock-grid">
+    <div class="mock-grid intelligent-mock-grid">
       <section class="workspace-card mock-stage">
         <div class="card-head">LIVE NOMINATION</div>
         <div class="card-body">
@@ -339,6 +341,27 @@
           <button class="primary-btn mock-next-btn hidden" id="mockNextBtn" type="button">NEXT NOMINATION</button>
         </div>
       </section>
+      <aside class="mock-intelligence-stack">
+        <section class="workspace-card mock-coach-card">
+          <div class="card-head">AUCTION COACH <span class="mock-live-tag">LIVE</span></div>
+          <div class="card-body">
+            <div class="mock-coach-call" id="mockCoachCall">START A MOCK</div>
+            <div class="mock-coach-copy" id="mockCoachCopy">War Room will translate every nomination into one clear decision.</div>
+            <div class="mock-coach-reasons" id="mockCoachReasons"></div>
+          </div>
+        </section>
+        <section class="workspace-card mock-intel-card">
+          <div class="card-head">ROOM INTELLIGENCE</div>
+          <div class="card-body">
+            <div class="mock-position-market" id="mockPositionMarket"></div>
+            <div class="mock-room-signal" id="mockRoomSignal">No sales yet. Establishing the room.</div>
+          </div>
+        </section>
+        <section class="workspace-card mock-recommended-card">
+          <div class="card-head">RECOMMENDED NOW <span class="mock-live-tag">LIVE</span></div>
+          <div class="card-body"><div id="mockRecommended" class="mock-recommended"></div></div>
+        </section>
+      </aside>
       <section class="workspace-card">
         <div class="card-head">YOUR MOCK ROSTER</div>
         <div class="card-body"><div id="mockRoster" class="mock-roster"></div></div>
