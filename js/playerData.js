@@ -1,6 +1,24 @@
 // Sprint 24.3 — player-universe loading, normalization, and audit helpers.
 
-function playerMatchKey(name){return String(name||"").normalize("NFKD").replace(/[’‘`]/g,"'").replace(/[^a-zA-Z0-9]+/g," ").trim().toLowerCase();}
+const PLAYER_NAME_ALIASES={
+  "marvin harrison":"marvin harrison jr",
+  "brian thomas":"brian thomas jr",
+  "kenneth walker":"kenneth walker iii",
+  "tyrone tracy":"tyrone tracy jr",
+  "travis etienne":"travis etienne jr",
+  "michael pittman":"michael pittman jr",
+  "harold fannin":"harold fannin jr"
+};
+function rawPlayerKey(name){return String(name||"").normalize("NFKD").replace(/[’‘`]/g,"'").replace(/[^a-zA-Z0-9]+/g," ").trim().toLowerCase();}
+function playerMatchKey(name){
+  let key=rawPlayerKey(name);
+  key=key.replace(/\b(junior)\b/g,"jr").replace(/\b(the third)\b/g,"iii");
+  return PLAYER_NAME_ALIASES[key]||key;
+}
+function canonicalPlayerId(raw,name){
+  const sleeper=String(raw?.player_id||raw?.sleeper_id||"").trim();
+  return sleeper?`sleeper:${sleeper}`:`name:${playerMatchKey(name)}`;
+}
 
 function normalizePlayerName(name){
   const cleaned=String(name||"").trim().replace(/[’‘`]/g,"'").replace(/\s+/g," ");
@@ -46,7 +64,7 @@ function isActiveNFLPlayer(raw){
   return true;
 }
 
-function livePlayerFields(raw){return {sleeper_id:String(raw?.player_id||""),injury_status:raw?.injury_status||null,practice_participation:raw?.practice_participation||null,depth_chart_position:raw?.depth_chart_position||null,depth_chart_order:Number(raw?.depth_chart_order||0)||0};}
+function livePlayerFields(raw){return {player_id:canonicalPlayerId(raw,raw?.full_name),sleeper_id:String(raw?.player_id||""),injury_status:raw?.injury_status||null,practice_participation:raw?.practice_participation||null,depth_chart_position:raw?.depth_chart_position||null,depth_chart_order:Number(raw?.depth_chart_order||0)||0};}
 
 function genericPlayer(raw){
   const name=normalizePlayerName(raw.full_name || [raw.first_name,raw.last_name].filter(Boolean).join(" "));
@@ -64,7 +82,7 @@ function genericPlayer(raw){
     budgetPivot: "No personal valuation yet — use your judgment and record the sale.",
     audit: "MARKET",
     notes: "Complete player database",
-    adp: Number(raw.adp || raw.search_rank || 0) || 0,
+    adp: Number(raw.adp||0)||0, sleeper_rank:Number(raw.search_rank||0)||0,
     ...livePlayerFields(raw)
   };
 }
@@ -77,7 +95,7 @@ function mergePlayerUniverse(rows){
   const hasLivePool=activeRows.length>0;
   const activeCurated=CURATED_PLAYERS.filter(p=>!hasLivePool || sourceMap.has(playerMatchKey(p.name))).map(p=>{
     const raw=sourceMap.get(playerMatchKey(p.name));
-    return {...p,active:true,status:raw?.status||"Active",team:raw?.team||p.team||"FA",adp:Number(raw?.adp||raw?.search_rank||p.adp||0)||0,...livePlayerFields(raw)};
+    return {...p,active:true,status:raw?.status||"Active",team:raw?.team||p.team||"FA",adp:Number(raw?.adp||p.adp||0)||0,sleeper_rank:Number(raw?.search_rank||p.sleeper_rank||0)||0,...livePlayerFields(raw)};
   });
   const merged=[...activeCurated,...NFL_DEFENSES.map(p=>({...p,active:true,status:"Active"}))];
   const seen=new Set(merged.map(p=>playerMatchKey(p.name)));
@@ -87,7 +105,7 @@ function mergePlayerUniverse(rows){
     const key=playerMatchKey(fallback.name);
     if(seen.has(key)) continue;
     const curated=curatedMap.get(key);
-    merged.push(curated?{...curated,active:true,status:raw.status||"Active",team:raw.team||curated.team||"FA",adp:Number(raw.adp||raw.search_rank||curated.adp||0)||0,...livePlayerFields(raw)}:fallback);
+    merged.push(curated?{...curated,active:true,status:raw.status||"Active",team:raw.team||curated.team||"FA",adp:Number(raw.adp||curated.adp||0)||0,sleeper_rank:Number(raw.search_rank||curated.sleeper_rank||0)||0,...livePlayerFields(raw)}:fallback);
     seen.add(key);
   }
   if(!merged.some(p=>playerMatchKey(p.name)===playerMatchKey("Ja'Marr Chase"))){merged.push({pos:"WR",name:"Ja'Marr Chase",team:"CIN",active:true,status:"Active",tier:"UNRANKED",pressure:1,action:"WATCH",buyLow:0,buyHigh:0,fairLow:0,fairHigh:0,overpay:0,pivots:"",budgetPivot:"Live market data pending.",audit:"MARKET",notes:"Verified player-pool fallback",adp:2,market_price:62});}

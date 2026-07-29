@@ -83,6 +83,12 @@
           <div id="playerPoolAudit" style="font-size:12px;color:var(--muted);margin-top:5px"></div>
           <div id="consensusStatus" style="font-size:12px;color:var(--muted);margin-top:5px">Consensus baseline ready.</div>
           <div id="marketSyncStatus" class="market-sync-status" aria-live="polite">MARKET DATA: bundled baseline • personal evaluations protected</div>
+          <section class="integrity-card" id="playerIntegrityCard">
+            <div class="integrity-head"><strong>PLAYER DATA HEALTH</strong><span id="playerIntegrityScore">Checking…</span></div>
+            <div id="playerIntegritySummary" class="integrity-summary">Auditing player identities, market prices and ranking coverage…</div>
+            <details><summary>VIEW DATA WARNINGS</summary><div id="playerIntegrityWarnings" class="integrity-warnings"></div></details>
+          </section>
+
           <div id="marketCoverageAudit"></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -173,7 +179,7 @@
         <button class="secondary-btn" id="clearBulkSelectionBtn">CLEAR SELECTION</button>
       </div>
       <div class="bulk-summary"><span id="bulkCount">0 players shown</span><span>Auction Consensus is the default price. Any price you edit is highlighted; market sync never overwrites auction dollars. ADP shows Sleeper market rank when dedicated ADP is unavailable.</span><span id="bulkSaveState" class="bulk-save-state"></span></div>
-      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>ADP</th><th>RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
+      <div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th class="bulk-check"><input type="checkbox" id="bulkSelectAll"></th><th>PLAYER</th><th>CONSENSUS $</th><th>MARKET RANK</th><th>YOUR RANK</th><th>TIER</th><th>VALUE</th><th>STOP</th><th>MY GUYS</th><th>EDGE</th><th class="bulk-flag">FLAG</th><th class="bulk-flag">SLEEP</th><th class="bulk-flag">AVOID</th><th>NOTES</th></tr></thead><tbody id="bulkBoardBody"></tbody></table></div>
     </section>
 
   </div>
@@ -397,6 +403,7 @@
 <script src="./js/recommendationEngine.js"></script>
 <script src="./js/marketCoverage.js"></script>
 <script src="./js/marketSync.js"></script>
+<script src="./js/playerIntegrity.js"></script>
 <script src="./js/auctionEngine.js"></script>
 <script src="./js/blueprint.js"></script>
 <script src="./js/myGuys.js"></script>

@@ -73,8 +73,15 @@ function consensusPriceFor(base){
 }
 
 function adpFor(base){
-  const value=Number(base?.adp||base?.search_rank||0);
+  // Sprint 27.0: this is a neutral market-rank accessor, not a claim of true ADP.
+  const value=Number(base?.provider_rank||base?.adp||base?.sleeper_rank||base?.search_rank||0);
   return Number.isFinite(value)&&value>0?Math.round(value*10)/10:0;
+}
+function marketRankSource(base){
+  if(Number(base?.provider_rank)>0)return "Provider overall rank";
+  if(Number(base?.adp)>0)return "Dedicated ADP";
+  if(Number(base?.sleeper_rank||base?.search_rank)>0)return "Sleeper search rank fallback";
+  return "Unavailable";
 }
 
 function marketValueFor(base){

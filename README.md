@@ -28,3 +28,10 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - AI bidding begins immediately using the same Consensus-anchored limits.
 - Bid +$1, Bid to Safe Max, Pass, and Nominate Player now show a hand pointer on hover.
 - Mock storage and service-worker cache were advanced for a clean deployment.
+
+
+## Sprint 27.0 — Player Data Integrity
+- Canonical player IDs and alias-aware matching for suffix/name variants.
+- Sleeper search rank is no longer silently presented as dedicated ADP; the board labels the field Market Rank and identifies fallbacks.
+- Player Data Health panel reports missing prices, missing ranks, duplicate identities, and suspicious price/rank conflicts.
+- Market sync and player-universe joins use canonical name aliases while preserving user-owned prices and evaluations.
