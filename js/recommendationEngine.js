@@ -55,7 +55,28 @@ function rebuildMarketRankCache(){
   }
   marketRankCache={count:PLAYERS.length,ranks};
 }
-function positionRankFor(base){const provider=Number(base?.provider_pos_rank||0);if(provider>0)return provider;if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();return marketRankCache.ranks.get(playerKey(base.name))||999;}
+// Sprint 29.1 — trusted positional rank hierarchy.
+// A provider overall/search rank is not sufficient evidence that an ESPN-unranked
+// player belongs near the top of a position. This prevents prospects and stale
+// records from being converted into elite auction values.
+function derivedProviderPositionRankFor(base){
+  if(marketRankCache.count!==PLAYERS.length)rebuildMarketRankCache();
+  return marketRankCache.ranks.get(playerKey(base?.name))||999;
+}
+function positionRankFor(base){
+  const espn=espnPositionRankFor(base);
+  const providerPos=Number(base?.provider_pos_rank||0);
+  if(espn>0&&providerPos>0)return Math.max(1,Math.round(espn*.65+providerPos*.35));
+  if(espn>0)return espn;
+  if(providerPos>0)return providerPos;
+  const derived=derivedProviderPositionRankFor(base);
+  const espnPool=(typeof ESPN_POSITIONAL_RANKINGS!=="undefined"?ESPN_POSITIONAL_RANKINGS[base?.pos]:null)||[];
+  // When ESPN supplies a current positional pool but omits the player, place the
+  // fallback after that trusted pool rather than allowing provider overall rank
+  // to manufacture a top positional rank.
+  if(espnPool.length)return Math.max(espnPool.length+1,derived);
+  return derived;
+}
 
 function leagueMarketMultiplier(pos){
   // Kept for older modules. New valuations use dynamicLeagueValue after blending.

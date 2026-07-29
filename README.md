@@ -72,23 +72,9 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Market source labels identify one-QB-calibrated prices.
 - Service-worker cache advanced to Sprint 28.3.
 
-## Sprint 29.0 — Dynamic League Valuation Engine
 
-War Room values now recalculate from Headquarters settings instead of assuming one fixed league.
-
-### Valuation pipeline
-1. Raw player quality (provider and ESPN positional rank)
-2. External auction market evidence
-3. League starter and flex demand
-4. Replacement-level scarcity
-5. Scoring adjustment
-6. Available auction-budget scaling
-7. User-edited market prices and personal preference
-
-### Headquarters inputs
-- Teams and auction budget
-- PPR, half-PPR, or standard scoring
-- QB, RB, WR, TE, FLEX, Superflex, K, DEF, and bench slots
-- Keepers per team and keeper dollars reserved
-
-Headquarters changes produce a live valuation preview. Saving the league persists the configuration. User-edited market prices remain authoritative and are not overwritten.
+## Sprint 29.1 — QB Ranking Integrity Fix
+- ESPN positional rank is now the primary QB ordering signal when available.
+- Provider positional rank may blend with ESPN, but provider overall/search rank can no longer manufacture an elite positional rank.
+- Players omitted from a trusted ESPN positional pool are placed behind that pool before auction curves are applied.
+- Fixes Fernando Mendoza being treated as QB3 and priced above established top quarterbacks.
