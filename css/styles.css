@@ -735,3 +735,6 @@ body { overflow:auto; }
 .dossier-preview-grid{display:grid;grid-template-columns:1fr 1fr;margin-top:9px;border:1px solid #2c352f;border-radius:7px;overflow:hidden}.dossier-preview-grid>div{padding:8px;text-align:center}.dossier-preview-grid>div+div{border-left:1px solid #2c352f}.dossier-preview-grid span{display:block;font-size:7px;color:var(--muted);font-weight:950;letter-spacing:.07em}.dossier-preview-grid b{display:block;margin-top:3px;color:var(--green);font-size:17px}
 .dossier-preview-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:9px}.dossier-preview-foot strong{font-size:11px;color:var(--green)}.dossier-preview-foot.sold strong{color:#ff8c8c}.dossier-preview-foot span{color:#ffd447;letter-spacing:1px;font-size:12px}.dossier-quick-preview>small{display:block;margin-top:7px;color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
 @media(hover:none){.dossier-quick-preview>small{content:'Long press for preview'}}
+
+/* Sprint 33.0 — Demand Engine 2.0 */
+.mock-demand-detail{display:block;margin-top:3px;color:var(--muted);font-size:9px;font-style:normal;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}

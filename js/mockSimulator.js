@@ -413,18 +413,30 @@
     if(!mock?.active&&!mock?.complete)return [];
     return candidatePool().slice(0,240).map(p=>({p,score:mockRecommendationScore(p)})).filter(x=>x.score>-100).sort((a,b)=>b.score-a.score||nominationRank(a.p)-nominationRank(b.p)).slice(0,5);
   }
-  function mockDemandCount(pos){
-    return (mock?.teams||[]).filter((t,i)=>i!==myIndex()&&positionNeed(t,pos)>=1.05&&legalMax(t)>0).length;
+  function mockTeamDemandScore(team,pos){
+    const c=rosterCounts(team),r=leagueConfig.roster||{},marketRows=candidatePool().filter(p=>p.pos===pos).slice(0,6).map(playerMarket),market=Math.max(1,Math.round((marketRows.reduce((a,b)=>a+b,0)/Math.max(1,marketRows.length))||1));
+    const direct=Number({QB:r.qb||1,RB:r.rb||2,WR:r.wr||2,TE:r.te||1}[pos]||0);
+    const directGap=Math.max(0,direct-Number(c[pos]||0));
+    const core=Number(c.RB||0)+Number(c.WR||0)+Number(c.TE||0),coreDirect=Number(r.rb||2)+Number(r.wr||2)+Number(r.te||1);
+    const flexGap=["RB","WR","TE"].includes(pos)?Math.max(0,coreDirect+Number(r.flex||0)-core):0;
+    const sfUsed=Math.max(0,Number(c.QB||0)-Number(r.qb||1))+Math.max(0,core-coreDirect-Number(r.flex||0));
+    const sfGap=["QB","RB","WR","TE"].includes(pos)?Math.max(0,Number(r.superflex||0)-sfUsed):0;
+    const spots=Math.max(0,totalSpots()-(team.roster||[]).length),max=legalMax(team),progress=(mock?.sales?.length||0)/Math.max(1,(mock?.teams?.length||12)*totalSpots());
+    const benchWeight=progress<.1?.2:progress<.55?.55:progress<.82?.9:1;
+    const benchTarget=pos==="RB"||pos==="WR"?Math.max(1,Math.round(Number(r.bench||7)*.28)):Math.max(0,Math.round(Number(r.bench||7)*.08));
+    const benchGap=Math.max(0,benchTarget-Math.max(0,Number(c[pos]||0)-direct));
+    let score=directGap*40+Math.min(1,flexGap)*18+Math.min(1,sfGap)*(pos==="QB"?25:12)+Math.min(2,benchGap)*7*benchWeight;
+    const affordability=max/market;
+    if(!spots||max<=0)score=0;else if(affordability<.55)score-=30;else if(affordability<.85)score-=16;else if(affordability>=1.75)score+=8;else if(affordability>=1.25)score+=4;
+    return Math.max(0,Math.min(100,Math.round(score)));
   }
   function mockDemandTier(pos){
-    const buyers=mockDemandCount(pos);
-    const possible=Math.max(1,(mock?.teams?.length||Number(leagueConfig.teamCount||12))-1);
-    const share=buyers/possible;
-    if(buyers===0)return {label:"SATURATED",className:"saturated"};
-    if(share>=.78)return {label:"VERY HIGH",className:"very-high"};
-    if(share>=.52)return {label:"HIGH",className:"high"};
-    if(share>=.27)return {label:"MODERATE",className:"moderate"};
-    return {label:"LOW",className:"low"};
+    const scores=(mock?.teams||[]).map((t,i)=>i===myIndex()?0:mockTeamDemandScore(t,pos));
+    const likely=scores.filter(x=>x>=36),strong=scores.filter(x=>x>=58);
+    const avg=likely.length?likely.reduce((a,b)=>a+b,0)/likely.length:0;
+    const roomScore=Math.max(0,Math.min(100,avg*.72+(likely.length/Math.max(1,scores.length-1))*38));
+    const base=typeof demandTierFromScore==="function"?demandTierFromScore(roomScore,likely.length):null;
+    return {...(base||{label:"LOW",className:"low"}),score:Math.round(roomScore),buyers:likely.length,strong:strong.length};
   }
   function mockPricePresentation(stats){
     if(!stats.count)return {headline:"EARLY",detail:"No sales yet",className:"stable"};
@@ -507,7 +519,7 @@
       return `<div class="mock-market-card">
         <span class="mock-market-pos">${pos}</span>
         <small class="mock-market-label">DEMAND</small>
-        <strong class="mock-demand ${demand.className}">${demand.label}</strong>
+        <strong class="mock-demand ${demand.className}">${demand.label}</strong><em class="mock-demand-detail">${demand.buyers} likely • ${demand.strong} strong</em>
         <small class="mock-market-label price-label">PRICE</small>
         <span class="mock-price ${price.className}"><b>${price.headline}</b><em>${price.detail}</em></span>
       </div>`;

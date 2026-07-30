@@ -82,7 +82,7 @@ function teamPositionNeed(teamIndex,pos){
   if(['QB','RB','WR','TE'].includes(pos)&&sfUsed<Number(r.superflex||0))return 'SUPERFLEX';
   return teamRosterCount(teamIndex)<rosterSize()?'BENCH':'FULL';
 }
-function roomDemandFor(pos){
+function legacyRoomDemandFor(pos){
   ensureTeams();
   const snap=draftSnapshot();
   const teams=(leagueConfig.teams||[]).map((t,i)=>({index:i,name:t.teamName||`Team ${i+1}`,need:teamPositionNeed(i,pos),budget:Math.max(0,Number(leagueConfig.budget||200)-(snap.teams[i]?.spent||0))}));

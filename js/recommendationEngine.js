@@ -461,7 +461,7 @@ function nominationSuggestion(){
   if(!available.length) return {player:"—",reason:"No ranked players remain."};
   const myIdx=Number(leagueConfig.myTeamIndex||0);
   const demandByPos=["QB","RB","WR","TE"].map(pos=>({pos,...roomDemandFor(pos),market:positionMarketStats(pos)}));
-  const drain=demandByPos.sort((a,b)=>b.count-a.count||b.starterCount-a.starterCount||b.market.infl-a.market.infl)[0];
+  const drain=demandByPos.sort((a,b)=>b.score-a.score||b.count-a.count||b.strongCount-a.strongCount||b.market.infl-a.market.infl)[0];
   let pool=available.filter(p=>p.pos===drain.pos);
   if(!pool.length)pool=available;
   pool.sort((a,b)=>{
@@ -475,7 +475,7 @@ function nominationSuggestion(){
     return Number(b.pressure||0)-Number(a.pressure||0);
   });
   const p=pool[0],d=roomDemandFor(p.pos),opponents=d.teams.filter(t=>t.index!==myIdx&&t.budget>=marketValueFor(p));
-  if(opponents.length>=4)return {player:p.name,reason:`${opponents.length} opponents still need ${p.pos} and can afford his ${money(marketValueFor(p))} League Value. Use the nomination to drain budgets.`};
+  if(opponents.length>=4)return {player:p.name,reason:`${opponents.length} opponents still need ${p.pos} and can afford his ${money(marketValueFor(p))} League Value. Use the nomination to create competition without exposing a protected target.`};
   if(d.starterCount>=2)return {player:p.name,reason:`${d.starterCount} teams still have an open starting ${p.pos} spot. Test that demand without exposing a protected target.`};
   const ps=positionMarketStats(p.pos);
   if(ps.status==="HOT")return {player:p.name,reason:`${p.pos}s are running hot. Put another ${p.pos} into the room and make competitors spend.`};
