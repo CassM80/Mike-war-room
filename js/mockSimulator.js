@@ -439,11 +439,11 @@
     return {...(base||{label:"LOW",className:"low"}),score:Math.round(roomScore),buyers:likely.length,strong:strong.length};
   }
   function mockPricePresentation(stats){
-    if(!stats.count)return {headline:"EARLY",detail:"No sales yet",className:"stable"};
+    if(!stats.count)return {headline:"ESTABLISHING",detail:"No price trend yet",className:"neutral"};
     const pct=Math.round(stats.infl*100),amount=Math.abs(pct);
-    if(amount<=2)return {headline:"NEAR VALUE",detail:"Tracking League Value",className:"stable"};
-    if(pct>0)return {headline:`${amount}% ABOVE`,detail:"League Value",className:stats.label==="HOT"?"hot":"stable"};
-    return {headline:`${amount}% BELOW`,detail:"League Value",className:stats.label==="COOL"?"cool":"stable"};
+    if(amount<=2)return {headline:"NEAR VALUE",detail:"Market is balanced",className:"stable"};
+    if(pct>0)return {headline:`+${amount}%`,detail:"Above League Value",className:stats.label==="HOT"?"hot":"stable"};
+    return {headline:`-${amount}%`,detail:"Below League Value",className:stats.label==="COOL"?"cool":"stable"};
   }
   function mockRoomSignal(){
     if(!mock?.sales?.length)return "No sales yet. Establishing the room.";
@@ -514,16 +514,21 @@
       q("mockCoachReasons").innerHTML="";
     }
     const positionMarket=q("mockPositionMarket");
-    if(positionMarket)positionMarket.innerHTML=["QB","RB","WR","TE"].map(pos=>{
-      const demand=mockDemandTier(pos),price=mockPricePresentation(mockPositionStats(pos));
-      return `<div class="mock-market-card">
-        <span class="mock-market-pos">${pos}</span>
-        <small class="mock-market-label">DEMAND</small>
-        <strong class="mock-demand ${demand.className}">${demand.label}</strong><em class="mock-demand-detail">${demand.buyers} likely • ${demand.strong} strong</em>
-        <small class="mock-market-label price-label">PRICE</small>
-        <span class="mock-price ${price.className}"><b>${price.headline}</b><em>${price.detail}</em></span>
-      </div>`;
-    }).join("");
+    if(positionMarket){
+      const salesCount=mock?.sales?.length||0;
+      positionMarket.innerHTML=["QB","RB","WR","TE"].map(pos=>{
+        const demand=mockDemandTier(pos),price=mockPricePresentation(mockPositionStats(pos));
+        const competition=salesCount<3
+          ? `<em class="mock-demand-detail opening">Room still open</em>`
+          : `<em class="mock-demand-detail"><b>${demand.buyers}</b> likely <span>•</span> <b>${demand.strong}</b> strong</em>`;
+        return `<div class="mock-market-card">
+          <span class="mock-market-pos">${pos}</span>
+          <strong class="mock-demand ${demand.className}">${demand.label}</strong>
+          ${competition}
+          <span class="mock-price ${price.className}"><b>${price.headline}</b><em>${price.detail}</em></span>
+        </div>`;
+      }).join("");
+    }
     q("mockRoomSignal").textContent=mockRoomSignal();
     const rec=q("mockRecommended"),recommended=mockRecommendedPlayers();
     rec.innerHTML=recommended.length?recommended.map((x,i)=>`<div class="mock-rec-row" data-player="${esc(x.p.name)}"><span class="mock-rec-rank">${i+1}</span><span class="mock-rec-name">${esc(x.p.name)}<small>${esc(mockStarterNeedLabel(me,x.p))}</small></span><span class="mock-rec-price">$${playerMarket(x.p)}</span></div>`).join(""):'<div class="mock-muted">Start the room to generate live recommendations.</div>';
