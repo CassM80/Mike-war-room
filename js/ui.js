@@ -89,6 +89,7 @@ function setSelected(p,deferAlerts=false){
   p=effectivePlayer(p);
   const existingSale=p?sold(p.name):null;
   state.selected=p? p.name:null; save();
+  updateDossierSelectionHighlights(state.selected);
   $("warDossierPanel").classList.toggle("sold-player",!!existingSale);
   $("readyBtn").disabled=!!existingSale;
   $("playerSearch").value=p?p.name:"";

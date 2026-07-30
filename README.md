@@ -182,3 +182,11 @@ The mock simulator now treats nomination timing and bidding value as two separat
 
 ## Sprint 32.3 — Click Everything
 Player references across the live War Room now share a universal tap/click behavior that opens the Target Dossier, including Recommended Now, Suggested Nomination, Zero-Click Board, pivots, rostered players, mock draft log entries, and printable draft-report player names.
+
+
+## Sprint 32.4 — Dossier Everywhere
+- Added universal quick-scout previews for every clickable player reference.
+- Desktop hover and keyboard focus show League Value, personal value, action and conviction.
+- Mobile long-press shows the same preview without changing draft state.
+- The currently open dossier player is highlighted everywhere the name appears.
+- Preserved the shared Sprint 32.3 click-to-open behavior and mobile dossier scrolling.

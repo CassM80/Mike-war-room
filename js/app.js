@@ -433,16 +433,120 @@ function previewLeagueValuationFromHeadquarters(){
 }
 valuationSettingIds.forEach(id=>$(id)?.addEventListener(id.includes("Budget")?"input":"change",previewLeagueValuationFromHeadquarters));
 
-// Sprint 32.3 — Click Everything.
-// One delegated interaction now opens any valid player reference in the Target Dossier.
+// Sprint 32.4 — Dossier Everywhere.
+// Any player reference opens the dossier, highlights the active player everywhere,
+// and can surface a fast scouting preview without changing draft state.
+let dossierPreviewEl=null;
+let dossierPreviewTimer=0;
+let dossierPreviewTarget=null;
+let suppressNextDossierClick=false;
+
+function dossierQuickPreviewData(name){
+  const base=byName[name];
+  if(!base)return null;
+  const p=effectivePlayer(base);
+  const ev=getPersonalEvaluation(name)||{};
+  const leagueValue=Math.max(1,Math.round(marketValueFor(base)||0));
+  const myValue=Math.max(0,Math.round(Number(ev.value||p?.personalValue||0)));
+  const conviction=normalizedConviction(ev.conviction);
+  const soldSale=sold(name);
+  const action=soldSale?`SOLD • ${money(soldSale.price)}`:(p?.action==="ATTACK"?"ATTACK":p?.action==="VALUE"?"VALUE ONLY":p?.action==="PASS"?"PASS UNLESS DISCOUNT":p?.action==="AVOID"?"AVOID":"WATCH");
+  return {name,pos:base.pos||"",team:base.team||"FA",leagueValue,myValue,conviction,action,sold:!!soldSale};
+}
+
+function ensureDossierQuickPreview(){
+  if(dossierPreviewEl)return dossierPreviewEl;
+  dossierPreviewEl=document.createElement("div");
+  dossierPreviewEl.id="dossierQuickPreview";
+  dossierPreviewEl.className="dossier-quick-preview";
+  dossierPreviewEl.setAttribute("role","tooltip");
+  dossierPreviewEl.setAttribute("aria-hidden","true");
+  document.body.appendChild(dossierPreviewEl);
+  return dossierPreviewEl;
+}
+
+function positionDossierQuickPreview(target){
+  const el=ensureDossierQuickPreview();
+  const r=target.getBoundingClientRect();
+  const pad=10;
+  const width=Math.min(290,window.innerWidth-pad*2);
+  el.style.width=width+"px";
+  let left=Math.min(window.innerWidth-width-pad,Math.max(pad,r.left+r.width/2-width/2));
+  let top=r.top-el.offsetHeight-10;
+  if(top<pad)top=Math.min(window.innerHeight-el.offsetHeight-pad,r.bottom+10);
+  el.style.left=Math.round(left)+"px";
+  el.style.top=Math.round(Math.max(pad,top))+"px";
+}
+
+function showDossierQuickPreview(target,immediate=false){
+  clearTimeout(dossierPreviewTimer);
+  const name=target?.dataset?.dossierPlayer;
+  const data=name&&dossierQuickPreviewData(name);
+  if(!data)return;
+  const open=()=>{
+    dossierPreviewTarget=target;
+    const el=ensureDossierQuickPreview();
+    const stars="★".repeat(data.conviction)+"☆".repeat(Math.max(0,5-data.conviction));
+    el.innerHTML=`<div class="dossier-preview-head"><strong>${esc(data.name)}</strong><span>${esc(data.pos)} • ${esc(data.team)}</span></div><div class="dossier-preview-grid"><div><span>LEAGUE VALUE</span><b>${money(data.leagueValue)}</b></div><div><span>YOUR VALUE</span><b>${data.myValue?money(data.myValue):"—"}</b></div></div><div class="dossier-preview-foot ${data.sold?"sold":""}"><strong>${esc(data.action)}</strong><span aria-label="${data.conviction} of 5 conviction">${stars}</span></div><small>Tap to open full dossier</small>`;
+    el.classList.add("visible");
+    el.setAttribute("aria-hidden","false");
+    requestAnimationFrame(()=>positionDossierQuickPreview(target));
+  };
+  if(immediate)open(); else dossierPreviewTimer=setTimeout(open,260);
+}
+
+function hideDossierQuickPreview(){
+  clearTimeout(dossierPreviewTimer);
+  dossierPreviewTarget=null;
+  if(!dossierPreviewEl)return;
+  dossierPreviewEl.classList.remove("visible");
+  dossierPreviewEl.setAttribute("aria-hidden","true");
+}
+
+function updateDossierSelectionHighlights(name){
+  document.querySelectorAll("[data-dossier-player].current-dossier-player").forEach(el=>el.classList.remove("current-dossier-player"));
+  if(!name)return;
+  document.querySelectorAll("[data-dossier-player]").forEach(el=>{
+    if(el.dataset.dossierPlayer===name)el.classList.add("current-dossier-player");
+  });
+}
+
 document.addEventListener("click",e=>{
   const target=e.target.closest("[data-dossier-player]");
   if(!target)return;
+  if(suppressNextDossierClick){suppressNextDossierClick=false;e.preventDefault();return;}
   const name=target.dataset.dossierPlayer;
   if(!name||!byName[name])return;
   e.preventDefault();
+  hideDossierQuickPreview();
   openPlayerInWarRoom(name);
   if(window.matchMedia("(max-width: 900px)").matches){
     document.getElementById("warDossierPanel")?.scrollIntoView({behavior:"smooth",block:"start"});
   }
 });
+
+document.addEventListener("pointerover",e=>{
+  if(e.pointerType&&e.pointerType!=="mouse")return;
+  const target=e.target.closest("[data-dossier-player]");
+  if(target)showDossierQuickPreview(target);
+});
+document.addEventListener("pointerout",e=>{
+  if(!dossierPreviewTarget)return;
+  const next=e.relatedTarget;
+  if(dossierPreviewTarget.contains(next)||dossierPreviewEl?.contains(next))return;
+  hideDossierQuickPreview();
+});
+document.addEventListener("focusin",e=>{const target=e.target.closest?.("[data-dossier-player]");if(target)showDossierQuickPreview(target,true);});
+document.addEventListener("focusout",e=>{if(!dossierPreviewEl?.contains(e.relatedTarget))hideDossierQuickPreview();});
+
+let dossierLongPressTimer=0;
+document.addEventListener("touchstart",e=>{
+  const target=e.target.closest("[data-dossier-player]");
+  if(!target)return;
+  clearTimeout(dossierLongPressTimer);
+  dossierLongPressTimer=setTimeout(()=>{showDossierQuickPreview(target,true);suppressNextDossierClick=true;},480);
+},{passive:true});
+document.addEventListener("touchend",()=>clearTimeout(dossierLongPressTimer),{passive:true});
+document.addEventListener("touchmove",()=>clearTimeout(dossierLongPressTimer),{passive:true});
+window.addEventListener("resize",()=>{if(dossierPreviewTarget)positionDossierQuickPreview(dossierPreviewTarget);});
+window.addEventListener("scroll",hideDossierQuickPreview,true);

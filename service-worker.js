@@ -1,4 +1,4 @@
-const CACHE='war-room-sprint-32-3';
+const CACHE='war-room-sprint-32-4';
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./css/styles.css","./data/players.js",
   "./data/auctionConsensus.js","./data/espnRankings.js","./js/playerData.js","./js/storage.js","./js/draftEngine.js","./js/leagueValuation.js","./js/recommendationEngine.js",
   "./js/marketCoverage.js","./js/marketSync.js","./js/playerIntegrity.js","./js/auctionEngine.js","./js/blueprint.js","./js/myGuys.js","./js/ui.js","./js/mobileWarRoom.js","./js/app.js","./js/mockSimulator.js"];
