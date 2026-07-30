@@ -1,4 +1,4 @@
-// Sprint 26.0 — isolated auction mock simulator. Never writes to the live draft state.
+// Sprint 33.1.1 — league-aware mock integrity. Headquarters is the source of truth for roster and budget rules.
 (() => {
   const KEY = "warRoomMockStateV5";
   const PERSONALITIES = [
@@ -22,22 +22,66 @@
   let auctionPaused = false;
   let auctionToken = 0;
 
-  function loadMock(){ try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;} }
+  function configuredRoster(){
+    const source=leagueConfig?.roster||{};
+    return {
+      qb:Math.max(0,Number(source.qb??1)||0),
+      rb:Math.max(0,Number(source.rb??2)||0),
+      wr:Math.max(0,Number(source.wr??2)||0),
+      te:Math.max(0,Number(source.te??1)||0),
+      flex:Math.max(0,Number(source.flex??2)||0),
+      superflex:Math.max(0,Number(source.superflex??0)||0),
+      k:Math.max(0,Number(source.k??1)||0),
+      def:Math.max(0,Number(source.def??1)||0),
+      bench:Math.max(0,Number(source.bench??7)||0)
+    };
+  }
+  function configuredRosterLimit(roster=configuredRoster()){
+    return Object.values(roster).reduce((sum,value)=>sum+Math.max(0,Number(value)||0),0);
+  }
+  function currentLeagueRules(){
+    const roster=configuredRoster();
+    return {
+      teamCount:Math.max(2,Number(leagueConfig?.teamCount||12)),
+      budget:Math.max(1,Number(leagueConfig?.budget||200)),
+      roster,
+      rosterLimit:configuredRosterLimit(roster)
+    };
+  }
+  function mockRules(){return mock?.leagueRules||currentLeagueRules();}
+  function loadMock(){
+    try{
+      const stored=JSON.parse(localStorage.getItem(KEY)||"null");
+      if(!stored)return null;
+      const fallback=currentLeagueRules();
+      const limit=Math.max(1,Number(stored?.leagueRules?.rosterLimit)||fallback.rosterLimit);
+      const corrupt=(stored.teams||[]).some(team=>(team.roster||[]).length>limit);
+      if(corrupt){
+        console.warn("Discarding an invalid mock draft that exceeded the configured roster limit.");
+        localStorage.removeItem(KEY);
+        return null;
+      }
+      if(!stored.leagueRules)stored.leagueRules=fallback;
+      return stored;
+    }catch(e){return null;}
+  }
   function saveMock(){ localStorage.setItem(KEY,JSON.stringify(mock)); }
   function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
   function teamName(i){return mock?.teams?.[i]?.name||`Team ${i+1}`;}
   function myIndex(){return Number(mock?.myTeamIndex??leagueConfig.myTeamIndex??0);}
-  function totalSpots(){return typeof rosterSize==="function"?rosterSize():17;}
+  function totalSpots(){return Math.max(1,Number(mockRules().rosterLimit)||configuredRosterLimit());}
+  function rosterFull(team){return !team||(team.roster||[]).length>=totalSpots();}
+  function remainingRosterSpots(team){return Math.max(0,totalSpots()-(team?.roster||[]).length);}
   function playerMarket(p){return Math.max(1,Number(typeof consensusPriceFor==="function"?consensusPriceFor(p):0)||1);}
   function evaluation(p){return typeof getPersonalEvaluation==="function"?getPersonalEvaluation(p.name):null;}
   function personalRank(p){return Number(evaluation(p)?.rank||9999);}
   function conviction(p){return Number(evaluation(p)?.conviction||3);}
   function drafted(name){return !!mock?.sales?.some(s=>s.player===name);}
   function rosterCounts(team){const c={QB:0,RB:0,WR:0,TE:0,K:0,DEF:0};(team.roster||[]).forEach(x=>c[x.pos]=(c[x.pos]||0)+1);return c;}
-  function minimumReserve(team){return Math.max(0,totalSpots()-(team.roster||[]).length-1);}
-  function legalMax(team){return Math.max(0,Number(team.budget||0)-minimumReserve(team));}
+  function minimumReserve(team){return Math.max(0,remainingRosterSpots(team)-1);}
+  function legalMax(team){return rosterFull(team)?0:Math.max(0,Number(team?.budget||0)-minimumReserve(team));}
   function positionNeed(team,pos){
-    const c=rosterCounts(team),r=leagueConfig.roster||{};
+    const c=rosterCounts(team),r=mockRules().roster||{};
     const base={QB:Number(r.qb||1),RB:Number(r.rb||2),WR:Number(r.wr||2),TE:Number(r.te||1),K:Number(r.k||1),DEF:Number(r.def||1)};
     if((c[pos]||0)<(base[pos]||0))return 1.16;
     if(["RB","WR","TE"].includes(pos) && (c.RB+c.WR+c.TE)<(base.RB+base.WR+base.TE+Number(r.flex||0)))return 1.06;
@@ -76,6 +120,7 @@
     return 0;
   }
   function teamLimit(team,p){
+    if(rosterFull(team))return 0;
     const pers=team.personality||PERSONALITIES[1],market=playerMarket(p);
     // Sprint 26.1 rule: League Value is always the price anchor. Rank never creates price.
     let pct=personalityAdjustment(pers,p)+needAdjustment(team,p.pos)+budgetAdjustment(team,p)+roomInflation();
@@ -165,7 +210,7 @@
     return weightedChoice(scored);
   }
   function initTeams(){
-    const count=Number(leagueConfig.teamCount||12),budget=Number(leagueConfig.budget||200);
+    const rules=currentLeagueRules(),count=rules.teamCount,budget=rules.budget;
     return Array.from({length:count},(_,i)=>{
       const src=leagueConfig.teams?.[i];
       return {name:src?.teamName||src?.ownerName||`Team ${i+1}`,budget,roster:[],personality:i===Number(leagueConfig.myTeamIndex||0)?{name:"YOU",aggression:1}:PERSONALITIES[Math.floor(Math.random()*PERSONALITIES.length)]};
@@ -173,14 +218,15 @@
   }
   function startMock(){
     clearAuctionRuntime();
-    mock={active:true,complete:false,myTeamIndex:Number(leagueConfig.myTeamIndex||0),teams:initTeams(),sales:[],log:[],turn:Math.floor(Math.random()*Number(leagueConfig.teamCount||12)),nomination:null,passed:[],roomStyle:"REALISTIC"};
+    const leagueRules=currentLeagueRules();
+    mock={active:true,complete:false,myTeamIndex:Number(leagueConfig.myTeamIndex||0),leagueRules,teams:initTeams(),sales:[],log:[],turn:Math.floor(Math.random()*leagueRules.teamCount),nomination:null,passed:[],roomStyle:"REALISTIC"};
     saveMock(); nextNomination();
   }
   function nextEligibleTurn(){
     const n=mock.teams.length;
     for(let step=0;step<n;step++){
       mock.turn=(mock.turn+1)%n;
-      if((mock.teams[mock.turn].roster||[]).length<totalSpots()&&legalMax(mock.teams[mock.turn])>=1)return mock.turn;
+      if(!rosterFull(mock.teams[mock.turn])&&legalMax(mock.teams[mock.turn])>=1)return mock.turn;
     }
     return myIndex();
   }
@@ -207,7 +253,7 @@
     const n=mock?.nomination;
     if(!n)return [];
     return mock.teams.map((t,i)=>({i,limit:Number(n.limits?.[i]||0)}))
-      .filter(x=>x.i!==myIndex()&&x.i!==n.highBidder&&x.limit>Number(n.currentBid||0)&&legalMax(mock.teams[x.i])>Number(n.currentBid||0))
+      .filter(x=>x.i!==myIndex()&&x.i!==n.highBidder&&!rosterFull(mock.teams[x.i])&&x.limit>Number(n.currentBid||0)&&legalMax(mock.teams[x.i])>Number(n.currentBid||0))
       .sort((a,b)=>b.limit-a.limit);
   }
   function scheduleAIBid(token=auctionToken){
@@ -237,6 +283,13 @@
     if(!n)return;
     const winner=Number(n.highBidder);
     const price=Number(n.currentBid||1);
+    if(rosterFull(mock.teams[winner])||legalMax(mock.teams[winner])<price){
+      console.error("Mock integrity prevented an ineligible auction winner.",{winner,price});
+      mock.nomination=null;
+      saveMock();renderMock();
+      setTimeout(nextNomination,0);
+      return;
+    }
     awardSale(winner,price);
   }
   function tickAuctionClock(){
@@ -272,21 +325,21 @@
     startAuctionClock({fresh:false});
   }
   function beginNomination(nominator,p,{userChoice=false}={}){
-    if(!p)return;
+    if(!p||rosterFull(mock?.teams?.[nominator])||legalMax(mock?.teams?.[nominator])<1)return;
     clearAuctionRuntime();
     // Every nomination is the nominating team's automatic $1 opening bid.
     const opening=1;
     mock.awaitingUserNomination=false;
     mock.lastResult=null;
     mock.nomination={player:p.name,nominator,currentBid:opening,highBidder:nominator,userPassed:false,limits:{}};
-    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=Math.max(i===nominator?1:0,teamLimit(t,p)));
+    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=rosterFull(t)?0:Math.max(i===nominator?1:0,teamLimit(t,p)));
     mock.nomination.expected=expectedSaleRange(p,mock.nomination.limits);
     saveMock();renderMock();
     setTimeout(()=>startAuctionClock({fresh:true}),0);
   }
   function nextNomination(){
     if(!mock?.active)return;
-    if(candidatePool().length===0||mock.teams.every(t=>(t.roster||[]).length>=totalSpots())){completeMock();return;}
+    if(candidatePool().length===0||mock.teams.every(rosterFull)){completeMock();return;}
     const nominator=nextEligibleTurn();
     if(nominator===myIndex()){
       mock.awaitingUserNomination=true;
@@ -325,14 +378,39 @@
     saveMock();renderMock();
     startAuctionClock({fresh:true});
   }
+  function validateMockIntegrity(context="update"){
+    const limit=totalSpots(),seen=new Set();
+    for(const [index,team] of (mock?.teams||[]).entries()){
+      if((team.roster||[]).length>limit)throw new Error(`${team.name||`Team ${index+1}`} exceeds league roster limit: ${(team.roster||[]).length}/${limit}`);
+      const spots=remainingRosterSpots(team),reserve=Math.max(0,spots-1);
+      if(Number(team.budget||0)<spots)throw new Error(`${team.name||`Team ${index+1}`} cannot reserve $1 for each remaining roster spot after ${context}.`);
+      if(legalMax(team)!==(spots>0?Math.max(0,Number(team.budget||0)-reserve):0))throw new Error(`Invalid legal max for ${team.name||`Team ${index+1}`} after ${context}.`);
+      for(const player of team.roster||[]){
+        if(seen.has(player.name))throw new Error(`${player.name} is assigned to more than one mock roster.`);
+        seen.add(player.name);
+      }
+    }
+    return true;
+  }
   function awardSale(teamIndex,price){
     const n=mock?.nomination;if(!n)return;
     clearAuctionRuntime();
     const p=byName[n.player],team=mock.teams[teamIndex];
-    price=Math.max(1,Math.min(Number(price),legalMax(team)));
+    if(!p||!team||rosterFull(team)){
+      console.error("Mock integrity blocked a sale to a full or invalid team.",{teamIndex,player:n.player});
+      mock.nomination=null;saveMock();renderMock();setTimeout(nextNomination,0);return;
+    }
+    const max=legalMax(team);
+    if(max<1){
+      console.error("Mock integrity blocked a sale without a legal bid.",{teamIndex,player:n.player});
+      mock.nomination=null;saveMock();renderMock();setTimeout(nextNomination,0);return;
+    }
+    price=Math.max(1,Math.min(Number(price),max));
     team.budget-=price;team.roster.push({name:p.name,pos:p.pos,price});
     const sale={player:p.name,pos:p.pos,teamIndex,team:team.name,price,market:playerMarket(p)};
-    mock.sales.push(sale);mock.log.unshift(sale);mock.lastResult=sale;mock.nomination=null;saveMock();renderMock();
+    mock.sales.push(sale);mock.log.unshift(sale);mock.lastResult=sale;mock.nomination=null;
+    try{validateMockIntegrity(`sale of ${p.name}`);}catch(error){console.error(error);alert(`Mock integrity error: ${error.message}`);completeMock();return;}
+    saveMock();renderMock();
   }
   function completeMock(){clearAuctionRuntime();mock.complete=true;mock.active=false;mock.awaitingUserNomination=false;mock.nomination=null;saveMock();renderMock();}
   function resetMock(){clearAuctionRuntime();if(!mock||confirm("Clear this mock draft? Your live War Room will not be affected.")){localStorage.removeItem(KEY);mock=null;renderMock();}}
@@ -414,7 +492,7 @@
     return candidatePool().slice(0,240).map(p=>({p,score:mockRecommendationScore(p)})).filter(x=>x.score>-100).sort((a,b)=>b.score-a.score||nominationRank(a.p)-nominationRank(b.p)).slice(0,5);
   }
   function mockTeamDemandScore(team,pos){
-    const c=rosterCounts(team),r=leagueConfig.roster||{},marketRows=candidatePool().filter(p=>p.pos===pos).slice(0,6).map(playerMarket),market=Math.max(1,Math.round((marketRows.reduce((a,b)=>a+b,0)/Math.max(1,marketRows.length))||1));
+    const c=rosterCounts(team),r=mockRules().roster||{},marketRows=candidatePool().filter(p=>p.pos===pos).slice(0,6).map(playerMarket),market=Math.max(1,Math.round((marketRows.reduce((a,b)=>a+b,0)/Math.max(1,marketRows.length))||1));
     const direct=Number({QB:r.qb||1,RB:r.rb||2,WR:r.wr||2,TE:r.te||1}[pos]||0);
     const directGap=Math.max(0,direct-Number(c[pos]||0));
     const core=Number(c.RB||0)+Number(c.WR||0)+Number(c.TE||0),coreDirect=Number(r.rb||2)+Number(r.wr||2)+Number(r.te||1);
