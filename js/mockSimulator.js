@@ -386,7 +386,11 @@
     const reasons=[];
     reasons.push(mockStarterNeedLabel(me,p));
     if(safe>market)reasons.push(`Your personal ceiling is $${safe-market} above League Value`);
-    if(posStats.count>=2)reasons.push(`${p.pos} market is ${posStats.label.toLowerCase()} (${posStats.infl>=0?"+":""}${Math.round(posStats.infl*100)}%)`);
+    if(posStats.count>=2){
+      const pct=Math.round(posStats.infl*100);
+      if(Math.abs(pct)<=2)reasons.push(`${p.pos}s are selling near League Value`);
+      else reasons.push(`${p.pos}s are selling ${Math.abs(pct)}% ${pct>0?"above":"below"} League Value`);
+    }
     reasons.push(`${comps} comparable ${p.pos}s remain`);
     return {call,tone,copy,reasons:reasons.slice(0,3)};
   }
@@ -411,6 +415,23 @@
   }
   function mockDemandCount(pos){
     return (mock?.teams||[]).filter((t,i)=>i!==myIndex()&&positionNeed(t,pos)>=1.05&&legalMax(t)>0).length;
+  }
+  function mockDemandTier(pos){
+    const buyers=mockDemandCount(pos);
+    const possible=Math.max(1,(mock?.teams?.length||Number(leagueConfig.teamCount||12))-1);
+    const share=buyers/possible;
+    if(buyers===0)return {label:"SATURATED",className:"saturated"};
+    if(share>=.78)return {label:"VERY HIGH",className:"very-high"};
+    if(share>=.52)return {label:"HIGH",className:"high"};
+    if(share>=.27)return {label:"MODERATE",className:"moderate"};
+    return {label:"LOW",className:"low"};
+  }
+  function mockPricePresentation(stats){
+    if(!stats.count)return {headline:"EARLY",detail:"No sales yet",className:"stable"};
+    const pct=Math.round(stats.infl*100),amount=Math.abs(pct);
+    if(amount<=2)return {headline:"NEAR VALUE",detail:"Tracking League Value",className:"stable"};
+    if(pct>0)return {headline:`${amount}% ABOVE`,detail:"League Value",className:stats.label==="HOT"?"hot":"stable"};
+    return {headline:`${amount}% BELOW`,detail:"League Value",className:stats.label==="COOL"?"cool":"stable"};
   }
   function mockRoomSignal(){
     if(!mock?.sales?.length)return "No sales yet. Establishing the room.";
@@ -481,7 +502,16 @@
       q("mockCoachReasons").innerHTML="";
     }
     const positionMarket=q("mockPositionMarket");
-    if(positionMarket)positionMarket.innerHTML=["QB","RB","WR","TE"].map(pos=>{const st=mockPositionStats(pos),pct=Math.round(st.infl*100),cls=st.label==="HOT"?"hot":st.label==="COOL"?"cool":"stable";return `<div><span>${pos} • ${mockDemandCount(pos)} NEED</span><strong class="${cls}">${st.count?`${pct>=0?"+":""}${pct}%`:"EARLY"}</strong></div>`;}).join("");
+    if(positionMarket)positionMarket.innerHTML=["QB","RB","WR","TE"].map(pos=>{
+      const demand=mockDemandTier(pos),price=mockPricePresentation(mockPositionStats(pos));
+      return `<div class="mock-market-card">
+        <span class="mock-market-pos">${pos}</span>
+        <small class="mock-market-label">DEMAND</small>
+        <strong class="mock-demand ${demand.className}">${demand.label}</strong>
+        <small class="mock-market-label price-label">PRICE</small>
+        <span class="mock-price ${price.className}"><b>${price.headline}</b><em>${price.detail}</em></span>
+      </div>`;
+    }).join("");
     q("mockRoomSignal").textContent=mockRoomSignal();
     const rec=q("mockRecommended"),recommended=mockRecommendedPlayers();
     rec.innerHTML=recommended.length?recommended.map((x,i)=>`<div class="mock-rec-row" data-player="${esc(x.p.name)}"><span class="mock-rec-rank">${i+1}</span><span class="mock-rec-name">${esc(x.p.name)}<small>${esc(mockStarterNeedLabel(me,x.p))}</small></span><span class="mock-rec-price">$${playerMarket(x.p)}</span></div>`).join(""):'<div class="mock-muted">Start the room to generate live recommendations.</div>';

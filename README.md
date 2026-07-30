@@ -166,3 +166,11 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Added dynamic Recommended Now targets for the current mock roster and budget.
 - Added post-pick reflection after every sale to reinforce disciplined auction decisions.
 - Mock state remains isolated from the live War Room.
+
+
+## Sprint 32.2A — Demand Foundation
+- Replaced exposed positional “NEED” counts in Mock Draft Room Intelligence with dynamic Demand tiers.
+- Demand tiers scale to the configured league size: Very High, High, Moderate, Low, and Saturated.
+- Reworked price signals into plain English relative to League Value.
+- Updated Auction Coach market reasons to explain above/below League Value rather than showing an unexplained percentage.
+- Preserved existing mock-draft state and valuation logic; this sprint changes presentation and creates the foundation for the full Demand Score model.

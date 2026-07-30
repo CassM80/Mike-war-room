@@ -686,10 +686,16 @@ body { overflow:auto; }
 .mock-coach-reasons{display:grid;gap:6px;margin-top:12px}
 .mock-coach-reasons>div{font-size:11px;color:var(--muted);padding-left:15px;position:relative}
 .mock-coach-reasons>div:before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:950}
-.mock-position-market{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-.mock-position-market>div{border:1px solid var(--line);padding:8px 5px;text-align:center;border-radius:5px}
-.mock-position-market span{display:block;font-size:9px;color:var(--muted);font-weight:900}.mock-position-market strong{display:block;font-size:15px;margin-top:3px}
-.mock-position-market strong.hot{color:#ff5252}.mock-position-market strong.cool{color:#62b8ff}.mock-position-market strong.stable{color:var(--green)}
+.mock-position-market{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.mock-market-card{border:1px solid var(--line);padding:9px 6px 10px;text-align:center;border-radius:5px;min-width:0;background:rgba(255,255,255,.015)}
+.mock-market-pos{display:block;font-size:13px;color:var(--text);font-weight:950;letter-spacing:.08em}
+.mock-market-label{display:block;margin-top:7px;font-size:8px;color:var(--muted);font-weight:900;letter-spacing:.11em}
+.mock-demand{display:block;margin-top:2px;font-size:13px;line-height:1.05;white-space:nowrap}
+.mock-demand.very-high{color:#ff5252}.mock-demand.high{color:#ff9f43}.mock-demand.moderate{color:#ffd166}.mock-demand.low{color:#62b8ff}.mock-demand.saturated{color:var(--muted)}
+.mock-market-label.price-label{margin-top:9px;padding-top:7px;border-top:1px solid var(--line)}
+.mock-price{display:block;margin-top:2px;line-height:1.05}
+.mock-price b{display:block;font-size:12px;font-style:normal;white-space:nowrap}.mock-price em{display:block;margin-top:3px;color:var(--muted);font-size:8px;font-style:normal;font-weight:850;line-height:1.15}
+.mock-price.hot b{color:#ff5252}.mock-price.cool b{color:#62b8ff}.mock-price.stable b{color:var(--green)}
 .mock-room-signal{margin-top:10px;padding:10px;border-left:3px solid var(--green);background:rgba(126,217,0,.06);font-size:12px;font-weight:850;line-height:1.35}
 .mock-recommended{display:grid;gap:7px;max-height:280px;overflow:auto}
 .mock-rec-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:5px;cursor:pointer;background:rgba(255,255,255,.018)}
@@ -698,7 +704,7 @@ body { overflow:auto; }
 .mock-reflection{display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;font-weight:800;color:var(--text)}
 .mock-result.good .mock-reflection{color:var(--green)}.mock-result.bad .mock-reflection{color:#ff7d7d}
 @media(max-width:1100px){.mock-stats{grid-template-columns:repeat(3,1fr)}.intelligent-mock-grid{grid-template-columns:minmax(0,1fr) minmax(280px,.55fr)}}
-@media(max-width:800px){.mock-stats{grid-template-columns:1fr 1fr}.intelligent-mock-grid{display:block}.mock-intelligence-stack{margin-bottom:12px}.mock-position-market{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.mock-stats{grid-template-columns:1fr 1fr}.intelligent-mock-grid{display:block}.mock-intelligence-stack{margin-bottom:12px}.mock-position-market{grid-template-columns:1fr 1fr}.mock-market-card{padding:11px 8px}.mock-market-pos{font-size:14px}.mock-demand{font-size:14px}.mock-price b{font-size:13px}.mock-price em{font-size:9px}}
 
 /* Sprint 32.1 — Automatic Auction Clock */
 .mock-clock-card{position:relative;overflow:hidden;border-color:rgba(126,217,0,.48)!important}
