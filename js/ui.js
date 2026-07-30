@@ -17,7 +17,8 @@ function renderCommand(){
 function renderRoster(){
   $("roster").innerHTML=rosterSlots().map(slot=>{
     const entry=state.roster[slot];
-    return `<div class="roster-row"><span class="slot">${slot}</span><span>${entry?entry.player:"—"}</span><span class="cost">${entry?money(entry.price):"—"}</span></div>`;
+    const player=entry?`<button type="button" class="player-link roster-player-link" data-dossier-player="${esc(entry.player)}" aria-label="Open ${esc(entry.player)} in Target Dossier">${esc(entry.player)}</button>`:"—";
+    return `<div class="roster-row"><span class="slot">${slot}</span><span>${player}</span><span class="cost">${entry?money(entry.price):"—"}</span></div>`;
   }).join("");
 }
 
@@ -33,7 +34,7 @@ function renderCore(){
     const conviction=normalizedConviction(ev.conviction);
     const personalTag=ev.flagPlant?'FLAG':ev.favorite?'FAVORITE':conviction>=4?'MY GUY':'';
     const posColor=p.pos==='RB'?'var(--green)':p.pos==='TE'?'var(--orange)':p.pos==='QB'?'var(--yellow)':'var(--blue)';
-    return `<button class="core-row dynamic-target" type="button" data-target-player="${esc(p.name)}">
+    return `<button class="core-row dynamic-target" type="button" data-dossier-player="${esc(p.name)}">
       <span class="target-rank">${i+1}</span>
       <span class="target-copy"><strong>${esc(p.name)}</strong><small>${esc(reason)}</small></span>
       <span class="target-meta" style="color:${posColor}"><strong>${money(leagueValue)}</strong><small>${p.pos}${personalTag?' • '+personalTag:''}</small></span>
@@ -55,6 +56,7 @@ function renderNominationSuggestion(){
   if($("nominationAction")) $("nominationAction").textContent=valid?"Tap to open dossier":"Suggestion unavailable";
   if(card){
     card.dataset.nominationPlayer=valid?player:"";
+    card.dataset.dossierPlayer=valid?player:"";
     card.disabled=!valid;
     card.setAttribute("aria-disabled",String(!valid));
     card.setAttribute("aria-label",valid?`Open ${player} in the Target Dossier`:"No suggested nomination available");
@@ -64,7 +66,7 @@ function renderNominationSuggestion(){
 function renderZeroClickIntelligence(){
   const box=$("zeroClickIntel"); if(!box)return;
   const items=zeroClickIntelligence();
-  box.innerHTML=items.length?items.map(x=>`<button class="zero-intel-row ${x.tone}" type="button" data-zero-player="${esc(x.player)}"><span>${esc(x.label)}</span><strong>${esc(x.player)}</strong><small>${esc(x.detail)}</small></button>`).join(""):'<div class="zero-intel-empty">Record the first sale or complete your personal board to activate live intelligence.</div>';
+  box.innerHTML=items.length?items.map(x=>`<button class="zero-intel-row ${x.tone}" type="button" data-dossier-player="${esc(x.player)}"><span>${esc(x.label)}</span><strong>${esc(x.player)}</strong><small>${esc(x.detail)}</small></button>`).join(""):'<div class="zero-intel-empty">Record the first sale or complete your personal board to activate live intelligence.</div>';
 }
 
 function renderAlerts(){
@@ -106,9 +108,19 @@ function setSelected(p,deferAlerts=false){
   $("fairRange").textContent=p.fairLow?`$${p.fairLow} – $${p.fairHigh}`:"—";
   $("stopRange").textContent=p.overpay?`$${p.overpay}+`:"PASS";
   const autoPivots=automaticPivotsFor(byName[p.name]||p);
-  $("primaryPivot").textContent=autoPivots.primary?`${autoPivots.primary.name} • ${money(marketValueFor(autoPivots.primary))}`:"—";
-  $("secondaryPivot").textContent=autoPivots.secondary?`${autoPivots.secondary.name} • ${money(marketValueFor(autoPivots.secondary))}`:"—";
-  $("budgetPivot").textContent=autoPivots.budget?`${autoPivots.budget.name} • ${money(marketValueFor(autoPivots.budget))}`:"—";
+  const setPivot=(id,pivot)=>{
+    const el=$(id);
+    if(!pivot){el.textContent="—";el.removeAttribute("data-dossier-player");el.removeAttribute("role");el.removeAttribute("tabindex");el.removeAttribute("aria-label");el.classList.remove("clickable-player");return;}
+    el.textContent=`${pivot.name} • ${money(marketValueFor(pivot))}`;
+    el.dataset.dossierPlayer=pivot.name;
+    el.classList.add("clickable-player");
+    el.setAttribute("role","button");
+    el.setAttribute("tabindex","0");
+    el.setAttribute("aria-label",`Open ${pivot.name} in Target Dossier`);
+  };
+  setPivot("primaryPivot",autoPivots.primary);
+  setPivot("secondaryPivot",autoPivots.secondary);
+  setPivot("budgetPivot",autoPivots.budget);
   renderWarDossier(byName[p.name]||p);
   renderRecommendation(byName[p.name]||p);
   if(!deferAlerts)renderAlerts();
@@ -124,12 +136,23 @@ function showScoutingPanel(panel){const board=panel==='BOARD',my=panel==='MY',bl
 
 function openPlayerInWarRoom(name){const p=byName[name];if(!p)return;setSelected(p);document.querySelectorAll('.nav-tab').forEach(x=>x.classList.toggle('active',x.dataset.view==='warRoomView'));document.querySelectorAll('.app-view').forEach(x=>x.classList.toggle('active',x.id==='warRoomView'));setTimeout(setAppHeight,20);}
 
+document.addEventListener("keydown",e=>{
+  if((e.key!=="Enter"&&e.key!==" ")||!e.target.matches("[data-dossier-player][role='button']"))return;
+  e.preventDefault();
+  openPlayerInWarRoom(e.target.dataset.dossierPlayer);
+});
+
 function esc(v){return String(v??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
+
+function reportPlayerLink(name){
+  const encoded=encodeURIComponent(String(name||""));
+  return `<button type="button" class="print-player-link" onclick="if(window.opener){window.opener.openPlayerInWarRoom(decodeURIComponent('${encoded}'));window.opener.focus();}">${esc(name)}</button>`;
+}
 function printableShell(title,subtitle,body){
   const w=window.open("","_blank"); if(!w){alert("Please allow pop-ups so War Room can open the printable report.");return;}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
-  body{font-family:Arial,sans-serif;color:#111;margin:38px;line-height:1.4}h1{margin:0;font-size:30px}h2{margin-top:28px;border-bottom:2px solid #111;padding-bottom:6px}h3{margin:18px 0 5px}.sub{color:#555;margin:4px 0 22px}.meta{display:flex;gap:28px;flex-wrap:wrap;margin:16px 0}.metric{border:1px solid #bbb;border-radius:8px;padding:10px 14px;min-width:115px}.metric strong{display:block;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px 6px;font-size:13px}th{background:#f3f3f3}.tag{display:inline-block;border:1px solid #777;border-radius:999px;padding:2px 7px;margin:2px;font-size:11px}.note{color:#444}.good{color:#137333;font-weight:700}.bad{color:#b3261e;font-weight:700}.neutral{color:#555;font-weight:700}.grade{font-size:32px;line-height:1}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.bar{height:10px;background:#e6e6e6;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:#111}.team-card{break-inside:avoid;border:1px solid #bbb;border-radius:10px;padding:12px;margin:12px 0}.team-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:12px;color:#666}.actions{position:fixed;right:20px;top:20px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}@media print{.actions{display:none}body{margin:18mm}.team-card{break-inside:avoid}}
+  body{font-family:Arial,sans-serif;color:#111;margin:38px;line-height:1.4}h1{margin:0;font-size:30px}h2{margin-top:28px;border-bottom:2px solid #111;padding-bottom:6px}h3{margin:18px 0 5px}.sub{color:#555;margin:4px 0 22px}.meta{display:flex;gap:28px;flex-wrap:wrap;margin:16px 0}.metric{border:1px solid #bbb;border-radius:8px;padding:10px 14px;min-width:115px}.metric strong{display:block;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px 6px;font-size:13px}th{background:#f3f3f3}.tag{display:inline-block;border:1px solid #777;border-radius:999px;padding:2px 7px;margin:2px;font-size:11px}.note{color:#444}.good{color:#137333;font-weight:700}.bad{color:#b3261e;font-weight:700}.neutral{color:#555;font-weight:700}.grade{font-size:32px;line-height:1}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.bar{height:10px;background:#e6e6e6;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:#111}.team-card{break-inside:avoid;border:1px solid #bbb;border-radius:10px;padding:12px;margin:12px 0}.team-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:12px;color:#666}.print-player-link{border:0;background:none;padding:0;color:#111;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}.actions{position:fixed;right:20px;top:20px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}@media print{.actions{display:none}body{margin:18mm}.team-card{break-inside:avoid}}
   
 </style></head><body><button class="actions" onclick="window.print()">PRINT / SAVE PDF</button><h1>${esc(title)}</h1><div class="sub">${esc(subtitle)}</div>${body}</body></html>`);
   w.document.close(); w.focus();
@@ -139,8 +162,8 @@ function draftReport(){
   const myIdx=Number(leagueConfig.myTeamIndex||0), myTeam=leagueConfig.teams?.[myIdx]?.teamName||"Your Team";
   const mySales=state.sales.filter(s=>s.winner==="me"||Number(s.winnerTeamIndex)===myIdx);
   const spentAmt=mySales.reduce((a,s)=>a+Number(s.price||0),0), remaining=Math.max(0,Number(leagueConfig.budget||200)-spentAmt);
-  const rosterRows=Object.entries(state.roster||{}).map(([slot,r])=>`<tr><td>${esc(slot)}</td><td>${esc(r.player)}</td><td>${esc(byName[r.player]?.pos||"")}</td><td>$${Number(r.price||0)}</td></tr>`).join("")||'<tr><td colspan="4">No players recorded for your team.</td></tr>';
-  const saleRows=(state.sales||[]).map((s,i)=>{const base=byName[s.player], mv=reportMarketValue(base), diff=mv?mv-Number(s.price||0):null;return `<tr><td>${i+1}</td><td>${esc(s.player)}</td><td>${esc(base?.pos||"")}</td><td>${esc(teamLabelForSale(s))}</td><td>$${Number(s.price||0)}</td><td class="${diff===null?'neutral':diff>0?'good':diff<0?'bad':'neutral'}">${diff===null?'—':(diff>0?'+':'')+'$'+diff}</td></tr>`}).join("")||'<tr><td colspan="6">No sales recorded.</td></tr>';
+  const rosterRows=Object.entries(state.roster||{}).map(([slot,r])=>`<tr><td>${esc(slot)}</td><td>${reportPlayerLink(r.player)}</td><td>${esc(byName[r.player]?.pos||"")}</td><td>$${Number(r.price||0)}</td></tr>`).join("")||'<tr><td colspan="4">No players recorded for your team.</td></tr>';
+  const saleRows=(state.sales||[]).map((s,i)=>{const base=byName[s.player], mv=reportMarketValue(base), diff=mv?mv-Number(s.price||0):null;return `<tr><td>${i+1}</td><td>${reportPlayerLink(s.player)}</td><td>${esc(base?.pos||"")}</td><td>${esc(teamLabelForSale(s))}</td><td>$${Number(s.price||0)}</td><td class="${diff===null?'neutral':diff>0?'good':diff<0?'bad':'neutral'}">${diff===null?'—':(diff>0?'+':'')+'$'+diff}</td></tr>`}).join("")||'<tr><td colspan="6">No sales recorded.</td></tr>';
 
   const valuedMy=mySales.map(s=>{const base=byName[s.player], market=reportMarketValue(base);return {...s,base,market,diff:market?market-Number(s.price||0):null};}).filter(x=>x.diff!==null);
   const best=[...valuedMy].sort((a,b)=>b.diff-a.diff)[0]||null;
@@ -162,9 +185,9 @@ function draftReport(){
   numericGrade=Math.max(40,Math.min(99,Math.round(numericGrade)));
   const letter=numericGrade>=93?'A':numericGrade>=90?'A-':numericGrade>=87?'B+':numericGrade>=83?'B':numericGrade>=80?'B-':numericGrade>=77?'C+':numericGrade>=73?'C':numericGrade>=70?'C-':numericGrade>=65?'D':'F';
 
-  const teamGroups=(leagueConfig.teams||[]).map((t,i)=>{const rows=state.sales.filter(s=>Number(s.winnerTeamIndex)===i || (s.winner==="me"&&i===myIdx));const total=rows.reduce((a,s)=>a+Number(s.price||0),0);const roster=rows.map(s=>`<tr><td>${esc(byName[s.player]?.pos||"")}</td><td>${esc(s.player)}</td><td>$${Number(s.price||0)}</td></tr>`).join("")||'<tr><td colspan="3">No players recorded.</td></tr>';return `<div class="team-card"><div class="team-head"><div><strong>${esc(t.teamName||`Team ${i+1}`)}</strong><div class="small">${esc(t.ownerName||"")}</div></div><div><strong>$${total}</strong><div class="small">spent • $${Math.max(0,Number(leagueConfig.budget||200)-total)} left</div></div></div><table><thead><tr><th>Pos</th><th>Player</th><th>Price</th></tr></thead><tbody>${roster}</tbody></table></div>`}).join("");
+  const teamGroups=(leagueConfig.teams||[]).map((t,i)=>{const rows=state.sales.filter(s=>Number(s.winnerTeamIndex)===i || (s.winner==="me"&&i===myIdx));const total=rows.reduce((a,s)=>a+Number(s.price||0),0);const roster=rows.map(s=>`<tr><td>${esc(byName[s.player]?.pos||"")}</td><td>${reportPlayerLink(s.player)}</td><td>$${Number(s.price||0)}</td></tr>`).join("")||'<tr><td colspan="3">No players recorded.</td></tr>';return `<div class="team-card"><div class="team-head"><div><strong>${esc(t.teamName||`Team ${i+1}`)}</strong><div class="small">${esc(t.ownerName||"")}</div></div><div><strong>$${total}</strong><div class="small">spent • $${Math.max(0,Number(leagueConfig.budget||200)-total)} left</div></div></div><table><thead><tr><th>Pos</th><th>Player</th><th>Price</th></tr></thead><tbody>${roster}</tbody></table></div>`}).join("");
 
-  const highlights=`<div class="grid2"><div class="team-card"><h3>Best Value</h3>${best?`<strong>${esc(best.player)}</strong><div class="good">$${best.price} paid • $${best.market} market • +$${best.diff} value</div>`:'<div class="small">No market-comparable purchases yet.</div>'}</div><div class="team-card"><h3>Biggest Overpay</h3>${over?`<strong>${esc(over.player)}</strong><div class="${over.diff<0?'bad':'good'}">$${over.price} paid • $${over.market} market • ${over.diff>0?'+':''}$${over.diff}</div>`:'<div class="small">No market-comparable purchases yet.</div>'}</div></div>`;
+  const highlights=`<div class="grid2"><div class="team-card"><h3>Best Value</h3>${best?`${reportPlayerLink(best.player)}<div class="good">$${best.price} paid • $${best.market} market • +$${best.diff} value</div>`:'<div class="small">No market-comparable purchases yet.</div>'}</div><div class="team-card"><h3>Biggest Overpay</h3>${over?`${reportPlayerLink(over.player)}<div class="${over.diff<0?'bad':'good'}">$${over.price} paid • $${over.market} market • ${over.diff>0?'+':''}$${over.diff}</div>`:'<div class="small">No market-comparable purchases yet.</div>'}</div></div>`;
 
   printableShell(`${leagueConfig.leagueName||"War Room"} — Draft Report`,`${leagueConfig.teamCount||12} teams • $${leagueConfig.budget||200} budget • ${leagueConfig.scoring||"PPR"}`,
   `<div class="meta"><div class="metric"><strong>${esc(myTeam)}</strong>Your Team</div><div class="metric"><strong>$${spentAmt}</strong>Spent</div><div class="metric"><strong>$${remaining}</strong>Remaining</div><div class="metric"><strong>${state.sales.length}</strong>Total Sales</div><div class="metric"><strong class="grade">${letter}</strong>Draft Grade (${numericGrade})</div><div class="metric"><strong>${philosophyScore===null?'—':philosophyScore+'%'}</strong>Philosophy Score</div></div>${highlights}<h2>Your Roster</h2><table><thead><tr><th>Slot</th><th>Player</th><th>Pos</th><th>Price</th></tr></thead><tbody>${rosterRows}</tbody></table><div class="grid2"><div><h2>Position Spending</h2><table><thead><tr><th>Position</th><th>Spent</th><th>Share</th></tr></thead><tbody>${posRows}</tbody></table></div><div><h2>Market Inflation</h2><table><thead><tr><th>Position</th><th>Sales</th><th>Vs Market</th><th>Trend</th></tr></thead><tbody>${inflRows}</tbody></table></div></div><h2>Complete Draft Log</h2><table><thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Winner</th><th>Price</th><th>Value +/-</th></tr></thead><tbody>${saleRows}</tbody></table><h2>Team-by-Team Rosters</h2>${teamGroups}`);

@@ -179,3 +179,6 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Moved the **Zero-Click Board** below auction coaching and the suggested nomination so the rail now reads from decision support to quick-reference reminders.
 - Preserved all Sprint 32.2A demand and market-value logic.
 
+
+## Sprint 32.3 — Click Everything
+Player references across the live War Room now share a universal tap/click behavior that opens the Target Dossier, including Recommended Now, Suggested Nomination, Zero-Click Board, pivots, rostered players, mock draft log entries, and printable draft-report player names.

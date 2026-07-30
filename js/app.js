@@ -433,25 +433,16 @@ function previewLeagueValuationFromHeadquarters(){
 }
 valuationSettingIds.forEach(id=>$(id)?.addEventListener(id.includes("Budget")?"input":"change",previewLeagueValuationFromHeadquarters));
 
-// Sprint 30.3 — live Recommended Now open the recommended player dossier with one tap.
-document.getElementById("coreTargets")?.addEventListener("click",e=>{
-  const row=e.target.closest("[data-target-player]");
-  if(row&&byName[row.dataset.targetPlayer])setSelected(byName[row.dataset.targetPlayer]);
-});
-
-// Sprint 30.0 — every zero-click recommendation opens its dossier with one tap.
-document.getElementById("zeroClickIntel")?.addEventListener("click",e=>{
-  const row=e.target.closest("[data-zero-player]");
-  if(row&&byName[row.dataset.zeroPlayer])setSelected(byName[row.dataset.zeroPlayer]);
-});
-
-// Sprint 32.2C — suggested nomination opens the full Target Dossier with one tap.
-document.getElementById("nominationCard")?.addEventListener("click",e=>{
-  const card=e.currentTarget, name=card?.dataset?.nominationPlayer;
-  if(!name||!byName[name]||sold(name))return;
-  setSelected(byName[name]);
+// Sprint 32.3 — Click Everything.
+// One delegated interaction now opens any valid player reference in the Target Dossier.
+document.addEventListener("click",e=>{
+  const target=e.target.closest("[data-dossier-player]");
+  if(!target)return;
+  const name=target.dataset.dossierPlayer;
+  if(!name||!byName[name])return;
+  e.preventDefault();
+  openPlayerInWarRoom(name);
   if(window.matchMedia("(max-width: 900px)").matches){
     document.getElementById("warDossierPanel")?.scrollIntoView({behavior:"smooth",block:"start"});
-    setTimeout(()=>document.getElementById("playerSearch")?.focus({preventScroll:true}),350);
   }
 });

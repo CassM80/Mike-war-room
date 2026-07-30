@@ -520,7 +520,7 @@
     roster.innerHTML=me?.roster?.length?me.roster.map(x=>`<div><span>${esc(x.name)} <small>${x.pos}</small></span><strong>$${x.price}</strong></div>`).join(""):'<div class="mock-muted">Your roster is empty.</div>';
     const teams=q("mockTeams");
     teams.innerHTML=active?mock.teams.map((t,i)=>`<div class="mock-team ${i===myIndex()?"you":""}"><span>${esc(t.name)}<small>${esc(t.personality?.name||"")}</small></span><strong>$${t.budget}<small>${(t.roster||[]).length}/${totalSpots()}</small></strong></div>`).join(""):'<div class="mock-muted">The room appears when you start.</div>';
-    const log=q("mockLog");log.innerHTML=mock?.log?.length?mock.log.map((s,i)=>`<div><b>${mock.sales.length-i}</b><span>${esc(s.player)}<small>${s.pos} • ${esc(s.team)}</small></span><strong>$${s.price}</strong></div>`).join(""):'<div class="mock-muted">No sales yet.</div>';
+    const log=q("mockLog");log.innerHTML=mock?.log?.length?mock.log.map((s,i)=>`<div><b>${mock.sales.length-i}</b><button type="button" class="player-link mock-log-player" data-dossier-player="${esc(s.player)}"><span>${esc(s.player)}<small>${s.pos} • ${esc(s.team)}</small></span></button><strong>$${s.price}</strong></div>`).join(""):'<div class="mock-muted">No sales yet.</div>';
   }
   function init(){
     q("mockStartBtn")?.addEventListener("click",()=>{if(mock?.active&&!confirm("Restart this mock draft?"))return;startMock();});
