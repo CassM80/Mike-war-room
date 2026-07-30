@@ -1,6 +1,6 @@
-// Sprint 33.1.1 — league-aware mock integrity. Headquarters is the source of truth for roster and budget rules.
+// Sprint 33.1.2 — complete mock results plus league-aware K/DEF roster integrity.
 (() => {
-  const KEY = "warRoomMockStateV5";
+  const KEY = "warRoomMockStateV6";
   const PERSONALITIES = [
     {name:"Stars & Scrubs",aggression:1.16,rb:1.00,wr:1.00,qb:1.02,value:0.92},
     {name:"Balanced",aggression:1.00,rb:1.00,wr:1.00,qb:1.00,value:1.00},
@@ -87,6 +87,21 @@
     if(["RB","WR","TE"].includes(pos) && (c.RB+c.WR+c.TE)<(base.RB+base.WR+base.TE+Number(r.flex||0)))return 1.06;
     return .90;
   }
+  function requiredBase(){
+    const r=mockRules().roster||{};
+    return {QB:Number(r.qb||0),RB:Number(r.rb||0),WR:Number(r.wr||0),TE:Number(r.te||0),K:Number(r.k||0),DEF:Number(r.def||0)};
+  }
+  function missingRequired(team,counts=rosterCounts(team)){
+    const base=requiredBase();
+    return Object.keys(base).reduce((sum,pos)=>sum+Math.max(0,base[pos]-(counts[pos]||0)),0);
+  }
+  function canRosterPlayer(team,p){
+    if(!team||!p||rosterFull(team))return false;
+    const counts=rosterCounts(team),base=requiredBase(),spots=remainingRosterSpots(team);
+    if((p.pos==="K"||p.pos==="DEF") && (counts[p.pos]||0)>=(base[p.pos]||0))return false;
+    const next={...counts,[p.pos]:(counts[p.pos]||0)+1};
+    return missingRequired(team,next)<=spots-1;
+  }
   function roomInflation(){
     const sales=(mock?.sales||[]).filter(s=>Number(s.market)>0);
     if(sales.length<3)return 0;
@@ -120,12 +135,15 @@
     return 0;
   }
   function teamLimit(team,p){
-    if(rosterFull(team))return 0;
+    if(!canRosterPlayer(team,p))return 0;
     const pers=team.personality||PERSONALITIES[1],market=playerMarket(p);
     // Sprint 26.1 rule: League Value is always the price anchor. Rank never creates price.
     let pct=personalityAdjustment(pers,p)+needAdjustment(team,p.pos)+budgetAdjustment(team,p)+roomInflation();
     pct+=-.025+Math.random()*.05; // small player-specific opinion
-    if(p.pos==="K"||p.pos==="DEF")pct=Math.min(pct,.05);
+    if(p.pos==="K"||p.pos==="DEF"){
+      const required=(requiredBase()[p.pos]||0)>(rosterCounts(team)[p.pos]||0);
+      pct=required&&remainingRosterSpots(team)<=missingRequired(team)+2?Math.max(pct,-.02):Math.min(pct,-.12);
+    }
     const floor=pers.chaos?.78:.82,cap=pers.chaos?1.28:1.20;
     const multiplier=Math.max(floor,Math.min(cap,1+pct));
     return Math.max(1,Math.min(legalMax(team),Math.round(market*multiplier)));
@@ -193,7 +211,8 @@
   function pickNominee(teamIndex){
     const team=mock.teams[teamIndex],all=candidatePool().slice(0,240);
     if(!all.length)return null;
-    const pool=phaseCandidatePool(all);
+    let pool=phaseCandidatePool(all).filter(p=>canRosterPlayer(team,p));
+    if(!pool.length)pool=all.filter(p=>canRosterPlayer(team,p));
     const scored=pool.map(p=>{
       const need=positionNeed(team,p.pos),pers=team.personality||PERSONALITIES[1],rank=nominationRank(p);
       let score=nominationProminence(p)*need;
@@ -332,7 +351,7 @@
     mock.awaitingUserNomination=false;
     mock.lastResult=null;
     mock.nomination={player:p.name,nominator,currentBid:opening,highBidder:nominator,userPassed:false,limits:{}};
-    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=rosterFull(t)?0:Math.max(i===nominator?1:0,teamLimit(t,p)));
+    mock.teams.forEach((t,i)=>mock.nomination.limits[i]=canRosterPlayer(t,p)?Math.max(i===nominator?1:0,teamLimit(t,p)):0);
     mock.nomination.expected=expectedSaleRange(p,mock.nomination.limits);
     saveMock();renderMock();
     setTimeout(()=>startAuctionClock({fresh:true}),0);
@@ -368,6 +387,7 @@
   function bid(amount){
     const n=mock?.nomination;if(!n||n.userPassed)return;
     const p=byName[n.player],team=mock.teams[myIndex()],max=userSafeMax(p),target=Math.max(n.currentBid+1,Math.round(amount));
+    if(!canRosterPlayer(team,p)){alert(`You must preserve room for the required ${Object.entries(requiredBase()).filter(([pos,n])=>n>(rosterCounts(team)[pos]||0)).map(([pos])=>pos).join(" / ")} slot(s).`);return;}
     if(target>legalMax(team)){alert(`Your legal maximum bid is $${legalMax(team)}.`);return;}
     if(target>max&&!confirm(`This is $${target-max} above your Safe Max of $${max}. Bid anyway?`))return;
     n.currentBid=target;n.highBidder=myIndex();n.userPassed=false;saveMock();renderMock();startAuctionClock({fresh:true});
@@ -396,7 +416,7 @@
     const n=mock?.nomination;if(!n)return;
     clearAuctionRuntime();
     const p=byName[n.player],team=mock.teams[teamIndex];
-    if(!p||!team||rosterFull(team)){
+    if(!p||!team||!canRosterPlayer(team,p)){
       console.error("Mock integrity blocked a sale to a full or invalid team.",{teamIndex,player:n.player});
       mock.nomination=null;saveMock();renderMock();setTimeout(nextNomination,0);return;
     }
@@ -412,7 +432,12 @@
     try{validateMockIntegrity(`sale of ${p.name}`);}catch(error){console.error(error);alert(`Mock integrity error: ${error.message}`);completeMock();return;}
     saveMock();renderMock();
   }
-  function completeMock(){clearAuctionRuntime();mock.complete=true;mock.active=false;mock.awaitingUserNomination=false;mock.nomination=null;saveMock();renderMock();}
+  function completeMock(){
+    clearAuctionRuntime();
+    const incomplete=(mock?.teams||[]).find(team=>!rosterFull(team)||missingRequired(team)>0);
+    if(incomplete&&candidatePool().some(p=>canRosterPlayer(incomplete,p))){mock.turn=Math.max(-1,(mock.teams||[]).indexOf(incomplete)-1);setTimeout(nextNomination,0);return;}
+    mock.complete=true;mock.active=false;mock.awaitingUserNomination=false;mock.nomination=null;saveMock();renderMock();
+  }
   function resetMock(){clearAuctionRuntime();if(!mock||confirm("Clear this mock draft? Your live War Room will not be affected.")){localStorage.removeItem(KEY);mock=null;renderMock();}}
   function gradeSummary(){
     const mine=mock?.sales?.filter(s=>s.teamIndex===myIndex())||[];
@@ -562,6 +587,20 @@
     if(delta<=-4)return {tone:"bad",text:`Missed value — he sold $${Math.abs(delta)} below League Value.`};
     return {tone:"",text:"Fair result — the sale landed close to League Value."};
   }
+  function teamResult(team,index){
+    const roster=team?.roster||[],spent=Number(mockRules().budget||200)-Number(team?.budget||0);
+    const value=roster.reduce((sum,x)=>sum+playerMarket(byName[x.name]||x),0),net=value-spent;
+    const order={QB:1,RB:2,WR:3,TE:4,K:5,DEF:6};
+    const rows=roster.map(x=>{const market=playerMarket(byName[x.name]||x),edge=market-Number(x.price||0);return {...x,market,edge};}).sort((a,b)=>(order[a.pos]||99)-(order[b.pos]||99)||b.price-a.price);
+    return {team,index,spent,value,net,rows,bargain:[...rows].sort((a,b)=>b.edge-a.edge)[0],overpay:[...rows].sort((a,b)=>a.edge-b.edge)[0]};
+  }
+  function renderLeagueResults(){
+    const box=q("mockLeagueResults");if(!box)return;
+    if(!mock?.complete){box.classList.add("hidden");box.innerHTML="";return;}
+    const results=(mock.teams||[]).map(teamResult).sort((a,b)=>b.net-a.net);
+    box.classList.remove("hidden");
+    box.innerHTML=`<div class="mock-results-head"><div><h3>COMPLETE LEAGUE RESULTS</h3><p>Every roster, purchase price, and market edge from this mock.</p></div><span>${mock.sales.length} SALES</span></div><div class="mock-results-grid">${results.map((r,rank)=>`<article class="mock-result-team ${r.index===myIndex()?"you":""}"><header><div><b>#${rank+1} ${esc(r.team.name)}</b><small>${esc(r.team.personality?.name||"")}</small></div><strong class="${r.net>=0?"positive":"negative"}">${r.net>=0?"+":""}$${r.net}</strong></header><div class="mock-result-summary"><span>Spent <b>$${r.spent}</b></span><span>Value <b>$${r.value}</b></span><span>Left <b>$${r.team.budget}</b></span></div><div class="mock-result-roster">${r.rows.map(x=>`<div><button type="button" class="player-link" data-dossier-player="${esc(x.name)}"><b>${esc(x.name)}</b><small>${x.pos}</small></button><span>$${x.price}<small class="${x.edge>=0?"positive":"negative"}">${x.edge>=0?"+":""}$${x.edge}</small></span></div>`).join("")}</div><footer><span>Bargain: <b>${esc(r.bargain?.name||"—")}</b></span><span>Overpay: <b>${esc(r.overpay?.name||"—")}</b></span></footer></article>`).join("")}</div>`;
+  }
   function renderMock(){
     if(!q("mockDraftView"))return;
     const active=!!mock,me=active?mock.teams[myIndex()]:null;
@@ -637,6 +676,7 @@
     const teams=q("mockTeams");
     teams.innerHTML=active?mock.teams.map((t,i)=>`<div class="mock-team ${i===myIndex()?"you":""}"><span>${esc(t.name)}<small>${esc(t.personality?.name||"")}</small></span><strong>$${t.budget}<small>${(t.roster||[]).length}/${totalSpots()}</small></strong></div>`).join(""):'<div class="mock-muted">The room appears when you start.</div>';
     const log=q("mockLog");log.innerHTML=mock?.log?.length?mock.log.map((s,i)=>`<div><b>${mock.sales.length-i}</b><button type="button" class="player-link mock-log-player" data-dossier-player="${esc(s.player)}"><span>${esc(s.player)}<small>${s.pos} • ${esc(s.team)}</small></span></button><strong>$${s.price}</strong></div>`).join(""):'<div class="mock-muted">No sales yet.</div>';
+    renderLeagueResults();
   }
   function init(){
     q("mockStartBtn")?.addEventListener("click",()=>{if(mock?.active&&!confirm("Restart this mock draft?"))return;startMock();});
