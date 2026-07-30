@@ -754,3 +754,48 @@ body { overflow:auto; }
 .mock-room-signal{margin-top:9px;padding:9px 10px;font-size:11px}
 @media(max-width:1100px) and (min-width:801px){.mock-market-card{min-height:114px;padding-left:5px;padding-right:5px}.mock-demand{font-size:11px}.mock-demand-detail{font-size:7px}.mock-price b{font-size:10px}}
 @media(max-width:800px){.mock-market-card{min-height:112px;padding:12px 9px}.mock-demand{font-size:13px}.mock-demand-detail{font-size:9px}.mock-price b{font-size:12px}.mock-price em{font-size:9px}}
+
+
+/* Sprint 33.0.2 — Room Intelligence Card Fit Fix */
+.mock-intel-card .mock-position-market{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.mock-intel-card .mock-market-card{
+  min-width:0;
+  min-height:108px;
+  padding:11px 10px 10px;
+}
+.mock-intel-card .mock-demand,
+.mock-intel-card .mock-price b,
+.mock-intel-card .mock-price em,
+.mock-intel-card .mock-demand-detail{
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.mock-intel-card .mock-demand{
+  white-space:normal;
+  line-height:1.12;
+}
+.mock-intel-card .mock-price b{
+  white-space:normal;
+  line-height:1.12;
+}
+.mock-intel-card .mock-price em{
+  white-space:normal;
+}
+@media(min-width:1450px){
+  .mock-intel-card .mock-position-market{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .mock-intel-card .mock-market-card{
+    padding-left:7px;
+    padding-right:7px;
+  }
+}
+@media(max-width:800px){
+  .mock-intel-card .mock-position-market{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
