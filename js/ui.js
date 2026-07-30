@@ -75,6 +75,20 @@ function renderAlerts(){
   $("alerts").innerHTML=(a.length?a:[{c:"green",t:"SYSTEM READY — WAITING FOR NOMINATION"}]).map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join("");
 }
 
+function renderCompetitionPredictor(base){
+  const box=$("competitionPredictor"); if(!box)return;
+  const level=$("competitionLevel"),summary=$("competitionSummary"),teams=$("competitionTeams");
+  box.classList.remove("heavy","active","moderate","light","sold");
+  if(!base){level.textContent="—";summary.textContent="Select a player to forecast rival bidders.";teams.innerHTML="";return;}
+  const sale=sold(base.name);
+  if(sale){box.classList.add("sold");level.textContent="FINAL";summary.textContent=`Drafted by ${teamLabelForSale(sale)} for ${money(sale.price)}.`;teams.innerHTML="";return;}
+  const result=competitionForPlayer(base);
+  box.classList.add(result.className);
+  level.textContent=`${result.label} • ${result.count} LIKELY`;
+  summary.textContent=result.summary;
+  teams.innerHTML=result.teams.length?result.teams.map((t,i)=>`<div class="competition-team"><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • Max ${money(t.maxBid)}</small></span><strong>${t.probability}%</strong></div>`).join(""):'<div class="competition-empty">No rival team currently projects as a likely bidder.</div>';
+}
+
 function renderRecommendation(base){
   const r=recommendationFor(base), box=$("recommendationEngine");
   box.classList.remove("poor","situational","sold");
@@ -96,7 +110,7 @@ function setSelected(p,deferAlerts=false){
   $("recordPlayer").value=p?p.name:"";
   if(!p){
     $("waiting").classList.remove("hidden"); $("liveDecision").classList.add("hidden"); $("playerHead").classList.add("hidden");
-    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); if(!deferAlerts)renderAlerts(); return;
+    $("primaryPivot").textContent="—"; $("secondaryPivot").textContent="—"; $("budgetPivot").textContent="—"; renderWarDossier(null); renderRecommendation(null); renderCompetitionPredictor(null); if(!deferAlerts)renderAlerts(); return;
   }
   $("waiting").classList.add("hidden"); $("liveDecision").classList.remove("hidden"); $("playerHead").classList.remove("hidden");
   const ev=p.personalEvaluation;
@@ -124,6 +138,7 @@ function setSelected(p,deferAlerts=false){
   setPivot("budgetPivot",autoPivots.budget);
   renderWarDossier(byName[p.name]||p);
   renderRecommendation(byName[p.name]||p);
+  renderCompetitionPredictor(byName[p.name]||p);
   if(!deferAlerts)renderAlerts();
 }
 

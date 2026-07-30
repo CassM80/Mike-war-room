@@ -799,3 +799,23 @@ body { overflow:auto; }
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+/* Sprint 33.1 — Competition Predictor */
+.competition-predictor{margin-top:12px;border:1px solid var(--line);background:rgba(255,255,255,.025);padding:12px}
+.competition-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.competition-head span{color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.08em}
+.competition-head strong{font-size:12px;letter-spacing:.04em;color:#75c7ff}
+.competition-predictor.heavy .competition-head strong{color:#ff6b6b}.competition-predictor.active .competition-head strong{color:#ffb45c}.competition-predictor.moderate .competition-head strong{color:#ffd166}.competition-predictor.light .competition-head strong{color:#75c7ff}
+.competition-summary{margin-top:5px;font-size:12px;font-weight:800;line-height:1.35}
+.competition-teams{display:grid;gap:5px;margin-top:9px}
+.competition-team{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 8px;background:rgba(255,255,255,.025);border-left:2px solid rgba(117,199,255,.65)}
+.competition-team>span{display:grid;grid-template-columns:18px 1fr;align-items:center;font-size:11px;font-weight:850;min-width:0}
+.competition-team>span>b{color:var(--green)}.competition-team small{grid-column:2;color:var(--muted);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.competition-team>strong{font-size:15px}.competition-empty{color:var(--muted);font-size:11px;padding:5px 0}.competition-predictor.sold{opacity:.75}
+.mock-competition{margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+.mock-competition:empty{display:none}.mock-competition-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.mock-competition-head span{color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.07em}.mock-competition-head strong{font-size:10px;white-space:nowrap}
+.mock-competition-head .heavy{color:#ff6b6b}.mock-competition-head .active{color:#ffb45c}.mock-competition-head .moderate{color:#ffd166}.mock-competition-head .light{color:#75c7ff}
+.mock-competition-teams{display:grid;gap:4px;margin-top:7px}.mock-competition-teams>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 7px;background:rgba(255,255,255,.025)}
+.mock-competition-teams span{display:grid;grid-template-columns:16px 1fr;min-width:0;font-size:10px;font-weight:850}.mock-competition-teams span>b{color:var(--green)}.mock-competition-teams small{grid-column:2;color:var(--muted);font-size:7px;text-transform:uppercase}.mock-competition-teams>div>strong{font-size:12px}.mock-competition-teams em{color:var(--muted);font-size:10px;font-style:normal}
+@media(max-width:800px){.competition-head,.mock-competition-head{align-items:flex-start;flex-direction:column;gap:3px}.competition-team{padding:8px}.mock-competition-head strong{white-space:normal}}

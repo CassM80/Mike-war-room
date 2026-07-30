@@ -1,6 +1,6 @@
-const CACHE='war-room-sprint-33-0-2';
+const CACHE='war-room-sprint-33-1';
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./css/styles.css","./data/players.js",
-  "./data/auctionConsensus.js","./data/espnRankings.js","./js/playerData.js","./js/storage.js","./js/draftEngine.js","./js/demandEngine.js","./js/leagueValuation.js","./js/recommendationEngine.js",
+  "./data/auctionConsensus.js","./data/espnRankings.js","./js/playerData.js","./js/storage.js","./js/draftEngine.js","./js/demandEngine.js","./js/competitionEngine.js","./js/leagueValuation.js","./js/recommendationEngine.js",
   "./js/marketCoverage.js","./js/marketSync.js","./js/playerIntegrity.js","./js/auctionEngine.js","./js/blueprint.js","./js/myGuys.js","./js/ui.js","./js/mobileWarRoom.js","./js/app.js","./js/mockSimulator.js"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});

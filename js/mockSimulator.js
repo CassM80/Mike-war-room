@@ -430,6 +430,24 @@
     if(!spots||max<=0)score=0;else if(affordability<.55)score-=30;else if(affordability<.85)score-=16;else if(affordability>=1.75)score+=8;else if(affordability>=1.25)score+=4;
     return Math.max(0,Math.min(100,Math.round(score)));
   }
+  function mockCompetitionFor(p){
+    if(!mock||!p)return {label:"LIGHT",className:"light",count:0,strong:0,teams:[]};
+    const market=playerMarket(p);
+    const rows=mock.teams.map((team,index)=>{
+      if(index===myIndex())return null;
+      const demand=mockTeamDemandScore(team,p.pos),max=legalMax(team),pers=team.personality||{};
+      const posBias=Number(pers[String(p.pos||"").toLowerCase()]||1);
+      const affordability=max/Math.max(1,market);
+      let probability=demand*.72+Math.max(0,Math.min(18,(affordability-1)*18))+(posBias-1)*55+(Number(pers.aggression||1)-1)*35;
+      if(max<market*.65)probability-=34;else if(max<market*.9)probability-=16;
+      if((team.roster||[]).length>=totalSpots())probability=0;
+      probability=Math.max(0,Math.min(97,Math.round(probability)));
+      return {index,name:team.name,probability,max,need:positionNeed(team,p.pos)>=1.15?"STARTER":positionNeed(team,p.pos)>=1.05?"FLEX":"DEPTH",personality:pers.name||"Balanced",likely:probability>=38,strong:probability>=64};
+    }).filter(Boolean).sort((a,b)=>b.probability-a.probability||b.max-a.max);
+    const likely=rows.filter(x=>x.likely),strong=rows.filter(x=>x.strong);
+    const level=typeof competitionLabel==="function"?competitionLabel(likely.length,strong.length):{label:likely.length>=8?"HEAVY":likely.length>=5?"ACTIVE":likely.length>=3?"MODERATE":"LIGHT",className:likely.length>=8?"heavy":likely.length>=5?"active":likely.length>=3?"moderate":"light"};
+    return {...level,count:likely.length,strong:strong.length,teams:rows.slice(0,3)};
+  }
   function mockDemandTier(pos){
     const scores=(mock?.teams||[]).map((t,i)=>i===myIndex()?0:mockTeamDemandScore(t,pos));
     const likely=scores.filter(x=>x>=36),strong=scores.filter(x=>x>=58);
@@ -506,12 +524,15 @@
       q("mockCoachCall").textContent=coach.call;q("mockCoachCall").className=`mock-coach-call ${coach.tone||""}`;
       q("mockCoachCopy").textContent=coach.copy;
       q("mockCoachReasons").innerHTML=coach.reasons.map(x=>`<div>${esc(x)}</div>`).join("");
+      const comp=mockCompetitionFor(p),compBox=q("mockCompetition");
+      if(compBox)compBox.innerHTML=`<div class="mock-competition-head"><span>EXPECTED COMPETITION</span><strong class="${comp.className}">${comp.label} • ${comp.count} LIKELY</strong></div><div class="mock-competition-teams">${comp.teams.map((t,i)=>`<div><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • ${esc(t.personality)}</small></span><strong>${t.probability}%</strong></div>`).join("")||'<em>No clear rival bidder has emerged.</em>'}</div>`;
       q("mockBidOneBtn").disabled=!!n.userPassed||youLead;q("mockBidMaxBtn").disabled=!!n.userPassed||youLead||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed||youLead;
     }else{
       updateAuctionClockDisplay(0);
       q("mockCoachCall").textContent=mock?.complete?"MOCK COMPLETE":"WAITING";q("mockCoachCall").className="mock-coach-call";
       q("mockCoachCopy").textContent=mock?.complete?"Review the room, roster, and draft log before your next run.":"Start or advance the mock to activate live coaching.";
       q("mockCoachReasons").innerHTML="";
+      if(q("mockCompetition"))q("mockCompetition").innerHTML="";
     }
     const positionMarket=q("mockPositionMarket");
     if(positionMarket){
