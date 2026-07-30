@@ -174,3 +174,8 @@ The mock simulator now treats nomination timing and bidding value as two separat
 - Reworked price signals into plain English relative to League Value.
 - Updated Auction Coach market reasons to explain above/below League Value rather than showing an unexplained percentage.
 - Preserved existing mock-draft state and valuation logic; this sprint changes presentation and creates the foundation for the full Demand Score model.
+## Sprint 32.2B — UI Polish
+- Renamed the live right-rail section from **Live Draft Intelligence** to **Auction Coach**.
+- Moved the **Zero-Click Board** below auction coaching and the suggested nomination so the rail now reads from decision support to quick-reference reminders.
+- Preserved all Sprint 32.2A demand and market-value logic.
+
