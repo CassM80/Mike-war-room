@@ -46,7 +46,20 @@ function renderMarketPulse(){
   $("marketPulse").innerHTML=["QB","RB","WR","TE"].map(pos=>{const x=positionMarketStats(pos), cls=x.status==="HOT"?"hot":x.status==="CHEAP"?"cold":x.status==="NORMAL"?"normal":"early"; const label=x.status==="HOT"?`+${Math.round(x.infl*100)}%`:x.status==="CHEAP"?`${Math.round(x.infl*100)}%`:x.status; return `<div class="market-chip ${cls}"><span>${pos}</span><strong>${label}</strong></div>`;}).join("");
 }
 
-function renderNominationSuggestion(){ const n=nominationSuggestion(); $("nominationPlayer").textContent=n.player; $("nominationReason").textContent=n.reason; }
+function renderNominationSuggestion(){
+  const n=nominationSuggestion();
+  const card=$("nominationCard"), player=n&&n.player?String(n.player):"—";
+  const valid=player!=="—"&&!!byName[player]&&!sold(player);
+  $("nominationPlayer").textContent=player;
+  $("nominationReason").textContent=n.reason;
+  if($("nominationAction")) $("nominationAction").textContent=valid?"Tap to open dossier":"Suggestion unavailable";
+  if(card){
+    card.dataset.nominationPlayer=valid?player:"";
+    card.disabled=!valid;
+    card.setAttribute("aria-disabled",String(!valid));
+    card.setAttribute("aria-label",valid?`Open ${player} in the Target Dossier`:"No suggested nomination available");
+  }
+}
 
 function renderZeroClickIntelligence(){
   const box=$("zeroClickIntel"); if(!box)return;

@@ -267,11 +267,12 @@
         <div class="panel-title">AUCTION COACH</div>
         <div class="market-pulse" id="marketPulse"></div>
         <div class="alerts" id="alerts"></div>
-        <div class="nomination-card" id="nominationCard">
-          <div class="nomination-kicker">SUGGESTED NOMINATION</div>
+        <button class="nomination-card" id="nominationCard" type="button" disabled aria-disabled="true">
+          <div class="nomination-kicker">SUGGESTED NOMINATION <span class="nomination-open" aria-hidden="true">›</span></div>
           <div class="nomination-player" id="nominationPlayer">—</div>
           <div class="nomination-reason" id="nominationReason">Record sales to activate draft-room strategy.</div>
-        </div>
+          <div class="nomination-action" id="nominationAction">Tap to open dossier</div>
+        </button>
         <div class="zero-click-head"><span>ZERO-CLICK BOARD</span><small>AUTO-UPDATES FROM YOUR DRAFT</small></div>
         <div class="zero-click-intel" id="zeroClickIntel"></div>
       </section>

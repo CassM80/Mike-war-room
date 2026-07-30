@@ -444,3 +444,14 @@ document.getElementById("zeroClickIntel")?.addEventListener("click",e=>{
   const row=e.target.closest("[data-zero-player]");
   if(row&&byName[row.dataset.zeroPlayer])setSelected(byName[row.dataset.zeroPlayer]);
 });
+
+// Sprint 32.2C — suggested nomination opens the full Target Dossier with one tap.
+document.getElementById("nominationCard")?.addEventListener("click",e=>{
+  const card=e.currentTarget, name=card?.dataset?.nominationPlayer;
+  if(!name||!byName[name]||sold(name))return;
+  setSelected(byName[name]);
+  if(window.matchMedia("(max-width: 900px)").matches){
+    document.getElementById("warDossierPanel")?.scrollIntoView({behavior:"smooth",block:"start"});
+    setTimeout(()=>document.getElementById("playerSearch")?.focus({preventScroll:true}),350);
+  }
+});
