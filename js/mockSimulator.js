@@ -1,4 +1,5 @@
-// Sprint 33.1.2 — complete mock results plus league-aware K/DEF roster integrity.
+// Sprint 33.1.7 — Conversational Auction Coach reasoning.
+// Preserves complete mock results plus league-aware K/DEF roster integrity.
 (() => {
   const KEY = "warRoomMockStateV6";
   const PERSONALITIES = [
@@ -476,25 +477,79 @@
     const market=playerMarket(p);
     return candidatePool().filter(x=>x.pos===p.pos&&x.name!==p.name&&Math.abs(playerMarket(x)-market)<=Math.max(2,market*.35)).length;
   }
+  function mockBetterValueAlternatives(p,limit=2){
+    if(!p)return [];
+    const me=mock?.teams?.[myIndex()];
+    if(!me)return [];
+    const max=legalMax(me), currentMarket=playerMarket(p);
+    return candidatePool()
+      .filter(x=>x&&x.name!==p.name&&x.pos===p.pos)
+      .map(x=>({
+        p:x,
+        market:playerMarket(x),
+        safe:userSafeMax(x),
+        score:mockRecommendationScore(x)
+      }))
+      .filter(x=>x.market<=max&&x.safe>=x.market&&x.market<=Math.max(currentMarket, max))
+      .sort((a,b)=>(b.safe-b.market)-(a.safe-a.market)||b.score-a.score||a.market-b.market)
+      .slice(0,limit)
+      .map(x=>x.p.name);
+  }
+  function mockDemandSentence(p){
+    const demand=mockDemandTier(p?.pos);
+    if(!demand)return "";
+    const likely=Number(demand.buyers||0),strong=Number(demand.strong||0);
+    if(likely>=8)return `${likely} teams remain likely to bid on another ${p.pos}.`;
+    if(likely>=4)return `${likely} teams still project as active ${p.pos} buyers.`;
+    if(likely>0)return `Only ${likely} team${likely===1?"":"s"} still project${likely===1?"s":""} as likely ${p.pos} bidders.`;
+    if(strong>0)return `${strong} strong ${p.pos} buyer${strong===1?" remains":"s remain"}.`;
+    return `${p.pos} competition is nearly exhausted.`;
+  }
   function mockCoachFor(p,n){
     if(!p||!n)return {call:"WAITING",tone:"",copy:"Start the next nomination to activate coaching.",reasons:[]};
-    const me=mock.teams[myIndex()],safe=userSafeMax(p),market=playerMarket(p),bid=Number(n.currentBid||0),edge=safe-bid,need=positionNeed(me,p.pos),posStats=mockPositionStats(p.pos),comps=mockComparableCount(p),youLead=n.highBidder===myIndex();
+    const me=mock.teams[myIndex()],safe=userSafeMax(p),market=playerMarket(p),bid=Number(n.currentBid||0),edge=safe-bid,posStats=mockPositionStats(p.pos),comps=mockComparableCount(p),youLead=n.highBidder===myIndex();
+    const priceVsMarket=bid-market, alternatives=mockBetterValueAlternatives(p,2), demandLine=mockDemandSentence(p);
     let call,tone,copy;
-    if(n.userPassed){call="GOOD DISCIPLINE";tone="pass";copy="You passed. Let the room finish the bidding.";}
-    else if(youLead){call="HOLD";tone="";copy=`You lead at $${bid}. Let the auction clock run.`;}
-    else if(bid>safe){call="PASS";tone="pass";copy="Room is bidding aggressively. Let this one go. Better values remain.";}
-    else if(edge<=1){call="CAUTION";tone="caution";copy=`Price is at your limit. Stop at $${safe}.`;}
-    else if(bid<=Math.max(1,market-2)){call="BID";tone="";copy=`Good value. One more bid is reasonable. Stop at $${safe}.`;}
-    else {call="BID";tone="";copy=`Still inside your Safe Max. ${edge} dollar${edge===1?"":"s"} of room remain${edge===1?"s":""}.`;}
+    if(n.userPassed){
+      call="GOOD DISCIPLINE";tone="pass";
+      copy=`You passed on ${p.name} at $${bid}. Let the room finish the bidding.`;
+    }
+    else if(youLead){
+      call="HOLD";tone="";
+      copy=`You lead on ${p.name} at $${bid}. Let the auction clock run; your ceiling is $${safe}.`;
+    }
+    else if(bid>safe){
+      call="PASS";tone="pass";
+      const marketPhrase=priceVsMarket===0?"at League Value":priceVsMarket>0?`$${priceVsMarket} above League Value`:`$${Math.abs(priceVsMarket)} below League Value`;
+      copy=`${p.name} is already ${marketPhrase}, and your ceiling is $${safe}.`;
+    }
+    else if(edge<=1){
+      call="CAUTION";tone="caution";
+      copy=`${p.name} is at $${bid}, leaving only $${Math.max(0,edge)} before your $${safe} ceiling.`;
+    }
+    else if(bid<=Math.max(1,market-2)){
+      call="BID";tone="";
+      copy=`${p.name} is $${market-bid} below League Value. One more bid is reasonable; stop at $${safe}.`;
+    }
+    else {
+      call="BID";tone="";
+      copy=`${p.name} remains inside your ceiling at $${bid}. You still have $${edge} of bidding room.`;
+    }
     const reasons=[];
-    reasons.push(mockStarterNeedLabel(me,p));
-    if(safe>market)reasons.push(`Your personal ceiling is $${safe-market} above League Value`);
+    if(demandLine)reasons.push(demandLine);
+    if(alternatives.length){
+      const names=alternatives.length===1?alternatives[0]:`${alternatives[0]} and ${alternatives[1]}`;
+      reasons.push(`${names} project as better remaining values.`);
+    }else{
+      reasons.push(`${comps} comparable ${p.pos}${comps===1?" remains":"s remain"}.`);
+    }
     if(posStats.count>=2){
       const pct=Math.round(posStats.infl*100);
-      if(Math.abs(pct)<=2)reasons.push(`${p.pos}s are selling near League Value`);
-      else reasons.push(`${p.pos}s are selling ${Math.abs(pct)}% ${pct>0?"above":"below"} League Value`);
+      if(Math.abs(pct)<=2)reasons.push(`${p.pos}s are selling near League Value.`);
+      else reasons.push(`${p.pos}s are selling ${Math.abs(pct)}% ${pct>0?"above":"below"} League Value.`);
+    }else{
+      reasons.push(`${mockStarterNeedLabel(me,p)}.`);
     }
-    reasons.push(`${comps} comparable ${p.pos}s remain`);
     return {call,tone,copy,reasons:reasons.slice(0,3)};
   }
   function mockRecommendationScore(p){

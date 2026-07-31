@@ -1,3 +1,11 @@
+# Sprint 33.1.7 — Conversational Auction Coach
+
+- Auction Coach now names the nominated player and explains the exact price relationship to League Value and the drafter's Safe Max.
+- Coaching includes current likely-bidder demand for the player's position.
+- When stronger affordable alternatives remain, the coach names the two best projected values.
+- Generic commands such as “better values remain” are replaced by specific, draft-state-aware reasoning.
+- The concise BID / HOLD / CAUTION / PASS call remains unchanged for one-glance use.
+
 # Sprint 32.1 — Automatic Auction Clock
 
 - Every nomination now opens with an automatic $1 bid by the nominating team.
