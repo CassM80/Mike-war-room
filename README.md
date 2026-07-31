@@ -1,3 +1,11 @@
+# Sprint 33.1.8 — Evidence-Based Auction Coach
+
+- Auction Coach now presents a compact decision story: exact price context, Safe Max, positional bidder demand, market inflation, better remaining alternatives, roster fit, and confidence.
+- Position-market language explicitly says whether prices are above, below, or tracking League Value.
+- Up to three better same-position values can be named when affordable alternatives exist.
+- Confidence is graded High, Medium, or Developing from the strength and consistency of live draft evidence.
+- The one-glance BID / HOLD / CAUTION / PASS command remains unchanged.
+
 # Sprint 33.1.7 — Conversational Auction Coach
 
 - Auction Coach now names the nominated player and explains the exact price relationship to League Value and the drafter's Safe Max.

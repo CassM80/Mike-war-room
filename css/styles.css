@@ -686,6 +686,7 @@ body { overflow:auto; }
 .mock-coach-reasons{display:grid;gap:6px;margin-top:12px}
 .mock-coach-reasons>div{font-size:11px;color:var(--muted);padding-left:15px;position:relative}
 .mock-coach-reasons>div:before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:950}
+.mock-coach-confidence{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
 .mock-position-market{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .mock-market-card{border:1px solid var(--line);padding:9px 6px 10px;text-align:center;border-radius:5px;min-width:0;background:rgba(255,255,255,.015)}
 .mock-market-pos{display:block;font-size:13px;color:var(--text);font-weight:950;letter-spacing:.08em}

@@ -1,4 +1,4 @@
-// Sprint 33.1.7 — Conversational Auction Coach reasoning.
+// Sprint 33.1.8 — Evidence-Based Auction Coach narrative and confidence.
 // Preserves complete mock results plus league-aware K/DEF roster integrity.
 (() => {
   const KEY = "warRoomMockStateV6";
@@ -505,27 +505,44 @@
     if(strong>0)return `${strong} strong ${p.pos} buyer${strong===1?" remains":"s remain"}.`;
     return `${p.pos} competition is nearly exhausted.`;
   }
+  function mockCoachConfidence({priceVsMarket,edge,posStats,demand,alternatives,youLead,userPassed}){
+    let score=52;
+    if(Math.abs(priceVsMarket)>=3)score+=14;
+    else if(Math.abs(priceVsMarket)>=1)score+=7;
+    if(edge<0||edge>=4)score+=12;
+    else if(edge<=1)score+=8;
+    if(Number(posStats?.count||0)>=3)score+=10;
+    else if(Number(posStats?.count||0)>=1)score+=5;
+    if(Number(demand?.buyers||0)>=4)score+=7;
+    if(Number(demand?.strong||0)>=2)score+=4;
+    if(alternatives?.length)score+=6;
+    if(youLead)score-=4;
+    if(userPassed)score+=3;
+    score=Math.max(35,Math.min(96,Math.round(score)));
+    return {score,label:score>=78?"High":score>=58?"Medium":"Developing"};
+  }
   function mockCoachFor(p,n){
-    if(!p||!n)return {call:"WAITING",tone:"",copy:"Start the next nomination to activate coaching.",reasons:[]};
+    if(!p||!n)return {call:"WAITING",tone:"",copy:"Start the next nomination to activate coaching.",reasons:[],confidence:""};
     const me=mock.teams[myIndex()],safe=userSafeMax(p),market=playerMarket(p),bid=Number(n.currentBid||0),edge=safe-bid,posStats=mockPositionStats(p.pos),comps=mockComparableCount(p),youLead=n.highBidder===myIndex();
-    const priceVsMarket=bid-market, alternatives=mockBetterValueAlternatives(p,2), demandLine=mockDemandSentence(p);
+    const priceVsMarket=bid-market, alternatives=mockBetterValueAlternatives(p,3), demand=mockDemandTier(p?.pos), demandLine=mockDemandSentence(p);
     let call,tone,copy;
     if(n.userPassed){
       call="GOOD DISCIPLINE";tone="pass";
-      copy=`You passed on ${p.name} at $${bid}. Let the room finish the bidding.`;
+      copy=`You passed on ${p.name} at $${bid}. Your ceiling is $${safe}; let the room finish the bidding.`;
     }
     else if(youLead){
       call="HOLD";tone="";
-      copy=`You lead on ${p.name} at $${bid}. Let the auction clock run; your ceiling is $${safe}.`;
+      const relation=priceVsMarket===0?"at League Value":priceVsMarket>0?`$${priceVsMarket} above League Value`:`$${Math.abs(priceVsMarket)} below League Value`;
+      copy=`You lead on ${p.name} at $${bid}, ${relation}. Let the auction clock run; your ceiling is $${safe}.`;
     }
     else if(bid>safe){
       call="PASS";tone="pass";
       const marketPhrase=priceVsMarket===0?"at League Value":priceVsMarket>0?`$${priceVsMarket} above League Value`:`$${Math.abs(priceVsMarket)} below League Value`;
-      copy=`${p.name} is already ${marketPhrase}, and your ceiling is $${safe}.`;
+      copy=`${p.name} is already ${marketPhrase}. Your ceiling is $${safe}.`;
     }
     else if(edge<=1){
       call="CAUTION";tone="caution";
-      copy=`${p.name} is at $${bid}, leaving only $${Math.max(0,edge)} before your $${safe} ceiling.`;
+      copy=`${p.name} is at $${bid}. Your ceiling is $${safe}, leaving only $${Math.max(0,edge)} of room.`;
     }
     else if(bid<=Math.max(1,market-2)){
       call="BID";tone="";
@@ -533,24 +550,26 @@
     }
     else {
       call="BID";tone="";
-      copy=`${p.name} remains inside your ceiling at $${bid}. You still have $${edge} of bidding room.`;
+      copy=`${p.name} remains inside your ceiling at $${bid}. You still have $${edge} of bidding room before $${safe}.`;
     }
     const reasons=[];
     if(demandLine)reasons.push(demandLine);
+    if(posStats.count>=2){
+      const pct=Math.round(posStats.infl*100);
+      if(Math.abs(pct)<=2)reasons.push(`${p.pos} prices are tracking League Value.`);
+      else reasons.push(`${p.pos} prices are running ${Math.abs(pct)}% ${pct>0?"above":"below"} League Value today.`);
+    }else{
+      reasons.push(`${p.pos} pricing is still being established.`);
+    }
     if(alternatives.length){
-      const names=alternatives.length===1?alternatives[0]:`${alternatives[0]} and ${alternatives[1]}`;
+      const names=alternatives.length===1?alternatives[0]:alternatives.length===2?`${alternatives[0]} and ${alternatives[1]}`:`${alternatives[0]}, ${alternatives[1]} and ${alternatives[2]}`;
       reasons.push(`${names} project as better remaining values.`);
     }else{
       reasons.push(`${comps} comparable ${p.pos}${comps===1?" remains":"s remain"}.`);
     }
-    if(posStats.count>=2){
-      const pct=Math.round(posStats.infl*100);
-      if(Math.abs(pct)<=2)reasons.push(`${p.pos}s are selling near League Value.`);
-      else reasons.push(`${p.pos}s are selling ${Math.abs(pct)}% ${pct>0?"above":"below"} League Value.`);
-    }else{
-      reasons.push(`${mockStarterNeedLabel(me,p)}.`);
-    }
-    return {call,tone,copy,reasons:reasons.slice(0,3)};
+    reasons.push(`${mockStarterNeedLabel(me,p)}.`);
+    const confidence=mockCoachConfidence({priceVsMarket,edge,posStats,demand,alternatives,youLead,userPassed:n.userPassed});
+    return {call,tone,copy,reasons:reasons.slice(0,4),confidence:`Confidence: ${confidence.label}`};
   }
   function mockRecommendationScore(p){
     const me=mock.teams[myIndex()],market=playerMarket(p),safe=userSafeMax(p),need=positionNeed(me,p.pos),rank=Math.max(1,nominationRank(p)),ev=evaluation(p),spots=Math.max(1,totalSpots()-(me.roster||[]).length),budget=Number(me.budget||0),max=legalMax(me);
@@ -696,6 +715,7 @@
       q("mockCoachCall").textContent=coach.call;q("mockCoachCall").className=`mock-coach-call ${coach.tone||""}`;
       q("mockCoachCopy").textContent=coach.copy;
       q("mockCoachReasons").innerHTML=coach.reasons.map(x=>`<div>${esc(x)}</div>`).join("");
+      q("mockCoachConfidence").textContent=coach.confidence||"";
       const comp=mockCompetitionFor(p),compBox=q("mockCompetition");
       if(compBox)compBox.innerHTML=`<div class="mock-competition-head"><span>LIKELY BIDDERS</span><strong class="${comp.className}">${comp.label}</strong></div><div class="mock-competition-teams">${comp.teams.map((t,i)=>`<button type="button" class="team-scout-trigger" data-team-scout="mock" data-team-index="${t.index}" aria-label="Open scouting report for ${esc(t.name)}"><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • ${esc(t.personality)}</small></span><strong>${t.probability}%</strong></button>`).join("")||'<em>No clear rival bidder has emerged.</em>'}</div>`;
       q("mockBidOneBtn").disabled=!!n.userPassed||youLead;q("mockBidMaxBtn").disabled=!!n.userPassed||youLead||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed||youLead;
@@ -704,6 +724,7 @@
       q("mockCoachCall").textContent=mock?.complete?"MOCK COMPLETE":"WAITING";q("mockCoachCall").className="mock-coach-call";
       q("mockCoachCopy").textContent=mock?.complete?"Review the room, roster, and draft log before your next run.":"Start or advance the mock to activate live coaching.";
       q("mockCoachReasons").innerHTML="";
+      q("mockCoachConfidence").textContent="";
       if(q("mockCompetition"))q("mockCompetition").innerHTML="";
     }
     const positionMarket=q("mockPositionMarket");
