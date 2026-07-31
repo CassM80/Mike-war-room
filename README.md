@@ -1,3 +1,7 @@
+# Sprint 35.1.1 — Snake Draft Market Integrity
+
+Adds expected draft position, soft draft windows, faller urgency, restrained roster/personality modifiers, position safeguards, controlled AI variance, and a live market-integrity audit. Auction functionality remains unchanged.
+
 # Sprint 33.1.8 — Evidence-Based Auction Coach
 
 - Auction Coach now presents a compact decision story: exact price context, Safe Max, positional bidder demand, market inflation, better remaining alternatives, roster fit, and confidence.

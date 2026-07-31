@@ -1,10 +1,14 @@
-// Sprint 35.1 — Snake Recommendation Engine.
+// Sprint 35.1.1 — Snake Draft Market Integrity.
+// AI selections are anchored to league-adjusted expected draft position, then
+// modified only modestly by roster fit, team tendencies, and controlled variance.
 // Snake state remains isolated from auction state while sharing league settings,
 // player intelligence, and the user's Draft Prep board.
-const SNAKE_STATE_KEY="warRoomSnakeDraftStateV2";
+const SNAKE_STATE_KEY="warRoomSnakeDraftStateV3";
 let snakeDraftState=(()=>{
   try{
-    const v2=JSON.parse(localStorage.getItem(SNAKE_STATE_KEY)||"null");
+    const v3=JSON.parse(localStorage.getItem(SNAKE_STATE_KEY)||"null");
+    if(v3)return {...v3,picks:Array.isArray(v3.picks)?v3.picks:[]};
+    const v2=JSON.parse(localStorage.getItem("warRoomSnakeDraftStateV2")||"null");
     if(v2)return {...v2,picks:Array.isArray(v2.picks)?v2.picks:[]};
     const old=JSON.parse(localStorage.getItem("warRoomSnakeDraftStateV1")||"null");
     return old?{completedPicks:Number(old.completedPicks||0),picks:Array.isArray(old.picks)?old.picks:[]}:{completedPicks:0,picks:[]};
@@ -81,6 +85,30 @@ function snakeAvailablePlayers(){
 }
 function snakePersonalRank(base){const ev=getPersonalEvaluation(base.name)||{};return Number(ev.rank||0);}
 function snakeConviction(base){const ev=getPersonalEvaluation(base.name)||{};return typeof normalizedConviction==="function"?normalizedConviction(ev.conviction):Number(ev.conviction||3);}
+function snakeExpectedDraftPick(base,market,provider){
+  const teams=snakeTeamCount(),rules=snakeRosterRules(),total=snakeRoundCount()*teams;
+  const trusted=[];
+  if(Number(market)>0)trusted.push({rank:Number(market),weight:.72});
+  if(Number(provider)>0)trusted.push({rank:Number(provider),weight:.28});
+  let expected=trusted.length?trusted.reduce((sum,x)=>sum+x.rank*x.weight,0)/trusted.reduce((sum,x)=>sum+x.weight,0):total*.72;
+  const posRank=typeof positionRankFor==="function"?Number(positionRankFor(base)||0):0;
+  if(base.pos==="QB"){
+    if(rules.SUPERFLEX>0||rules.QB>=2){expected-=Math.max(10,34-Math.min(24,posRank*1.7));}
+    else expected+=Math.max(0,Math.min(18,(posRank||18)-3)*.8);
+  }
+  if(base.pos==="TE"&&posRank>0&&posRank<=3)expected-=Math.max(2,8-posRank*2);
+  if(base.pos==="WR"&&String(leagueConfig.scoring||"PPR").toUpperCase()==="PPR")expected-=2;
+  if(base.pos==="RB"&&String(leagueConfig.scoring||"PPR").toUpperCase()==="STANDARD")expected-=2;
+  if(base.pos==="K"||base.pos==="DEF")expected=Math.max(expected,total-Math.max(teams*3,30));
+  return Math.max(1,Math.min(total,Math.round(expected)));
+}
+function snakeDraftWindow(expectedPick){
+  const teams=snakeTeamCount();
+  if(expectedPick<=teams)return {early:Math.max(1,expectedPick-4),late:expectedPick+5};
+  if(expectedPick<=teams*3)return {early:Math.max(1,expectedPick-7),late:expectedPick+9};
+  if(expectedPick<=teams*6)return {early:Math.max(1,expectedPick-12),late:expectedPick+15};
+  return {early:Math.max(1,expectedPick-20),late:expectedPick+24};
+}
 function snakeLeagueRankRows(){
   const positions=snakeEligiblePositions();
   const rows=PLAYERS.filter(p=>positions.includes(p.pos)&&p.active!==false&&(p.pos==="DEF"||p.pos==="K"||CURRENT_NFL_TEAMS.has(String(p.team||"").toUpperCase())));
@@ -90,6 +118,7 @@ function snakeLeagueRankRows(){
     const market=marketRankFor(base)||providerRankFor(base)||9999;
     const provider=providerRankFor(base)||market;
     const personal=snakePersonalRank(base)||market;
+    const expectedPick=snakeExpectedDraftPick(base,market,provider);
     let rankScore=market*.58+provider*.22+personal*.20;
     const conviction=snakeConviction(base),ev=getPersonalEvaluation(base.name)||{};
     rankScore-=({1:-7,2:-3,3:0,4:4,5:8}[conviction]||0);
@@ -100,7 +129,7 @@ function snakeLeagueRankRows(){
     if(base.pos==="QB"&&rules.SUPERFLEX>0)rankScore-=16;
     if(teams>=14)rankScore-=Math.min(4,relative);if(teams<=10)rankScore+=Math.max(0,3-relative);
     if(base.pos==="K"||base.pos==="DEF")rankScore+=Math.max(100,rows.length*.35);
-    return {base,rankScore};
+    return {base,rankScore,expectedPick,draftWindow:snakeDraftWindow(expectedPick),marketRank:market,providerRank:provider};
   }).sort((a,b)=>a.rankScore-b.rankScore||a.base.name.localeCompare(b.base.name)).map((row,i)=>({...row,leagueRank:i+1}));
 }
 function snakeLeagueRankMap(){return new Map(snakeLeagueRankRows().map(r=>[playerKey(r.base.name),r]));}
@@ -170,6 +199,82 @@ function snakeRecommendations(current,order,limit=6,slot=snakeDraftPosition()){
   const available=snakeAvailablePlayers(),rankMap=snakeLeagueRankMap();
   return available.map(p=>snakeRecommendationFor(p,current,order,rankMap,available,slot)).filter(Boolean).sort((a,b)=>b.score-a.score||a.leagueRank-b.leagueRank).slice(0,limit);
 }
+function snakeHash(value){let h=2166136261;for(const ch of String(value)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;}
+function snakeAiProfile(slot){
+  const profiles=[
+    {name:"Balanced",bias:{}},
+    {name:"RB Heavy",bias:{RB:5,WR:-1}},
+    {name:"WR Collector",bias:{WR:5,RB:-1}},
+    {name:"Value Hunter",bias:{}},
+    {name:"QB Patient",bias:{QB:-4,RB:1,WR:1}},
+    {name:"Upside",bias:{RB:2,WR:2,TE:1}}
+  ];
+  return profiles[(Math.max(1,Number(slot))-1)%profiles.length];
+}
+function snakeRequiredOpenPositions(slot){
+  const rules=snakeRosterRules(),counts=snakeRosterCounts(slot),open=[];
+  for(const pos of ["QB","RB","WR","TE","K","DEF"]){for(let i=counts[pos]||0;i<(rules[pos]||0);i++)open.push(pos);}
+  return open;
+}
+function snakeAiPositionAllowed(base,current,slot){
+  const rules=snakeRosterRules(),counts=snakeRosterCounts(slot),round=current?.round||1,totalRounds=snakeRoundCount();
+  const picksMade=snakePicksForSlot(slot).length,picksRemaining=Math.max(0,totalRounds-picksMade);
+  const requiredOpen=snakeRequiredOpenPositions(slot);
+  if(requiredOpen.length>=picksRemaining&&requiredOpen.length>0&&!requiredOpen.includes(base.pos))return false;
+  if((base.pos==="K"||base.pos==="DEF")){
+    if((rules[base.pos]||0)<=0||(counts[base.pos]||0)>=(rules[base.pos]||0))return false;
+    if(round<Math.max(8,totalRounds-3)&&requiredOpen.length<picksRemaining)return false;
+  }
+  if(base.pos==="QB"&&rules.SUPERFLEX===0&&rules.QB<=1&&(counts.QB||0)>=1&&round<10)return false;
+  if(base.pos==="TE"&&(counts.TE||0)>=Math.max(1,rules.TE||1)&&round<10)return false;
+  return true;
+}
+function snakeAiRosterModifier(base,current,slot){
+  const fit=snakeRosterFit(base,slot),round=current?.round||1;
+  let mod=0;
+  if(fit.pressure.direct>0)mod=round<=4?7:11;
+  else if(fit.pressure.flex>0)mod=round<=5?3:7;
+  else if(["RB","WR"].includes(base.pos))mod=round>=7?3:1;
+  if(fit.label.startsWith("Wait on"))mod-=30;
+  const counts=snakeRosterCounts(slot),rules=snakeRosterRules();
+  if((counts[base.pos]||0)>=(rules[base.pos]||0)+3)mod-=8;
+  return Math.max(-30,Math.min(12,mod));
+}
+function snakeAiCandidate(base,current,rankMap,available,slot){
+  const row=rankMap.get(playerKey(base.name));if(!row||!snakeAiPositionAllowed(base,current,slot))return null;
+  const overall=current?.overall||1,late=overall-row.expectedPick,window=row.draftWindow;
+  let score=420-row.expectedPick*1.35;
+  if(late>0)score+=Math.min(190,late*5.5+Math.max(0,overall-window.late)*8);
+  else score-=Math.min(150,Math.abs(late)*2.8+Math.max(0,window.early-overall)*5);
+  const rosterMod=snakeAiRosterModifier(base,current,slot);
+  const profile=snakeAiProfile(slot),personality=Math.max(-5,Math.min(5,Number(profile.bias[base.pos]||0)));
+  const tier=snakeTierInfo(base,rankMap,available);if(tier.cliff)score+=4;
+  const varianceScale=row.expectedPick<=snakeTeamCount()?1.4:row.expectedPick<=snakeTeamCount()*4?3:6;
+  const variance=(snakeHash(`${base.name}|${slot}|${overall}`)-.5)*varianceScale*2;
+  score+=rosterMod+personality+variance;
+  return {base,row,score,late,rosterMod,personality,profile,tier};
+}
+function snakeAiSelectPlayer(current,order){
+  const available=snakeAvailablePlayers(),rankMap=snakeLeagueRankMap(),slot=current?.slot||1;
+  const candidates=available.map(p=>snakeAiCandidate(p,current,rankMap,available,slot)).filter(Boolean).sort((a,b)=>b.score-a.score||a.row.expectedPick-b.row.expectedPick);
+  return candidates[0]||null;
+}
+function snakeAuditData(){
+  const rankMap=snakeLeagueRankMap(),picks=(snakeDraftState.picks||[]).filter(p=>p.player),rows=picks.map(p=>{const row=rankMap.get(playerKey(p.player));const expected=Number(p.expectedPick||row?.expectedPick||p.overall);return {...p,expected,deviation:Number(p.overall)-expected};});
+  const abs=rows.map(r=>Math.abs(r.deviation)),avg=abs.length?abs.reduce((a,b)=>a+b,0)/abs.length:0;
+  const largestFall=rows.slice().sort((a,b)=>b.deviation-a.deviation)[0]||null;
+  const largestReach=rows.slice().sort((a,b)=>a.deviation-b.deviation)[0]||null;
+  const warnings=[];
+  rows.forEach(r=>{if(r.expected<=12&&r.overall>36)warnings.push(`${r.player} fell from ${r.expected} to ${r.overall}`);if(r.pos==="TE"&&r.expected<=36&&r.overall>72)warnings.push(`${r.player} fell beyond Round 6`);if((r.pos==="K"||r.pos==="DEF")&&r.round<8)warnings.push(`${r.player} was drafted too early`);});
+  return {rows,avg,largestFall,largestReach,warnings,health:Math.max(0,Math.round(100-avg*2.2))};
+}
+function renderSnakeMarketAudit(){
+  const el=document.getElementById("snakeMarketAudit");if(!el)return;
+  const audit=snakeAuditData(),count=audit.rows.length;
+  if(count<snakeTeamCount()){el.innerHTML='<div class="snake-empty">Market audit activates after the first round.</div>';return;}
+  const fall=audit.largestFall,reach=audit.largestReach;
+  el.innerHTML=`<div class="snake-audit-summary"><div><span>MARKET HEALTH</span><strong>${audit.health}/100</strong><small>${audit.avg.toFixed(1)} average pick deviation</small></div><div><span>LARGEST FALL</span><strong>${fall?esc(fall.player):'—'}</strong><small>${fall?`Expected ${fall.expected} • Pick ${fall.overall}`:'—'}</small></div><div><span>LARGEST REACH</span><strong>${reach?esc(reach.player):'—'}</strong><small>${reach?`Expected ${reach.expected} • Pick ${reach.overall}`:'—'}</small></div></div>${audit.warnings.length?`<div class="snake-audit-warnings"><strong>INTEGRITY FLAGS</strong>${audit.warnings.slice(0,5).map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:'<div class="snake-audit-good">No major market-integrity violations detected.</div>'}`;
+}
 function renderSnakeRecommendations(current,order){
   const box=document.getElementById("snakeRecommendations"),demandBox=document.getElementById("snakeBetweenPickDemand"),input=document.getElementById("snakePlayerInput"),list=document.getElementById("snakePlayerOptions"),record=document.getElementById("snakeRecordPickBtn");if(!box)return;
   const available=snakeAvailablePlayers();
@@ -193,7 +298,8 @@ function snakeRecordPick(playerName,auto=false){
   const base=snakeAvailablePlayers().find(p=>playerKey(p.name)===playerKey(playerName));
   if(!base){if(err){err.textContent="Choose an available player from the database.";err.classList.remove("hidden");}return false;}
   if(err)err.classList.add("hidden");
-  snakeDraftState.picks.push({overall:current.overall,round:current.round,pickInRound:current.pickInRound,slot:current.slot,player:base.name,pos:base.pos,team:base.team||"",recordedAt:Date.now(),auto});
+  const marketRow=snakeLeagueRankMap().get(playerKey(base.name));
+  snakeDraftState.picks.push({overall:current.overall,round:current.round,pickInRound:current.pickInRound,slot:current.slot,player:base.name,pos:base.pos,team:base.team||"",expectedPick:Number(marketRow?.expectedPick||current.overall),marketDeviation:current.overall-Number(marketRow?.expectedPick||current.overall),recordedAt:Date.now(),auto});
   snakeDraftState.completedPicks++;
   saveSnakeDraftState();
   const input=document.getElementById("snakePlayerInput");if(input)input.value="";
@@ -231,11 +337,12 @@ function renderSnakeDraftFoundation(){
   document.getElementById("snakeOrderBoard").innerHTML=rows.join("");
   const advance=document.getElementById("snakeAdvanceBtn");if(advance){advance.disabled=!current;advance.textContent=current?"AUTO-DRAFT TEST PICK":"DRAFT COMPLETE";}
   renderSnakeRecommendations(current,order);
+  renderSnakeMarketAudit();
   saveSnakeDraftState();
 }
 document.getElementById("snakeRecordPickBtn")?.addEventListener("click",()=>snakeRecordPick(document.getElementById("snakePlayerInput")?.value||""));
 document.getElementById("snakePlayerInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();snakeRecordPick(e.currentTarget.value);}});
-document.getElementById("snakeAdvanceBtn")?.addEventListener("click",()=>{const order=snakePickOrder(),current=order[snakeDraftState.completedPicks];if(!current)return;const rec=snakeRecommendations(current,order,1,current.slot)[0];if(rec)snakeRecordPick(rec.base.name,true);});
+document.getElementById("snakeAdvanceBtn")?.addEventListener("click",()=>{const order=snakePickOrder(),current=order[snakeDraftState.completedPicks];if(!current)return;const pick=snakeAiSelectPlayer(current,order);if(pick)snakeRecordPick(pick.base.name,true);});
 document.getElementById("snakeResetBtn")?.addEventListener("click",()=>{snakeDraftState={completedPicks:0,picks:[]};saveSnakeDraftState();renderSnakeDraftFoundation();});
 updateDraftFormatUI();
 renderSnakeDraftFoundation();
