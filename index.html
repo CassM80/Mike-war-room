@@ -249,7 +249,7 @@
             <div class="recommendation-reasons" id="recommendationReasons"></div>
           </div>
           <div class="competition-predictor" id="competitionPredictor">
-            <div class="competition-head"><span>EXPECTED COMPETITION</span><strong id="competitionLevel">—</strong></div>
+            <div class="competition-head"><span>LIKELY BIDDERS</span><strong id="competitionLevel">—</strong></div>
             <div class="competition-summary" id="competitionSummary">Select a player to forecast rival bidders.</div>
             <div class="competition-teams" id="competitionTeams"></div>
           </div>
@@ -431,6 +431,12 @@
     </div>
   </div>
 </section>
+
+<div class="team-scout-backdrop hidden" id="teamScoutBackdrop" aria-hidden="true"></div>
+<aside class="team-scout-drawer hidden" id="teamScoutDrawer" role="dialog" aria-modal="true" aria-labelledby="teamScoutTitle">
+  <button type="button" class="team-scout-close" id="teamScoutClose" aria-label="Close team scouting panel">×</button>
+  <div id="teamScoutContent"></div>
+</aside>
 
 <script src="./data/players.js"></script>
 <script src="./data/auctionConsensus.js"></script>

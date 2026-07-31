@@ -642,7 +642,7 @@
       q("mockCoachCopy").textContent=coach.copy;
       q("mockCoachReasons").innerHTML=coach.reasons.map(x=>`<div>${esc(x)}</div>`).join("");
       const comp=mockCompetitionFor(p),compBox=q("mockCompetition");
-      if(compBox)compBox.innerHTML=`<div class="mock-competition-head"><span>EXPECTED COMPETITION</span><strong class="${comp.className}">${comp.label} • ${comp.count} LIKELY</strong></div><div class="mock-competition-teams">${comp.teams.map((t,i)=>`<div><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • ${esc(t.personality)}</small></span><strong>${t.probability}%</strong></div>`).join("")||'<em>No clear rival bidder has emerged.</em>'}</div>`;
+      if(compBox)compBox.innerHTML=`<div class="mock-competition-head"><span>LIKELY BIDDERS</span><strong class="${comp.className}">${comp.label}</strong></div><div class="mock-competition-teams">${comp.teams.map((t,i)=>`<button type="button" class="team-scout-trigger" data-team-scout="mock" data-team-index="${t.index}" aria-label="Open scouting report for ${esc(t.name)}"><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • ${esc(t.personality)}</small></span><strong>${t.probability}%</strong></button>`).join("")||'<em>No clear rival bidder has emerged.</em>'}</div>`;
       q("mockBidOneBtn").disabled=!!n.userPassed||youLead;q("mockBidMaxBtn").disabled=!!n.userPassed||youLead||safe<=n.currentBid;q("mockPassBtn").disabled=!!n.userPassed||youLead;
     }else{
       updateAuctionClockDisplay(0);
@@ -678,6 +678,13 @@
     const log=q("mockLog");log.innerHTML=mock?.log?.length?mock.log.map((s,i)=>`<div><b>${mock.sales.length-i}</b><button type="button" class="player-link mock-log-player" data-dossier-player="${esc(s.player)}"><span>${esc(s.player)}<small>${s.pos} • ${esc(s.team)}</small></span></button><strong>$${s.price}</strong></div>`).join(""):'<div class="mock-muted">No sales yet.</div>';
     renderLeagueResults();
   }
+  function mockNeedLabel(team,pos){const score=mockTeamDemandScore(team,pos);return score>=70?'Very High':score>=52?'High':score>=34?'Moderate':score>=18?'Low':'Saturated';}
+  window.openMockTeamScout=function(index){
+    const team=mock?.teams?.[index];if(!team||typeof showTeamScout!=='function')return;
+    const roster=(team.roster||[]).length?(team.roster||[]).map(x=>`<div class="team-scout-player"><span><b>${esc(x.name)}</b><small>${esc(x.pos)}</small></span><strong>$${Number(x.price||0)}</strong></div>`).join(''):'<div class="team-scout-empty">No players drafted yet.</div>';
+    showTeamScout(`<div class="team-scout-kicker">MOCK ROOM SCOUTING</div><h2 id="teamScoutTitle">${esc(team.name)}</h2><div class="team-scout-owner">${esc(team.personality?.name||'Balanced')}</div><div class="team-scout-metrics"><div><span>BUDGET</span><strong>$${Number(team.budget||0)}</strong></div><div><span>MAX BID</span><strong>$${legalMax(team)}</strong></div><div><span>ROSTER</span><strong>${(team.roster||[]).length}/${totalSpots()}</strong></div></div><section><h3>ROSTER</h3><div class="team-scout-roster">${roster}</div></section><section><h3>POSITIONAL DEMAND</h3><div class="team-scout-needs">${['QB','RB','WR','TE'].map(pos=>`<div><span>${pos}</span><strong>${mockNeedLabel(team,pos)}</strong></div>`).join('')}</div></section><section><h3>DRAFT PERSONALITY</h3><div class="team-scout-personality">${esc(team.personality?.name||'Balanced')}</div></section>`);
+  };
+
   function init(){
     q("mockStartBtn")?.addEventListener("click",()=>{if(mock?.active&&!confirm("Restart this mock draft?"))return;startMock();});
     q("mockResetBtn")?.addEventListener("click",resetMock);

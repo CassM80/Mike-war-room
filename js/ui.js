@@ -84,10 +84,38 @@ function renderCompetitionPredictor(base){
   if(sale){box.classList.add("sold");level.textContent="FINAL";summary.textContent=`Drafted by ${teamLabelForSale(sale)} for ${money(sale.price)}.`;teams.innerHTML="";return;}
   const result=competitionForPlayer(base);
   box.classList.add(result.className);
-  level.textContent=`${result.label} • ${result.count} LIKELY`;
+  level.textContent=result.label;
   summary.textContent=result.summary;
-  teams.innerHTML=result.teams.length?result.teams.map((t,i)=>`<div class="competition-team"><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • Max ${money(t.maxBid)}</small></span><strong>${t.probability}%</strong></div>`).join(""):'<div class="competition-empty">No rival team currently projects as a likely bidder.</div>';
+  teams.innerHTML=result.teams.length?result.teams.map((t,i)=>`<button type="button" class="competition-team team-scout-trigger" data-team-scout="live" data-team-index="${t.index}" aria-label="Open scouting report for ${esc(t.name)}"><span><b>${i+1}</b>${esc(t.name)}<small>${esc(t.need)} • Max ${money(t.maxBid)}</small></span><strong>${t.probability}%</strong></button>`).join(""):'<div class="competition-empty">No rival team currently projects as a likely bidder.</div>';
 }
+
+function liveTeamPersonality(teamIndex){
+  const counts=teamPositionCounts(teamIndex),total=teamRosterCount(teamIndex);
+  if(!total)return 'No tendency established';
+  if(counts.QB>=2)return 'QB Heavy';
+  if(counts.RB>=Math.max(3,counts.WR+1))return 'RB Heavy';
+  if(counts.WR>=Math.max(4,counts.RB+1))return 'WR Collector';
+  return 'Balanced';
+}
+function teamNeedLabel(teamIndex,pos){
+  const value=typeof teamDemandFor==='function'?teamDemandFor(teamIndex,pos):null;
+  if(value?.tier?.label)return value.tier.label;
+  const need=teamPositionNeed(teamIndex,pos);
+  return need==='STARTER'?'Very High':need==='FLEX'||need==='SUPERFLEX'?'High':need==='BENCH'?'Moderate':'Low';
+}
+function openLiveTeamScout(teamIndex){
+  ensureTeams();
+  const team=leagueConfig.teams?.[teamIndex]||{}, sales=teamSales(teamIndex), remaining=teamRemainingBudget(teamIndex);
+  const maxBid=Math.max(0,remaining-Math.max(0,rosterSize()-teamRosterCount(teamIndex)-1));
+  const roster=sales.length?sales.map(s=>{const p=byName[s.player]||{};return `<div class="team-scout-player"><span><b>${esc(s.player)}</b><small>${esc(p.pos||'')}</small></span><strong>${money(s.price)}</strong></div>`}).join(''):'<div class="team-scout-empty">No players drafted yet.</div>';
+  showTeamScout(`<div class="team-scout-kicker">LIVE ROOM SCOUTING</div><h2 id="teamScoutTitle">${esc(team.teamName||`Team ${teamIndex+1}`)}</h2><div class="team-scout-owner">${esc(team.ownerName||'')}</div><div class="team-scout-metrics"><div><span>BUDGET</span><strong>${money(remaining)}</strong></div><div><span>MAX BID</span><strong>${money(maxBid)}</strong></div><div><span>ROSTER</span><strong>${teamRosterCount(teamIndex)}/${rosterSize()}</strong></div></div><section><h3>ROSTER</h3><div class="team-scout-roster">${roster}</div></section><section><h3>POSITIONAL DEMAND</h3><div class="team-scout-needs">${['QB','RB','WR','TE'].map(pos=>`<div><span>${pos}</span><strong>${esc(teamNeedLabel(teamIndex,pos))}</strong></div>`).join('')}</div></section><section><h3>DRAFT PERSONALITY</h3><div class="team-scout-personality">${esc(liveTeamPersonality(teamIndex))}</div></section>`);
+}
+function showTeamScout(html){
+  const drawer=$("teamScoutDrawer"),backdrop=$("teamScoutBackdrop"),content=$("teamScoutContent");if(!drawer||!backdrop||!content)return;
+  content.innerHTML=html;drawer.classList.remove('hidden');backdrop.classList.remove('hidden');backdrop.setAttribute('aria-hidden','false');document.body.classList.add('team-scout-open');
+}
+function closeTeamScout(){const drawer=$("teamScoutDrawer"),backdrop=$("teamScoutBackdrop");drawer?.classList.add('hidden');backdrop?.classList.add('hidden');backdrop?.setAttribute('aria-hidden','true');document.body.classList.remove('team-scout-open');}
+
 
 function renderRecommendation(base){
   const r=recommendationFor(base), box=$("recommendationEngine");

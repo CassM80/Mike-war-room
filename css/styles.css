@@ -971,3 +971,18 @@ body { overflow:auto; }
   }
   #warRoomView .meta { font-size:12px; }
 }
+
+
+/* Sprint 33.1.4 — Likely Bidders clarity and team scouting drawer */
+.competition-team,.mock-competition-teams>button{width:100%;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.competition-team:hover,.competition-team:focus-visible,.mock-competition-teams>button:hover,.mock-competition-teams>button:focus-visible{background:rgba(126,211,33,.09);outline:1px solid rgba(126,211,33,.5)}
+.mock-competition-teams>button{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 7px;background:rgba(255,255,255,.025)}
+.mock-competition-teams>button>strong{font-size:12px}
+.team-scout-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;backdrop-filter:blur(2px)}
+.team-scout-drawer{position:fixed;top:0;right:0;width:min(430px,92vw);height:100vh;z-index:9999;background:#10161a;border-left:1px solid var(--green);box-shadow:-18px 0 50px rgba(0,0,0,.55);padding:28px 24px;overflow:auto}
+.team-scout-close{position:absolute;right:16px;top:12px;border:0;background:transparent;color:#fff;font-size:34px;cursor:pointer}
+.team-scout-kicker{color:var(--green);font-size:10px;font-weight:900;letter-spacing:.15em}.team-scout-drawer h2{font-size:30px;margin:8px 40px 0 0}.team-scout-owner{color:var(--muted);margin-top:3px}
+.team-scout-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:20px 0}.team-scout-metrics>div{border:1px solid var(--line);padding:12px;background:rgba(255,255,255,.025)}.team-scout-metrics span,.team-scout-drawer h3{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.08em}.team-scout-metrics strong{display:block;font-size:20px;margin-top:5px}
+.team-scout-drawer section{margin-top:22px}.team-scout-roster{display:grid;gap:5px;margin-top:8px}.team-scout-player{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:8px 2px}.team-scout-player span{display:flex;gap:8px;align-items:center}.team-scout-player small{color:var(--muted)}
+.team-scout-needs{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:8px}.team-scout-needs>div{border:1px solid var(--line);padding:10px;display:flex;justify-content:space-between}.team-scout-needs strong{color:var(--green)}.team-scout-personality{margin-top:8px;border-left:3px solid var(--green);background:rgba(126,211,33,.08);padding:13px;font-weight:900}.team-scout-empty{color:var(--muted);padding:10px 0}.team-scout-open{overflow:hidden}
+@media(max-width:600px){.team-scout-drawer{padding:24px 18px}.team-scout-metrics{grid-template-columns:1fr}.team-scout-needs{grid-template-columns:1fr}}

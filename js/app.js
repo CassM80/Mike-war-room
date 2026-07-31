@@ -550,3 +550,16 @@ document.addEventListener("touchend",()=>clearTimeout(dossierLongPressTimer),{pa
 document.addEventListener("touchmove",()=>clearTimeout(dossierLongPressTimer),{passive:true});
 window.addEventListener("resize",()=>{if(dossierPreviewTarget)positionDossierQuickPreview(dossierPreviewTarget);});
 window.addEventListener("scroll",hideDossierQuickPreview,true);
+
+
+// Sprint 33.1.4 — interactive Likely Bidders team scouting.
+document.addEventListener('click',e=>{
+  const trigger=e.target.closest('[data-team-scout]');
+  if(trigger){
+    const index=Number(trigger.dataset.teamIndex);
+    if(trigger.dataset.teamScout==='mock'&&typeof window.openMockTeamScout==='function')window.openMockTeamScout(index);
+    else if(typeof openLiveTeamScout==='function')openLiveTeamScout(index);
+  }
+  if(e.target.id==='teamScoutClose'||e.target.id==='teamScoutBackdrop')closeTeamScout();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTeamScout();});
