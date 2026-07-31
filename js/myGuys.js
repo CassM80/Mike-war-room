@@ -42,6 +42,32 @@ function restrainedPersonalPricing(base,ev={}){
   return {market,value,hardStop,pct,conviction};
 }
 
+
+function generatedPricingFieldIsAuto(ev,field){
+  if(!ev)return true;
+  const source=field==='value'?ev.valueSource:ev.hardStopSource;
+  if(source==='manual')return false;
+  if(source==='auto')return true;
+  return String(ev.notes||'').startsWith('Position DNA:');
+}
+
+function syncAutomaticPersonalPricing(name,ev,options={}){
+  const base=byName[name];
+  if(!base||!ev)return ev;
+  const next=restrainedPersonalPricing(base,ev);
+  const force=!!options.force;
+  if(force||generatedPricingFieldIsAuto(ev,'value')){ev.value=next.value;ev.valueSource='auto';}
+  if(force||generatedPricingFieldIsAuto(ev,'hardStop')){ev.hardStop=next.hardStop;ev.hardStopSource='auto';}
+  ev.valuationModelVersion=3;
+  return ev;
+}
+
+function markPersonalPricingManual(ev,field){
+  if(!ev)return;
+  if(field==='value')ev.valueSource='manual';
+  if(field==='hardStop')ev.hardStopSource='manual';
+}
+
 function normalizeGeneratedPersonalValues(){
   let changed=0;
   Object.values(personalEvaluations||{}).forEach(ev=>{
@@ -49,8 +75,8 @@ function normalizeGeneratedPersonalValues(){
     const base=byName[ev.name];
     if(!base)return;
     const next=restrainedPersonalPricing(base,ev);
-    if(Number(ev.value)!==next.value||Number(ev.hardStop)!==next.hardStop||Number(ev.valuationModelVersion)!==2){
-      ev.value=next.value; ev.hardStop=next.hardStop; ev.valuationModelVersion=2; changed++;
+    if(Number(ev.value)!==next.value||Number(ev.hardStop)!==next.hardStop||Number(ev.valuationModelVersion)!==3){
+      ev.value=next.value; ev.hardStop=next.hardStop; ev.valueSource='auto'; ev.hardStopSource='auto'; ev.valuationModelVersion=3; changed++;
     }
   });
   if(changed)localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations));
@@ -147,6 +173,8 @@ function selectScoutingPlayer(name){
   renderScoutingDossier(base);
   $("scoutingEditorEmpty").classList.add("hidden"); $("scoutingEditorFields").classList.remove("hidden");
   $("evalRank").value=ev.rank??""; $("evalValue").value=ev.value??""; $("evalHardStop").value=ev.hardStop??""; $("evalTier").value=ev.tier??"";
+  $("evalValue").dataset.pricingSource=generatedPricingFieldIsAuto(ev,'value')?'auto':'manual';
+  $("evalHardStop").dataset.pricingSource=generatedPricingFieldIsAuto(ev,'hardStop')?'auto':'manual';
   renderConvictionPicker(ev.conviction??3);
   $("evalFlagPlant").checked=!!ev.flagPlant; $("evalSleeper").checked=!!ev.sleeper; $("evalAvoid").checked=!!ev.avoid; $("evalNotes").value=ev.notes||"";
 }
@@ -182,12 +210,12 @@ function bulkFilteredPlayers(){
 function renderBulkBoard(){
   const body=$("bulkBoardBody"); if(!body)return;
   const rows=bulkFilteredPlayers();
-  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td class="bulk-market-cell ${marketOverrideFor(p)?'is-edited':''}" title="${esc(marketPriceSource(p).label)}"><span class="market-dollar">$</span><input class="bulk-market" type="number" min="0" value="${consensusPriceFor(p)||''}" aria-label="Market price for ${esc(p.name)}">${marketOverrideFor(p)?'<small>EDITED</small>':(marketPriceSource(p).code==='ESTIMATE'?'<small>≈</small>':'')}</td><td title="${esc(marketRankSource(p))}"><strong>${marketRankFor(p)||"—"}</strong><small>${espnPositionRankFor(p)?`E${p.pos}${espnPositionRankFor(p)}`:""}${providerRankFor(p)?` • P${providerRankFor(p)}`:""}</small></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-my-guys" data-score="${normalizedConviction(ev.conviction)}">${myGuysStarsHTML(ev.conviction,"bulk-stars")}</td><td class="bulk-edge">${edgeHTML(playerEdge(p,ev))}</td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
+  body.innerHTML=rows.map(p=>{const ev=getPersonalEvaluation(p.name)||{};const key=playerKey(p.name);const ck=bulkSelected.has(key)?"checked":"";return `<tr data-bulk-player="${esc(p.name)}"><td class="bulk-check"><input class="bulk-select" type="checkbox" ${ck}></td><td class="bulk-player"><strong>${esc(p.name)}</strong><span>${esc(p.pos)}${p.team?" • "+esc(p.team):""}</span></td><td class="bulk-market-cell ${marketOverrideFor(p)?'is-edited':''}" title="${esc(marketPriceSource(p).label)}"><span class="market-dollar">$</span><input class="bulk-market" type="number" min="0" value="${consensusPriceFor(p)||''}" aria-label="Market price for ${esc(p.name)}">${marketOverrideFor(p)?'<small>EDITED</small>':(marketPriceSource(p).code==='ESTIMATE'?'<small>≈</small>':'')}</td><td title="${esc(marketRankSource(p))}"><strong>${marketRankFor(p)||"—"}</strong><small>${espnPositionRankFor(p)?`E${p.pos}${espnPositionRankFor(p)}`:""}${providerRankFor(p)?` • P${providerRankFor(p)}`:""}</small></td><td><input class="bulk-rank" type="number" min="1" value="${ev.rank||""}"></td><td><input class="bulk-tier" type="text" value="${esc(ev.tier||"")}"></td><td><input class="bulk-value" data-pricing-source="${generatedPricingFieldIsAuto(ev,'value')?'auto':'manual'}" type="number" min="0" value="${ev.value||""}"></td><td><input class="bulk-stop" data-pricing-source="${generatedPricingFieldIsAuto(ev,'hardStop')?'auto':'manual'}" type="number" min="0" value="${ev.hardStop||""}"></td><td class="bulk-my-guys" data-score="${normalizedConviction(ev.conviction)}">${myGuysStarsHTML(ev.conviction,"bulk-stars")}</td><td class="bulk-edge">${edgeHTML(playerEdge(p,ev))}</td><td class="bulk-flag"><input class="bulk-flagplant" type="checkbox" ${ev.flagPlant?"checked":""}></td><td class="bulk-flag"><input class="bulk-sleeper" type="checkbox" ${ev.sleeper?"checked":""}></td><td class="bulk-flag"><input class="bulk-avoid" type="checkbox" ${ev.avoid?"checked":""}></td><td><input class="bulk-notes" type="text" style="width:220px" value="${esc(ev.notes||"")}" placeholder="Quick note"></td></tr>`}).join("");
   $("bulkCount").textContent=`${rows.length} players shown • ${bulkSelected.size} selected`;
   $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
 }
 
-function saveBulkRow(tr){
+function saveBulkRow(tr,changedEl=null){
   if(window.__warRoomResetting)return;
   const name=tr.dataset.bulkPlayer, old=getPersonalEvaluation(name)||{};
   const marketInput=tr.querySelector('.bulk-market');
@@ -197,11 +225,15 @@ function saveBulkRow(tr){
     const baseline=baselineMarketFor(base);
     saveMarketOverride(base, entered&&Math.round(entered)!==baseline?entered:0);
   }
-  const ev={name,conviction:normalizedConviction(tr.querySelector('.bulk-my-guys')?.dataset.score||3),rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:false,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
+  const ev={...old,name,conviction:normalizedConviction(tr.querySelector('.bulk-my-guys')?.dataset.score||3),rank:Math.max(0,Number(tr.querySelector('.bulk-rank').value||0)),tier:tr.querySelector('.bulk-tier').value.trim(),value:Math.max(0,Number(tr.querySelector('.bulk-value').value||0)),hardStop:Math.max(0,Number(tr.querySelector('.bulk-stop').value||0)),favorite:false,flagPlant:tr.querySelector('.bulk-flagplant').checked,sleeper:tr.querySelector('.bulk-sleeper').checked,avoid:tr.querySelector('.bulk-avoid').checked,notes:tr.querySelector('.bulk-notes').value.trim(),updatedAt:new Date().toISOString()};
+  if(changedEl?.classList.contains('bulk-value')){markPersonalPricingManual(ev,'value');changedEl.dataset.pricingSource='manual';}
+  if(changedEl?.classList.contains('bulk-stop')){markPersonalPricingManual(ev,'hardStop');changedEl.dataset.pricingSource='manual';}
+  if(changedEl&&(changedEl.classList.contains('bulk-flagplant')||changedEl.classList.contains('bulk-sleeper')||changedEl.classList.contains('bulk-avoid')))syncAutomaticPersonalPricing(name,ev);
   if(ev.value&&ev.hardStop&&ev.hardStop<ev.value){tr.querySelector('.bulk-stop').value=old.hardStop||"";return alert(`Hard Stop cannot be below Your Value for ${name}.`);}
   const meaningful=ev.rank||ev.tier||ev.value||ev.hardStop||ev.conviction!==3||normalizedConviction(ev.conviction)!==3||ev.flagPlant||ev.sleeper||ev.avoid||ev.notes;
   if(meaningful)personalEvaluations[playerKey(name)]=ev;else delete personalEvaluations[playerKey(name)];
   savePersonalEvaluations(); renderPersonalBoard(); renderCore();
+  if(changedEl&&(changedEl.classList.contains('bulk-flagplant')||changedEl.classList.contains('bulk-sleeper')||changedEl.classList.contains('bulk-avoid')))renderBulkBoard();
   $("bulkSaveState").textContent="Saved"; clearTimeout(window.bulkSaveTimer); window.bulkSaveTimer=setTimeout(()=>$("bulkSaveState").textContent="",900);
 }
 
