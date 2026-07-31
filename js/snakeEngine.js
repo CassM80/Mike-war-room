@@ -275,18 +275,59 @@ function renderSnakeMarketAudit(){
   const fall=audit.largestFall,reach=audit.largestReach;
   el.innerHTML=`<div class="snake-audit-summary"><div><span>MARKET HEALTH</span><strong>${audit.health}/100</strong><small>${audit.avg.toFixed(1)} average pick deviation</small></div><div><span>LARGEST FALL</span><strong>${fall?esc(fall.player):'—'}</strong><small>${fall?`Expected ${fall.expected} • Pick ${fall.overall}`:'—'}</small></div><div><span>LARGEST REACH</span><strong>${reach?esc(reach.player):'—'}</strong><small>${reach?`Expected ${reach.expected} • Pick ${reach.overall}`:'—'}</small></div></div>${audit.warnings.length?`<div class="snake-audit-warnings"><strong>INTEGRITY FLAGS</strong>${audit.warnings.slice(0,5).map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:'<div class="snake-audit-good">No major market-integrity violations detected.</div>'}`;
 }
+
+const SNAKE_SELECTOR_KEY="warRoomSnakeSelectorPositionV1";
+function snakeSelectorCategories(){
+  const rules=snakeRosterRules();
+  const categories=[{value:"ALL",label:"All"},{value:"QB",label:"QB"},{value:"RB",label:"RB"},{value:"WR",label:"WR"},{value:"TE",label:"TE"},{value:"FLEX",label:"FLEX"}];
+  if(rules.SUPERFLEX>0)categories.push({value:"SUPERFLEX",label:"SUPERFLEX"});
+  if(rules.DEF>0)categories.push({value:"DEF",label:"DEF"});
+  if(rules.K>0)categories.push({value:"K",label:"K"});
+  return categories;
+}
+function snakePlayerMatchesCategory(player,category){
+  if(category==="ALL")return true;
+  if(category==="FLEX")return ["RB","WR","TE"].includes(player.pos);
+  if(category==="SUPERFLEX")return ["QB","RB","WR","TE"].includes(player.pos);
+  return player.pos===category;
+}
+function snakeSelectedCategory(){
+  const allowed=snakeSelectorCategories().map(x=>x.value);
+  const saved=localStorage.getItem(SNAKE_SELECTOR_KEY)||"ALL";
+  return allowed.includes(saved)?saved:"ALL";
+}
+function populateSnakePlayerSelector(preferredPlayer=""){
+  const posSelect=document.getElementById("snakePositionSelect"),playerSelect=document.getElementById("snakePlayerSelect");
+  if(!posSelect||!playerSelect)return;
+  const categories=snakeSelectorCategories(),current=categories.some(x=>x.value===posSelect.value)?posSelect.value:snakeSelectedCategory();
+  posSelect.innerHTML=categories.map(x=>`<option value="${x.value}">${x.label}</option>`).join("");
+  posSelect.value=current;
+  const rankMap=snakeLeagueRankMap();
+  const rows=snakeAvailablePlayers().filter(p=>snakePlayerMatchesCategory(p,current)).map(p=>({p,row:rankMap.get(playerKey(p.name))})).sort((a,b)=>Number(a.row?.expectedPick||9999)-Number(b.row?.expectedPick||9999)||a.p.name.localeCompare(b.p.name));
+  playerSelect.innerHTML=`<option value="">Choose player…</option>`+rows.map(({p,row})=>`<option value="${esc(p.name)}">${esc(p.name)} — ${p.pos} • ADP ${Math.round(Number(row?.expectedPick||9999))}</option>`).join("");
+  const exact=rows.find(x=>playerKey(x.p.name)===playerKey(preferredPlayer));
+  playerSelect.value=exact?exact.p.name:"";
+}
+function selectSnakePlayer(playerName){
+  const player=snakeAvailablePlayers().find(p=>playerKey(p.name)===playerKey(playerName));if(!player)return;
+  const posSelect=document.getElementById("snakePositionSelect");
+  if(posSelect){posSelect.value=player.pos;localStorage.setItem(SNAKE_SELECTOR_KEY,player.pos);}
+  populateSnakePlayerSelector(player.name);
+  document.getElementById("snakePlayerSelect")?.focus();
+}
+
 function renderSnakeRecommendations(current,order){
-  const box=document.getElementById("snakeRecommendations"),demandBox=document.getElementById("snakeBetweenPickDemand"),input=document.getElementById("snakePlayerInput"),list=document.getElementById("snakePlayerOptions"),record=document.getElementById("snakeRecordPickBtn");if(!box)return;
-  const available=snakeAvailablePlayers();
-  if(list)list.innerHTML=available.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${esc(p.name)}">${esc(p.pos)} • ${esc(p.team||"")}</option>`).join("");
+  const box=document.getElementById("snakeRecommendations"),demandBox=document.getElementById("snakeBetweenPickDemand"),playerSelect=document.getElementById("snakePlayerSelect"),positionSelect=document.getElementById("snakePositionSelect"),record=document.getElementById("snakeRecordPickBtn");if(!box)return;
+  populateSnakePlayerSelector(playerSelect?.value||"");
   const recommendations=snakeRecommendations(current,order,6,current?.slot||snakeDraftPosition());
   const isYours=current?.slot===snakeDraftPosition();
-  if(input){input.disabled=!current;input.placeholder=current?`Record ${snakeTeamLabel(current).replace(" • YOUR PICK","")}'s pick…`:"Draft complete";}
+  if(playerSelect)playerSelect.disabled=!current;
+  if(positionSelect)positionSelect.disabled=!current;
   if(record)record.disabled=!current;
   if(!current){box.innerHTML='<div class="snake-empty">Draft complete.</div>';if(demandBox)demandBox.innerHTML="";return;}
   const lead=recommendations[0];
   box.innerHTML=recommendations.map((r,i)=>`<button type="button" class="snake-rec-row ${i===0?'lead':''}" data-snake-player="${esc(r.base.name)}"><span class="snake-rec-rank">${i+1}</span><span class="snake-rec-player"><strong>${esc(r.base.name)}</strong><small>${esc(r.base.pos)} • League Rank ${r.leagueRank} • ${r.bpa>=0?'+':''}${r.bpa} pick value</small><em>${esc(r.explanation)}</em></span><span class="snake-rec-fit">${esc(r.fit.label)}</span></button>`).join("");
-  box.querySelectorAll("[data-snake-player]").forEach(btn=>btn.addEventListener("click",()=>{if(input){input.value=btn.dataset.snakePlayer;input.focus();}}));
+  box.querySelectorAll("[data-snake-player]").forEach(btn=>btn.addEventListener("click",()=>selectSnakePlayer(btn.dataset.snakePlayer)));
   const positions=["QB","RB","WR","TE"].filter(pos=>snakeAvailablePlayers().some(p=>p.pos===pos));
   if(demandBox){demandBox.innerHTML=`<div class="snake-demand-head"><strong>BETWEEN-PICKS DEMAND</strong><span>${snakeTeamsBeforeNext(current,order).length} selections before your next turn</span></div><div class="snake-demand-grid">${positions.map(pos=>{const d=snakeBetweenPickDemand(pos,current,order);return `<div class="snake-demand-card"><strong>${pos}</strong><span class="${d.level.toLowerCase().replace(' ','-')}">${d.level}</span><small>${d.strong} strong • ${d.active} active</small></div>`;}).join("")}</div>`;}
   const call=document.getElementById("snakeCall"),copy=document.getElementById("snakeCopy");
@@ -302,7 +343,7 @@ function snakeRecordPick(playerName,auto=false){
   snakeDraftState.picks.push({overall:current.overall,round:current.round,pickInRound:current.pickInRound,slot:current.slot,player:base.name,pos:base.pos,team:base.team||"",expectedPick:Number(marketRow?.expectedPick||current.overall),marketDeviation:current.overall-Number(marketRow?.expectedPick||current.overall),recordedAt:Date.now(),auto});
   snakeDraftState.completedPicks++;
   saveSnakeDraftState();
-  const input=document.getElementById("snakePlayerInput");if(input)input.value="";
+  const select=document.getElementById("snakePlayerSelect");if(select)select.value="";
   renderSnakeDraftFoundation();return true;
 }
 function renderSnakeDraftFoundation(){
@@ -340,8 +381,9 @@ function renderSnakeDraftFoundation(){
   renderSnakeMarketAudit();
   saveSnakeDraftState();
 }
-document.getElementById("snakeRecordPickBtn")?.addEventListener("click",()=>snakeRecordPick(document.getElementById("snakePlayerInput")?.value||""));
-document.getElementById("snakePlayerInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();snakeRecordPick(e.currentTarget.value);}});
+document.getElementById("snakeRecordPickBtn")?.addEventListener("click",()=>snakeRecordPick(document.getElementById("snakePlayerSelect")?.value||""));
+document.getElementById("snakePositionSelect")?.addEventListener("change",e=>{localStorage.setItem(SNAKE_SELECTOR_KEY,e.currentTarget.value);populateSnakePlayerSelector();});
+document.getElementById("snakePlayerSelect")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();snakeRecordPick(e.currentTarget.value);}});
 document.getElementById("snakeAdvanceBtn")?.addEventListener("click",()=>{const order=snakePickOrder(),current=order[snakeDraftState.completedPicks];if(!current)return;const pick=snakeAiSelectPlayer(current,order);if(pick)snakeRecordPick(pick.base.name,true);});
 document.getElementById("snakeResetBtn")?.addEventListener("click",()=>{snakeDraftState={completedPicks:0,picks:[]};saveSnakeDraftState();renderSnakeDraftFoundation();});
 updateDraftFormatUI();

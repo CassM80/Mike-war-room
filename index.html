@@ -318,9 +318,9 @@
         <div class="card-body">
           <div class="snake-call" id="snakeCall">ENGINE READY</div>
           <div class="snake-copy" id="snakeCopy">League-adjusted recommendations will react to every recorded selection.</div>
-          <div class="snake-pick-recorder" id="snakePickRecorder">
-            <input id="snakePlayerInput" type="search" list="snakePlayerOptions" autocomplete="off" placeholder="Search available player…" aria-label="Player selected at current pick">
-            <datalist id="snakePlayerOptions"></datalist>
+          <div class="snake-pick-recorder position-aware-selector" id="snakePickRecorder">
+            <label class="draft-selector-field"><span>POSITION</span><select id="snakePositionSelect" aria-label="Filter available players by position"></select></label>
+            <label class="draft-selector-field player-choice"><span>PLAYER</span><select id="snakePlayerSelect" aria-label="Player selected at current pick"></select></label>
             <button class="primary-btn" id="snakeRecordPickBtn" type="button">RECORD PICK</button>
           </div>
           <div class="snake-rec-error hidden" id="snakeRecError"></div>
@@ -368,9 +368,9 @@
             <div class="mock-nominator">YOUR TURN TO NOMINATE</div>
             <h3>Choose any available player</h3>
             <p>Your nomination starts at $1. The simulated room will immediately decide whether to bid.</p>
-            <div class="mock-nomination-picker">
-              <input id="mockNomineeInput" type="search" list="mockNomineeOptions" autocomplete="off" placeholder="Search player name…" aria-label="Player to nominate">
-              <datalist id="mockNomineeOptions"></datalist>
+            <div class="mock-nomination-picker position-aware-selector">
+              <label class="draft-selector-field"><span>POSITION</span><select id="mockPositionSelect" aria-label="Filter nomination players by position"></select></label>
+              <label class="draft-selector-field player-choice"><span>PLAYER</span><select id="mockNomineeSelect" aria-label="Player to nominate"></select></label>
               <button class="primary-btn" id="mockNominateBtn" type="button">NOMINATE PLAYER</button>
             </div>
             <div class="mock-nomination-error hidden" id="mockNominationError"></div>

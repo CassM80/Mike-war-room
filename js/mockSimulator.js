@@ -183,6 +183,39 @@
     return PLAYERS.filter(p=>["QB","RB","WR","TE","K","DEF"].includes(p.pos)&&!drafted(p.name))
       .sort((a,b)=>nominationRank(a)-nominationRank(b)||providerRank(a)-providerRank(b)||a.name.localeCompare(b.name));
   }
+  const MOCK_SELECTOR_KEY="warRoomMockSelectorPositionV1";
+  function mockSelectorCategories(){
+    const r=mockRules().roster||{};
+    const categories=[{value:"ALL",label:"All"},{value:"QB",label:"QB"},{value:"RB",label:"RB"},{value:"WR",label:"WR"},{value:"TE",label:"TE"},{value:"FLEX",label:"FLEX"}];
+    if(Number(r.superflex||0)>0)categories.push({value:"SUPERFLEX",label:"SUPERFLEX"});
+    if(Number(r.def||0)>0)categories.push({value:"DEF",label:"DEF"});
+    if(Number(r.k||0)>0)categories.push({value:"K",label:"K"});
+    return categories;
+  }
+  function mockPlayerMatchesCategory(player,category){
+    if(category==="ALL")return true;
+    if(category==="FLEX")return ["RB","WR","TE"].includes(player.pos);
+    if(category==="SUPERFLEX")return ["QB","RB","WR","TE"].includes(player.pos);
+    return player.pos===category;
+  }
+  function mockSelectedCategory(){
+    const allowed=mockSelectorCategories().map(x=>x.value),saved=localStorage.getItem(MOCK_SELECTOR_KEY)||"ALL";
+    return allowed.includes(saved)?saved:"ALL";
+  }
+  function populateMockNomineeSelector(preferredPlayer=""){
+    const posSelect=q("mockPositionSelect"),playerSelect=q("mockNomineeSelect");if(!posSelect||!playerSelect)return;
+    const categories=mockSelectorCategories(),current=categories.some(x=>x.value===posSelect.value)?posSelect.value:mockSelectedCategory();
+    posSelect.innerHTML=categories.map(x=>`<option value="${x.value}">${x.label}</option>`).join("");posSelect.value=current;
+    const rows=candidatePool().filter(p=>mockPlayerMatchesCategory(p,current)).sort((a,b)=>playerMarket(b)-playerMarket(a)||nominationRank(a)-nominationRank(b)||a.name.localeCompare(b.name));
+    playerSelect.innerHTML=`<option value="">Choose player…</option>`+rows.map(p=>`<option value="${esc(p.name)}">${esc(p.name)} — ${p.pos} • League Value $${playerMarket(p)}</option>`).join("");
+    const exact=rows.find(p=>p.name.toLowerCase()===String(preferredPlayer).toLowerCase());playerSelect.value=exact?exact.name:"";
+  }
+  function selectMockNominee(playerName){
+    const player=candidatePool().find(p=>p.name.toLowerCase()===String(playerName).toLowerCase());if(!player)return;
+    const posSelect=q("mockPositionSelect");if(posSelect){posSelect.value=player.pos;localStorage.setItem(MOCK_SELECTOR_KEY,player.pos);}
+    populateMockNomineeSelector(player.name);q("mockNomineeSelect")?.focus();
+  }
+
   function weightedChoice(items){
     const total=items.reduce((sum,x)=>sum+Math.max(.001,Number(x.score)||0),0);
     let roll=Math.random()*total;
@@ -365,7 +398,7 @@
       mock.awaitingUserNomination=true;
       mock.nomination=null;
       saveMock();renderMock();
-      setTimeout(()=>q("mockNomineeInput")?.focus(),0);
+      setTimeout(()=>q("mockNomineeSelect")?.focus(),0);
       return;
     }
     const p=pickNominee(nominator);
@@ -374,15 +407,15 @@
   }
   function submitUserNomination(){
     if(!mock?.active||!mock.awaitingUserNomination)return;
-    const input=q("mockNomineeInput"),error=q("mockNominationError");
-    const requested=String(input?.value||"").trim().toLowerCase();
+    const select=q("mockNomineeSelect"),error=q("mockNominationError");
+    const requested=String(select?.value||"").trim().toLowerCase();
     const p=candidatePool().find(x=>x.name.toLowerCase()===requested);
     if(!p){
-      if(error){error.textContent="Choose an available player from the list.";error.classList.remove("hidden");}
-      input?.focus();return;
+      if(error){error.textContent="Choose an available player from the ranked list.";error.classList.remove("hidden");}
+      select?.focus();return;
     }
     if(error)error.classList.add("hidden");
-    if(input)input.value="";
+    if(select)select.value="";
     beginNomination(myIndex(),p,{userChoice:true});
   }
   function bid(amount){
@@ -694,8 +727,7 @@
     q("mockUserNomination")?.classList.toggle("hidden",!awaitingNomination);
     q("mockLive").classList.toggle("hidden",!mock?.nomination);
     if(awaitingNomination){
-      const options=q("mockNomineeOptions");
-      if(options)options.innerHTML=candidatePool().map(p=>`<option value="${esc(p.name)}">${esc(p.pos)} • ${esc(p.team||"FA")} • League Value $${playerMarket(p)}</option>`).join("");
+      populateMockNomineeSelector(q("mockNomineeSelect")?.value||"");
       q("mockNominationError")?.classList.add("hidden");
     }
     q("mockResult").classList.toggle("hidden",!mock?.lastResult&& !mock?.complete);
@@ -746,7 +778,7 @@
     q("mockRoomSignal").textContent=mockRoomSignal();
     const rec=q("mockRecommended"),recommended=mockRecommendedPlayers();
     rec.innerHTML=recommended.length?recommended.map((x,i)=>`<div class="mock-rec-row" data-player="${esc(x.p.name)}"><span class="mock-rec-rank">${i+1}</span><span class="mock-rec-name">${esc(x.p.name)}<small>${esc(mockStarterNeedLabel(me,x.p))}</small></span><span class="mock-rec-price">$${playerMarket(x.p)}</span></div>`).join(""):'<div class="mock-muted">Start the room to generate live recommendations.</div>';
-    rec.querySelectorAll(".mock-rec-row").forEach(row=>row.addEventListener("click",()=>{const input=q("mockNomineeInput");if(input){input.value=row.dataset.player;} }));
+    rec.querySelectorAll(".mock-rec-row").forEach(row=>row.addEventListener("click",()=>selectMockNominee(row.dataset.player)));
     const roster=q("mockRoster");
     roster.innerHTML=me?.roster?.length?me.roster.map(x=>`<div><span>${esc(x.name)} <small>${x.pos}</small></span><strong>$${x.price}</strong></div>`).join(""):'<div class="mock-muted">Your roster is empty.</div>';
     const teams=q("mockTeams");
@@ -768,7 +800,8 @@
     q("mockBidMaxBtn")?.addEventListener("click",()=>{const p=byName[mock.nomination.player];bid(userSafeMax(p));});
     q("mockPassBtn")?.addEventListener("click",pass);
     q("mockNominateBtn")?.addEventListener("click",submitUserNomination);
-    q("mockNomineeInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submitUserNomination();}});
+    q("mockPositionSelect")?.addEventListener("change",e=>{localStorage.setItem(MOCK_SELECTOR_KEY,e.currentTarget.value);populateMockNomineeSelector();});
+    q("mockNomineeSelect")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submitUserNomination();}});
     q("mockNextBtn")?.addEventListener("click",()=>{clearAuctionRuntime();mock.lastResult=null;nextNomination();});
     document.addEventListener("visibilitychange",()=>{if(document.hidden)pauseAuctionClock();else resumeAuctionClock();});
     renderMock();

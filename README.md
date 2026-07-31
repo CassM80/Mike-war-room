@@ -1,3 +1,15 @@
+# Sprint 35.1.2 — Position-Aware Player Selectors
+
+- Snake Draft manual pick recording now uses a position category followed by a ranked available-player selector.
+- Snake categories are sorted by league-adjusted expected draft position.
+- Auction Mock nominations use the same two-step interaction and sort players by League Value.
+- FLEX includes RB/WR/TE; SUPERFLEX appears only in configured Superflex leagues and includes QB/RB/WR/TE.
+- K and DEF appear only when configured in Headquarters.
+- Drafted and sold players disappear immediately.
+- The last position category is remembered separately for Snake and Auction Mock.
+- Clicking Recommended Now or a snake recommendation selects that player automatically.
+- Mobile and tablet selectors use large touch-friendly controls.
+
 # Sprint 35.1.1 — Snake Draft Market Integrity
 
 Adds expected draft position, soft draft windows, faller urgency, restrained roster/personality modifiers, position safeguards, controlled AI variance, and a live market-integrity audit. Auction functionality remains unchanged.
