@@ -77,6 +77,7 @@ const RESET_INTENT_KEY = "warRoomResetIntent";
 })();
 let personalEvaluations = {};
 try { personalEvaluations = JSON.parse(localStorage.getItem(PERSONAL_EVAL_KEY) || "{}") || {}; } catch(e) { personalEvaluations = {}; }
+try { normalizeGeneratedPersonalValues(); } catch(e) { console.warn("Personal valuation migration skipped",e); }
 let scoutingSelectedName = null;
 const PROFILE_MODE_KEY = "warRoomProfileMode";
 let profileMode = localStorage.getItem(PROFILE_MODE_KEY);

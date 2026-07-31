@@ -16,20 +16,22 @@ function auctionObservedMarket(base){
 
 function auctionPersonalPremium(base,ev){
   if(!ev)return 0;
+  const market=Math.max(1,Number(marketValueFor(base)||0));
   const conviction=normalizedConviction(ev.conviction);
-  let premium={1:-10,2:-5,3:0,4:3,5:7}[conviction]||0;
-  if(ev.favorite)premium+=2;
-  if(ev.flagPlant)premium+=3;
-  if(ev.sleeper)premium+=1;
-  if(ev.avoid)premium-=12;
+  let pct=({1:-.15,2:-.07,3:0,4:.06,5:.12})[conviction]||0;
+  if(ev.favorite)pct+=.01;
+  if(ev.flagPlant)pct+=.02;
+  if(ev.sleeper)pct+=.01;
+  if(ev.avoid)pct=-.18;
   const need=positionNeed(base.pos);
-  if(need==='STARTER')premium+=2;
-  else if(need==='FLEX')premium+=1;
-  else if(need==='FULL')premium-=6;
+  if(need==='STARTER')pct+=.02;
+  else if(need==='FLEX')pct+=.01;
+  else if(need==='FULL')pct-=.05;
   const scarce=tierRemaining(base.pos,['1A','1B','2']);
-  if(scarce===1)premium+=3;
-  else if(scarce===2)premium+=2;
-  return premium;
+  if(scarce===1)pct+=.02;
+  else if(scarce===2)pct+=.01;
+  pct=auctionClamp(pct,-.20,.18);
+  return Math.round(market*pct);
 }
 
 function dynamicAuctionRecommendation(base,ev,options={}){

@@ -24,6 +24,39 @@ function getPersonalEvaluation(name){ return personalEvaluations[playerKey(name)
 
 function normalizedConviction(value){const n=Number(value);return Number.isFinite(n)&&n>=1&&n<=5?Math.round(n):3;}
 
+// Sprint 33.1.5 — conviction drives priority more than price.
+// Personal values bend League Value within a restrained band instead of replacing the market.
+function restrainedPersonalPricing(base,ev={}){
+  const market=Math.max(1,Math.round(Number(consensusPriceFor(base)||marketValueFor(base)||1)));
+  const conviction=normalizedConviction(ev.conviction);
+  let pct=({1:-.18,2:-.08,3:0,4:.08,5:.15})[conviction]||0;
+  if(ev.favorite)pct+=.02;
+  if(ev.flagPlant)pct+=.03;
+  if(ev.sleeper)pct+=.01;
+  if(ev.avoid)pct=-.20;
+  pct=Math.max(-.20,Math.min(.20,pct));
+  const value=Math.max(1,Math.round(market*(1+pct)));
+  const cushion=conviction<=1?0:conviction===2?1:conviction===3?Math.max(1,Math.round(market*.04)):conviction===4?Math.max(2,Math.round(market*.06)):Math.max(3,Math.round(market*.08));
+  const stopCap=Math.max(value,Math.round(market*1.28));
+  const hardStop=Math.max(value,Math.min(stopCap,value+cushion));
+  return {market,value,hardStop,pct,conviction};
+}
+
+function normalizeGeneratedPersonalValues(){
+  let changed=0;
+  Object.values(personalEvaluations||{}).forEach(ev=>{
+    if(!String(ev?.notes||'').startsWith('Position DNA:'))return;
+    const base=byName[ev.name];
+    if(!base)return;
+    const next=restrainedPersonalPricing(base,ev);
+    if(Number(ev.value)!==next.value||Number(ev.hardStop)!==next.hardStop||Number(ev.valuationModelVersion)!==2){
+      ev.value=next.value; ev.hardStop=next.hardStop; ev.valuationModelVersion=2; changed++;
+    }
+  });
+  if(changed)localStorage.setItem(PERSONAL_EVAL_KEY,JSON.stringify(personalEvaluations));
+  return changed;
+}
+
 function convictionLabel(score){return ({1:"Avoid",2:"Discount Only",3:"Neutral",4:"Strong Target",5:"Plant the Flag"})[normalizedConviction(score)];}
 
 function convictionStars(score){const n=normalizedConviction(score);return "★".repeat(n)+"☆".repeat(5-n);}
