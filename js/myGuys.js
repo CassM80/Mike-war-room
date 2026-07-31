@@ -215,6 +215,25 @@ function renderBulkBoard(){
   $("bulkSelectAll").checked=rows.length>0&&rows.every(p=>bulkSelected.has(playerKey(p.name)));
 }
 
+function refreshBulkRowDerivedDisplays(tr,evOverride=null){
+  if(!tr)return;
+  const name=tr.dataset.bulkPlayer;
+  const base=byName[name];
+  const ev=evOverride||getPersonalEvaluation(name)||{};
+  const valueInput=tr.querySelector('.bulk-value');
+  const stopInput=tr.querySelector('.bulk-stop');
+  if(valueInput&&generatedPricingFieldIsAuto(ev,'value')){
+    valueInput.value=ev.value||'';
+    valueInput.dataset.pricingSource='auto';
+  }
+  if(stopInput&&generatedPricingFieldIsAuto(ev,'hardStop')){
+    stopInput.value=ev.hardStop||'';
+    stopInput.dataset.pricingSource='auto';
+  }
+  const edgeCell=tr.querySelector('.bulk-edge');
+  if(edgeCell&&base)edgeCell.innerHTML=edgeHTML(playerEdge(base,ev));
+}
+
 function saveBulkRow(tr,changedEl=null){
   if(window.__warRoomResetting)return;
   const name=tr.dataset.bulkPlayer, old=getPersonalEvaluation(name)||{};
@@ -232,7 +251,9 @@ function saveBulkRow(tr,changedEl=null){
   if(ev.value&&ev.hardStop&&ev.hardStop<ev.value){tr.querySelector('.bulk-stop').value=old.hardStop||"";return alert(`Hard Stop cannot be below Your Value for ${name}.`);}
   const meaningful=ev.rank||ev.tier||ev.value||ev.hardStop||ev.conviction!==3||normalizedConviction(ev.conviction)!==3||ev.flagPlant||ev.sleeper||ev.avoid||ev.notes;
   if(meaningful)personalEvaluations[playerKey(name)]=ev;else delete personalEvaluations[playerKey(name)];
-  savePersonalEvaluations(); renderPersonalBoard(); renderCore();
+  savePersonalEvaluations();
+  refreshBulkRowDerivedDisplays(tr,ev);
+  renderPersonalBoard(); renderCore();
   if(changedEl&&(changedEl.classList.contains('bulk-flagplant')||changedEl.classList.contains('bulk-sleeper')||changedEl.classList.contains('bulk-avoid')))renderBulkBoard();
   $("bulkSaveState").textContent="Saved"; clearTimeout(window.bulkSaveTimer); window.bulkSaveTimer=setTimeout(()=>$("bulkSaveState").textContent="",900);
 }
