@@ -314,10 +314,18 @@
     </div>
     <div class="snake-foundation-grid">
       <section class="workspace-card snake-now-card">
-        <div class="card-head">SNAKE DRAFT FOUNDATION</div>
+        <div class="card-head">SNAKE RECOMMENDATION ENGINE <span class="live-label">LIVE</span></div>
         <div class="card-body">
-          <div class="snake-call" id="snakeCall">FOUNDATION READY</div>
-          <div class="snake-copy" id="snakeCopy">Headquarters is generating a league-aware snake order without changing your auction draft.</div>
+          <div class="snake-call" id="snakeCall">ENGINE READY</div>
+          <div class="snake-copy" id="snakeCopy">League-adjusted recommendations will react to every recorded selection.</div>
+          <div class="snake-pick-recorder" id="snakePickRecorder">
+            <input id="snakePlayerInput" type="search" list="snakePlayerOptions" autocomplete="off" placeholder="Search available player…" aria-label="Player selected at current pick">
+            <datalist id="snakePlayerOptions"></datalist>
+            <button class="primary-btn" id="snakeRecordPickBtn" type="button">RECORD PICK</button>
+          </div>
+          <div class="snake-rec-error hidden" id="snakeRecError"></div>
+          <div class="snake-recommendations" id="snakeRecommendations"></div>
+          <div class="snake-demand-panel" id="snakeBetweenPickDemand"></div>
           <div class="snake-turn-strip" id="snakeTurnStrip"></div>
         </div>
       </section>

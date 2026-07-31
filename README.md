@@ -213,3 +213,7 @@ Player references across the live War Room now share a universal tap/click behav
 - Added league-aware snake draft position and complete alternating pick order.
 - Added isolated snake draft state, current pick, next user pick, and picks-until-turn tracking.
 - Added a dedicated Snake Draft command center without changing auction state or workflows.
+
+
+## Sprint 35.1 — Snake Recommendation Engine
+Adds league-adjusted snake rankings, roster fit, tier cliffs, BPA value, between-picks demand, recommendation explanations, and functional isolated pick recording.
