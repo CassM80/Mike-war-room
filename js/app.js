@@ -135,7 +135,7 @@ const MARKET = new Set(["Ja'Marr Chase", "Justin Jefferson", "Puka Nacua", "Amon
 const state = JSON.parse(localStorage.getItem("warRoomState") || "null") || {
   budget:200, sales:[], roster:{}, selected:null
 };
-const defaultLeagueConfig = {leagueName:"", teamCount:12, budget:200, scoring:"PPR", keepers:0, keeperBudget:0, myTeamIndex:0, roster:{qb:1,rb:2,wr:2,te:1,flex:2,superflex:0,k:1,def:1,bench:7}, teams:[]};
+const defaultLeagueConfig = {leagueName:"", draftFormat:"auction", draftPosition:1, teamCount:12, budget:200, scoring:"PPR", keepers:0, keeperBudget:0, myTeamIndex:0, roster:{qb:1,rb:2,wr:2,te:1,flex:2,superflex:0,k:1,def:1,bench:7}, teams:[]};
 let leagueConfig = {...defaultLeagueConfig, ...(JSON.parse(localStorage.getItem("warRoomLeagueConfig") || "null") || {})}; leagueConfig.roster={...defaultLeagueConfig.roster,...(leagueConfig.roster||{})};
 const $ = id=>document.getElementById(id);
 const money=n=>"$"+Math.round(Number(n||0));
@@ -356,14 +356,18 @@ document.querySelectorAll(".nav-tab").forEach(btn=>btn.addEventListener("click",
   btn.classList.add("active"); $(btn.dataset.view).classList.add("active");
   if(btn.dataset.view==="warRoomView") setTimeout(setAppHeight,20);
   if(btn.dataset.view==="headquartersView") renderPersonalBoard();
+  if(btn.dataset.view==="snakeDraftView" && typeof renderSnakeDraftFoundation==="function") renderSnakeDraftFoundation();
   if(btn.dataset.view==="debriefView") updateResetSummary();
 }));
 $("teamCountInput").addEventListener("change",()=>{
   collectTeamsFromEditor(); leagueConfig.teamCount=Number($("teamCountInput").value); ensureTeams(); renderTeamsEditor();
+  if(typeof renderDraftPositionOptions==="function")renderDraftPositionOptions();
 });
 $("saveLeagueBtn").addEventListener("click",()=>{
   collectTeamsFromEditor();
   leagueConfig.leagueName=$("leagueNameInput").value.trim();
+  leagueConfig.draftFormat=$("draftFormatInput")?.value||"auction";
+  leagueConfig.draftPosition=Math.max(1,Number($("draftPositionInput")?.value||leagueConfig.myTeamIndex+1||1));
   leagueConfig.teamCount=Number($("teamCountInput").value||12);
   leagueConfig.budget=Math.max(1,Number($("leagueBudgetInput").value||200));
   leagueConfig.scoring=$("scoringInput").value;
@@ -385,7 +389,7 @@ $("shareLeagueBtn").addEventListener("click",shareLeague);
 $("importBackupBtn").addEventListener("click",()=>$("importBackupFile").click());
 $("importBackupFile").addEventListener("change",async e=>{const f=e.target.files[0]; if(!f)return; try{importBackupObject(JSON.parse(await f.text()));}catch(err){alert(err.message||"Could not import backup.");} e.target.value="";});
 $("newDraftBtn").addEventListener("click",()=>{if(confirm("Clear all sales, rosters and live-draft intelligence while keeping this league and personal board?")){applyFreshDraft();setResetStatus("New draft ready.");}});
-$("newLeagueBtn").addEventListener("click",()=>{if(!confirm("Start a new league while keeping your personal board?"))return; applyFreshDraft(); leagueConfig={...defaultLeagueConfig,teams:[]}; ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll(); updateResetSummary(); setResetStatus("New league ready.");});
+$("newLeagueBtn").addEventListener("click",()=>{if(!confirm("Start a new league while keeping your personal board?"))return; applyFreshDraft(); leagueConfig={...defaultLeagueConfig,roster:{...defaultLeagueConfig.roster},teams:[]}; ensureTeams(); saveLeagueConfig(); renderLeagueSetup(); renderAll(); updateResetSummary(); setResetStatus("New league ready.");});
 $("clearBoardBtn").addEventListener("click",()=>{
   if(!confirm("Clear every personal ranking, tier, value, hard stop, flag, note and Draft DNA result in this browser?")) return;
   clearPersonalBoard();
@@ -394,6 +398,12 @@ $("shareSafeResetBtn").addEventListener("click",()=>{
   if(!confirm("This will erase the league, draft, personal board and Draft DNA from this browser. Continue?")) return;
   fullCleanReset();
 });
+$("draftFormatInput")?.addEventListener("change",()=>{
+  leagueConfig.draftFormat=$("draftFormatInput").value||"auction";
+  if(typeof updateDraftFormatUI==="function")updateDraftFormatUI();
+  previewLeagueValuationFromHeadquarters();
+});
+$("draftPositionInput")?.addEventListener("change",()=>{leagueConfig.draftPosition=Number($("draftPositionInput").value||1);if(typeof renderSnakeDraftFoundation==="function")renderSnakeDraftFoundation();});
 renderTeamCountOptions(); renderLeagueSetup(); renderWinnerOptions(); renderPersonalBoard(); renderBulkBoard(); updateResetSummary();
 
 let lastClockMinute='';setInterval(()=>{const now=new Date(),key=`${now.getHours()}:${now.getMinutes()}`;if(key!==lastClockMinute){lastClockMinute=key;$("clock").textContent=now.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}},1000);
@@ -413,9 +423,11 @@ loadCompletePlayerUniverse().then(()=>{hydrateMarketSyncCache();renderMarketCove
 
 // Sprint 29.0 — Headquarters valuation preview.
 // Changes recalculate the board immediately; SAVE LEAGUE persists them.
-const valuationSettingIds=["teamCountInput","leagueBudgetInput","scoringInput","qbSlotsInput","rbSlotsInput","wrSlotsInput","teSlotsInput","flexSlotsInput","superflexSlotsInput","kSlotsInput","defSlotsInput","benchSlotsInput","keeperCountInput","keeperBudgetInput"];
+const valuationSettingIds=["draftFormatInput","draftPositionInput","teamCountInput","leagueBudgetInput","scoringInput","qbSlotsInput","rbSlotsInput","wrSlotsInput","teSlotsInput","flexSlotsInput","superflexSlotsInput","kSlotsInput","defSlotsInput","benchSlotsInput","keeperCountInput","keeperBudgetInput"];
 let valuationPreviewTimer=0;
 function previewLeagueValuationFromHeadquarters(){
+  leagueConfig.draftFormat=$("draftFormatInput")?.value||leagueConfig.draftFormat||"auction";
+  leagueConfig.draftPosition=Math.max(1,Number($("draftPositionInput")?.value||leagueConfig.draftPosition||1));
   leagueConfig.teamCount=Math.max(2,Number($("teamCountInput").value||12));
   leagueConfig.budget=Math.max(1,Number($("leagueBudgetInput").value||200));
   leagueConfig.scoring=$("scoringInput").value||"PPR";
@@ -426,8 +438,10 @@ function previewLeagueValuationFromHeadquarters(){
   invalidateDraftPerformanceCaches();
   clearTimeout(valuationPreviewTimer);
   valuationPreviewTimer=setTimeout(()=>{
+    if(typeof updateDraftFormatUI==="function")updateDraftFormatUI();
+    $("summaryFormat").textContent=(leagueConfig.draftFormat||"auction").toUpperCase();
     $("summaryTeams").textContent=leagueConfig.teamCount;
-    $("summaryBudget").textContent=money(leagueConfig.budget);
+    $("summaryBudget").textContent=leagueConfig.draftFormat==="snake"?`PICK ${leagueConfig.draftPosition||1}`:money(leagueConfig.budget); if($("summaryBudgetLabel"))$("summaryBudgetLabel").textContent=leagueConfig.draftFormat==="snake"?"YOUR SLOT":"PER TEAM";
     $("summaryScoring").textContent=leagueConfig.scoring;
     $("summaryRoster").textContent=rosterSize();
     $("navLeagueStatus").textContent=(leagueConfig.leagueName||"Unnamed League")+" • "+leagueConfig.teamCount+" teams • "+money(leagueConfig.budget);

@@ -21,6 +21,7 @@
     <button class="nav-tab" data-view="scoutingView">DRAFT PREP</button>
     <button class="nav-tab active" data-view="warRoomView">WAR ROOM</button>
     <button class="nav-tab" data-view="mockDraftView">MOCK DRAFT</button>
+    <button class="nav-tab snake-only hidden" data-view="snakeDraftView" id="snakeDraftTab">SNAKE DRAFT</button>
     <button class="nav-tab" data-view="debriefView">DEBRIEF</button>
   </div>
   <div class="nav-status" id="navLeagueStatus">League setup not completed</div>
@@ -36,8 +37,10 @@
         <div class="card-body">
           <div class="form-grid">
             <div class="form-field full"><label>LEAGUE NAME</label><input id="leagueNameInput" placeholder="Cassidy Auction League"></div>
+            <div class="form-field"><label>DRAFT FORMAT</label><select id="draftFormatInput"><option value="auction">Auction</option><option value="snake">Snake</option></select></div>
             <div class="form-field"><label>NUMBER OF TEAMS</label><select id="teamCountInput"></select></div>
-            <div class="form-field"><label>BUDGET PER TEAM</label><input id="leagueBudgetInput" type="number" min="1" step="1"></div>
+            <div class="form-field auction-setting" id="auctionBudgetField"><label>BUDGET PER TEAM</label><input id="leagueBudgetInput" type="number" min="1" step="1"></div>
+            <div class="form-field snake-setting hidden" id="snakeDraftPositionField"><label>YOUR DRAFT POSITION</label><select id="draftPositionInput"></select></div>
             <div class="form-field"><label>SCORING</label><select id="scoringInput"><option>PPR</option><option>Half PPR</option><option>Standard</option></select></div>
             <div class="form-field"><label>YOUR TEAM</label><select id="myTeamInput"></select></div>
             <div class="form-field"><label>STARTING QB</label><select id="qbSlotsInput"></select></div>
@@ -55,8 +58,9 @@
           <div class="form-actions"><button class="primary-btn" id="saveLeagueBtn">SAVE LEAGUE</button></div>
           <div class="saved-note" id="leagueSavedNote"></div>
           <div class="hq-summary">
+            <div class="summary-box"><strong id="summaryFormat">AUCTION</strong><span>FORMAT</span></div>
             <div class="summary-box"><strong id="summaryTeams">12</strong><span>TEAMS</span></div>
-            <div class="summary-box"><strong id="summaryBudget">$200</strong><span>PER TEAM</span></div>
+            <div class="summary-box"><strong id="summaryBudget">$200</strong><span id="summaryBudgetLabel">PER TEAM</span></div>
             <div class="summary-box"><strong id="summaryScoring">PPR</strong><span>SCORING</span></div>
             <div class="summary-box"><strong id="summaryRoster">17</strong><span>ROSTER SPOTS</span></div>
           </div>
@@ -295,6 +299,40 @@
 </div>
 </section>
 
+<section id="snakeDraftView" class="app-view">
+  <div class="workspace snake-workspace">
+    <div class="snake-title-row">
+      <div><h2>SNAKE DRAFT COMMAND CENTER</h2><p class="lead">League-aware pick order and turn tracking. Auction draft state remains completely separate.</p></div>
+      <div class="snake-title-actions"><button class="secondary-btn" id="snakeResetBtn" type="button">RESET SNAKE</button><button class="primary-btn" id="snakeAdvanceBtn" type="button">ADVANCE TEST PICK</button></div>
+    </div>
+    <div class="snake-stats">
+      <div class="snake-stat"><span>CURRENT PICK</span><strong id="snakeCurrentPick">1.01</strong><small id="snakeCurrentTeam">Team 1</small></div>
+      <div class="snake-stat"><span>YOUR NEXT PICK</span><strong id="snakeNextPick">1.01</strong><small id="snakeNextPickOverall">Overall 1</small></div>
+      <div class="snake-stat"><span>PICKS UNTIL YOU</span><strong id="snakePicksAway">0</strong><small id="snakeTurnStatus">ON THE CLOCK</small></div>
+      <div class="snake-stat"><span>DRAFT POSITION</span><strong id="snakeDraftSlot">1 / 12</strong><small id="snakeDirection">Round 1 • Forward</small></div>
+      <div class="snake-stat"><span>ROUNDS</span><strong id="snakeRounds">17</strong><small id="snakeTotalPicks">204 total picks</small></div>
+    </div>
+    <div class="snake-foundation-grid">
+      <section class="workspace-card snake-now-card">
+        <div class="card-head">SNAKE DRAFT FOUNDATION</div>
+        <div class="card-body">
+          <div class="snake-call" id="snakeCall">FOUNDATION READY</div>
+          <div class="snake-copy" id="snakeCopy">Headquarters is generating a league-aware snake order without changing your auction draft.</div>
+          <div class="snake-turn-strip" id="snakeTurnStrip"></div>
+        </div>
+      </section>
+      <section class="workspace-card snake-your-picks-card">
+        <div class="card-head">YOUR PICK MAP</div>
+        <div class="card-body"><div id="snakeYourPicks" class="snake-your-picks"></div></div>
+      </section>
+      <section class="workspace-card snake-board-card">
+        <div class="card-head">COMPLETE SNAKE ORDER</div>
+        <div class="card-body"><div id="snakeOrderBoard" class="snake-order-board"></div></div>
+      </section>
+    </div>
+  </div>
+</section>
+
 <section id="mockDraftView" class="app-view">
   <div class="workspace mock-workspace">
     <div class="mock-title-row">
@@ -459,6 +497,7 @@
 <script src="./js/mobileWarRoom.js"></script>
 <script src="./js/app.js"></script>
 <script src="./js/mockSimulator.js"></script>
+<script src="./js/snakeEngine.js"></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js"));}</script>
 
 

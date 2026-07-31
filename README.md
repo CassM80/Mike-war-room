@@ -206,3 +206,10 @@ Player references across the live War Room now share a universal tap/click behav
 - Mobile long-press shows the same preview without changing draft state.
 - The currently open dossier player is highlighted everywhere the name appears.
 - Preserved the shared Sprint 32.3 click-to-open behavior and mobile dossier scrolling.
+
+
+## Sprint 35.0 — Snake Draft Foundation
+- Added Auction/Snake format selection in Headquarters.
+- Added league-aware snake draft position and complete alternating pick order.
+- Added isolated snake draft state, current pick, next user pick, and picks-until-turn tracking.
+- Added a dedicated Snake Draft command center without changing auction state or workflows.
